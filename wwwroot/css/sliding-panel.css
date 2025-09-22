@@ -3,43 +3,46 @@
     position: fixed;
     top: 0;
     right: -100%; /* Start off-screen */
-    width: 100%;
-    height: 100%;
-    background-color: #fff; /* Or your theme's background color */
-    z-index: 1050; /* Higher than the main content */
-    transition: right 0.3s ease-in-out;
+
+    /* --- Fix for Width Issue --- */
+    width: 100%; /* Take full width on small screens */
+    max-width: 480px; /* But not more than 480px on larger screens */
+    left: 0;
+    right: 0;
+    margin: auto;
+    transform: translateX(150%); /* Start off-screen to the right */
+
+
+    /* --- Fix for Scrolling Issue --- */
+    height: 100vh; /* Full viewport height */
+    background-color: #fff;
+    z-index: 1050;
     display: flex;
     flex-direction: column;
-    box-shadow: -5px 0 15px rgba(0,0,0,0.1);
-}
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
 
-.chat-details-panel-container.visible {
-    right: 0; /* Slide in */
-}
-
-/* This will be the main view with the chat list */
-#main-content-body {
+    /* --- Animation --- */
     transition: transform 0.3s ease-in-out;
 }
 
-/* When panel is visible, we can optionally push the main content to the left */
-body.panel-visible #main-content-body {
-    transform: translateX(-100px); /* Example push effect */
-    opacity: 0.5;
+.chat-details-panel-container.visible {
+    transform: translateX(0); /* Slide in to the center */
 }
 
+/* --- Child element adjustments for scrolling --- */
 
-/* Make sure the panel content is scrollable if it overflows */
-.chat-details-panel-container .chat-content {
-    flex-grow: 1;
-    overflow-y: auto;
+/* The header from _ChatMessageBody.cshtml */
+.chat-details-panel-container .main-header {
+    flex-shrink: 0; /* Header should not shrink */
 }
 
-/* Ensure the header and footer are fixed within the panel */
-.chat-details-panel-container .chat-header {
-    flex-shrink: 0;
+/* The main content area from _ChatMessageBody.cshtml */
+.chat-details-panel-container #chat_content {
+    flex-grow: 1; /* This makes the content area take up all available space */
+    overflow-y: auto; /* Enable vertical scrolling ONLY on this element */
 }
 
-.chat-details-panel-container .chat-footer {
-    flex-shrink: 0;
+/* The footer from _ChatMessageBody.cshtml */
+.chat-details-panel-container .messages-panel {
+    flex-shrink: 0; /* Footer should not shrink */
 }
