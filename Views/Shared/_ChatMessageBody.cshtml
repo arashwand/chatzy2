@@ -90,7 +90,7 @@
 
                 <div class="dropdown-menu dropdown-menu-left">
                     <a class="dropdown-item align-items-center d-flex" href="#" onclick="GetChatMembers('@classGroupId', '@chatType')">
-                        <i class="fa fa-users"></i>&nbsp;
+                        <i class="iconsax" data-icon="group"></i>&nbsp;
                         <span>اعضای گروه</span>
                     </a>
                     <a class="dropdown-item align-items-center d-flex" href="#">
@@ -290,7 +290,7 @@
                                                             {
                                                                 <div class="audio-player-container">
                                                                     <button class="voice-download-btn" data-file-id="@file.MessageFileId">
-                                                                        <i class="fa fa-download"></i>
+                                                                        <i class="iconsax" data-icon="arrow-down-2"></i>
                                                                         <i class="fa fa-spinner fa-spin"></i>
                                                                     </button>
                                                                     <div class="file-meta text-light mx-1 text-dark">@FileSizeConverter.ConvertToReadableSize(@file.FileSize)</div>
@@ -299,7 +299,7 @@
                                                             }
                                                             else
                                                             {
-                                                                <i class="fa fa-file-o fa-3x"></i>
+                                                                <i class="iconsax" data-icon="document-text-1" style="font-size: 3em;"></i>
                                                                 @FileNameShorter.ShortenFileName(file.OriginalFileName ?? "")
 
                                                             }
@@ -346,7 +346,7 @@
                                                     {
                                                         <div class="audio-player-container">
                                                             <button class="voice-download-btn" data-file-id="@file.MessageFileId">
-                                                                <i class="fa fa-download"></i>
+                                                                <i class="iconsax" data-icon="arrow-down-2"></i>
                                                                 <i class="fa fa-spinner fa-spin"></i>
                                                             </button>
                                                             <div class="file-meta text-light mx-1 text-dark">@FileSizeConverter.ConvertToReadableSize(@file.FileSize)</div>
@@ -355,12 +355,12 @@
                                                     }
                                                     else
                                                     {
-                                                        <i class="fa fa-file-o fa-3x"></i>
+                                                        <i class="iconsax" data-icon="document-text-1" style="font-size: 3em;"></i>
                                                         @FileNameShorter.ShortenFileName(file.OriginalFileName ?? "")
                                                         <span style="min-width:75px;" class="btn-download-file" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
                                                             @FileSizeConverter.ConvertToReadableSize(@file.FileSize)
 
-                                                            <i class="fa fa-download" style="cursor:pointer"></i>
+                                                            <i class="iconsax" data-icon="arrow-down-2" style="cursor:pointer"></i>
                                                         </span>
                                                     }
 
@@ -412,25 +412,25 @@
                                     @if (message.SenderUserId == selfUserId)
                                     {
                                         <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageId="@message.MessageId" href="#">
-                                            <i class="fa fa-edit"></i>&nbsp;
+                                            <i class="iconsax" data-icon="edit-1"></i>&nbsp;
                                             <span> ویرایش</span>
                                         </a>
                                     }
 
 
                                     <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageId="@message.MessageId" href="#">
-                                        <i class="fa fa-reply"></i>&nbsp;
+                                        <i class="iconsax" data-icon="reply"></i>&nbsp;
                                         <span> پاسخ دادن</span>
                                     </a>
 
 
                                     <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageId="@message.MessageId" href="#">
-                                        <i class="fa fa-save"></i>&nbsp;
+                                        <i class="iconsax" data-icon="star"></i>&nbsp;
                                         <span> ذخیره</span>
                                     </a>
 
                                     <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageId="@message.MessageId" href="#">
-                                        <i class="fa fa-trash"></i>&nbsp;
+                                        <i class="iconsax" data-icon="trash"></i>&nbsp;
                                         <span> حذف</span>
                                     </a>
                                 </div>
@@ -484,7 +484,7 @@
                     <!-- Attachment Start -->
                     <div class="input-group-prepend mr-sm-2 mr-1">
                         <button class="btn btn-secondary btn-icon btn-minimal btn-sm" onclick="$('#fileInput').click();" type="button">
-                            <i class="fa fa-paperclip" aria-hidden="true"></i>
+                            <i class="iconsax" data-icon="paperclip-2"></i>
                         </button>
 
                     </div>
@@ -493,7 +493,7 @@
 
                     <div class="input-group-prepend mr-sm-2 mr-1">
                         <button class="btn btn-secondary btn-icon btn-minimal btn-sm btn-record-voice" type="button">
-                            <i class="fa fa-microphone" aria-hidden="true"></i>
+                            <i class="iconsax" data-icon="mic-2"></i>
                         </button>
                     </div>
 
@@ -549,7 +549,7 @@
             <!-- Submit Button Start -->
             <div class="col-auto col-auto-input">
                 <div class="btn btn-primary btn-icon rounded-circle text-light mb-1" id="send-message-button" role="button">
-                    <i class="fa fa-paper-plane" aria-hidden="true"></i>
+                    <i class="iconsax" data-icon="send-2"></i>
                 </div>
             </div>
             <!-- Submit Button End-->
