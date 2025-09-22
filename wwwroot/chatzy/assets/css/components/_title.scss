@@ -1,0 +1,19 @@
+/*===================== 
+    Title CSS start 
+==========================*/
+.title {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+
+    h2 {
+        color: rgba(var(--theme-color), 1);
+        margin-bottom: 5px;
+    }
+
+    a {
+        color: rgba(var(--content-color), 1);
+        font-size: 13px;
+        font-weight: 500;
+    }
+}

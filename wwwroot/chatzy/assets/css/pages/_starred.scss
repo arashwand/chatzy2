@@ -1,0 +1,117 @@
+/*=============================
+     starred CSS start
+===============================*/
+.starred-box-list {
+    li {
+        width: 100%;
+        margin-bottom: 20px;
+        &:last-child {
+            margin-bottom: 0;
+        }
+        .starred-box {
+            background-color: rgba(var(--White), 1);
+            border: 1px solid var(--Stroke, rgba(var(--content-color), 0.15));
+            border-radius: 8px;
+            box-shadow: 0px 2px 15px 0px rgba(var(--dark-text), 0.08);
+            .starred-box-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 15px;
+                border-bottom: 1px solid rgba(var(--content-color), 0.15);
+
+                .person-img {
+                    width: 40px;
+                    height: 40px;
+                    object-fit: cover;
+                    border-radius: 100%;
+                }
+                h5 {
+                    font-weight: 600;
+                    color: rgba(var(--dark-text), 1);
+                }
+                h6 {
+                    color: rgba(var(--content-color), 1);
+                    span {
+                        color: rgba(var(--content-color), 1);
+                    }
+                }
+                a {
+                    .icon {
+                        --Iconsax-Color: rgba(var(--dark-text), 1);
+                        --Iconsax-Size: 20px;
+                    }
+                }
+            }
+            .starred-box-details {
+                padding: 20px 15px;
+                .starred-content {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 12px;
+                    background-color: rgba(var(--content-color), 0.1);
+                    border-radius: 20px 20px 20px 0;
+                    [dir="rtl"] & {
+                        border-radius: 20px 0 20px 20px;
+                    }
+                    .document-img {
+                        width: 40px;
+                        height: 40px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 8px;
+                        background-color: rgba(var(--white), 1);
+
+                        .file-img {
+                            width: 100%;
+                            height: 100%;
+                            object-fit: contain;
+                            padding: 10px;
+                        }
+                    }
+
+                    h5 {
+                        font-weight: 500;
+                        color: rgba(var(--dark-text), 1);
+                    }
+
+                    h6 {
+                        margin-top: 4px;
+                        font-weight: 400;
+                        color: rgba(var(--content-color), 1);
+                    }
+                }
+
+                .replay-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    height: 30px;
+                    width: 30px;
+                    padding: 5px;
+                    background-color: rgba(var(--content-color), 0.1);
+                    border-radius: 100%;
+                }
+                .starred-timing {
+                    margin-top: 5px;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    h6 {
+                        font-weight: 400;
+                        color: rgba(var(--content-color), 1);
+                    }
+                }
+            }
+            &.own-starred-box {
+                .starred-box-details {
+                    .starred-content {
+                        background-color: rgba(var(--theme-color), 0.1);
+                    }
+                }
+            }
+        }
+    }
+}

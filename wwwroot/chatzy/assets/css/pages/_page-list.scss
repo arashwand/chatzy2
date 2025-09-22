@@ -1,0 +1,48 @@
+/*=============================
+     Page-listing CSS start
+===============================*/
+.categories-title {
+    margin-top: 20px;
+
+    h3 {
+        font-size: calc(16px + 2 * (100vw - 320px) / 1600);
+        padding: 15px;
+        color: rgba(var(--theme-color), 1);
+        background-color: rgba(var(--theme-color), 0.15);
+        border-radius: 10px;
+    }
+}
+
+.categories-menu {
+    .navigation {
+        .pages {
+            width: 100%;
+            padding: 4px 10px;
+
+            h4 {
+                font-size: 15px;
+            }
+
+            a {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                text-transform: capitalize;
+                color: rgba(var(--dark-text), 1);
+                font-size: calc(14px + 2 * (100vw - 320px) / 1600);
+                font-weight: 500;
+                width: 100%;
+
+                i {
+                    --Iconsax-Color: rgba(var(--dark-text), 1);
+                    --Iconsax-Size: 18px;
+                    line-height: 1;
+
+                    [dir="rtl"] & {
+                        transform: scaleX(-1);
+                    }
+                }
+            }
+        }
+    }
+}

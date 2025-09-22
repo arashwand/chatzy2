@@ -1,0 +1,72 @@
+/*=====================
+    Empty Tab CSS start
+==========================*/
+.empty-tab {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+
+  h2 {
+    position: relative;
+    margin-top: 10px;
+    color: rgba(var(--theme-color), 1);
+  }
+
+  h5 {
+    position: relative;
+    color: rgba(var(--content-color), 1);
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  .empty-img {
+    margin-top: 100px;
+
+    &.img1 {
+      margin-bottom: -80px;
+    }
+  }
+}
+
+.empty-section {
+  max-width: 600px;
+  max-height: 100%;
+  height: calc(100vh - 325px);
+
+  .empty-background-img {
+    width: 100%;
+    height: calc(100vh - 300px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    &.empty-data {
+      height: calc(100vh - 75px - 25px - 35px);
+    }
+    .empty-img {
+      width: 75%;
+    }
+    h3 {
+      margin-top: 10px;
+      font-weight: 600;
+      color: rgba(var(--dark-text), 1);
+    }
+    p {
+      text-align: center;
+      margin-top: 6px;
+      font-weight: 500;
+      font-size: 14px;
+      color: rgba(var(--content-color), 1);
+    }
+  }
+
+  .heading {
+    margin-top: 50px;
+    @media (max-width: 600px) {
+      margin-top: calc(30px + (50 - 30) * ((100vw - 320px) / (768 - 320)));
+    }
+  }
+}

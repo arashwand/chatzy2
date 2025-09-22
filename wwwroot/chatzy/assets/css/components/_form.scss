@@ -1,0 +1,259 @@
+/*=====================
+    form CSS start
+==========================*/
+.auth-form {
+  .form-group {
+    position: relative;
+    display: block;
+    margin-top: 30px;
+    @media (max-width: 600px) {
+      margin-top: calc(15px + (30 - 15) * ((100vw - 320px) / (768 - 320)));
+    }
+
+    .form-label {
+      font-weight: 600;
+      color: rgba(var(--dark-text), 1);
+    }
+
+    .form-input {
+      width: 100%;
+      position: relative;
+
+      .form-control {
+        position: relative;
+        padding: 15px;
+        border-radius: 8px;
+        border-color: rgba(var(--content-color), 0.15);
+        color: rgba(var(--content-color), 1);
+        background-color: rgba(var(--content-color), 0.05);
+        @media (max-width: 600px) {
+          padding: calc(10px + (15 - 10) * ((100vw - 320px) / (768 - 320)));
+        }
+
+        &.search {
+          padding: 15px 15px 15px 55px;
+          background-color: rgba(var(--white), 1);
+          box-shadow: 0px 2px 15px 0px rgba(var(--dark-text), 0.08);
+          @media (max-width: 600px) {
+            padding: calc(10px + (15 - 10) * ((100vw - 320px) / (768 - 320)))
+              calc(10px + (15 - 10) * ((100vw - 320px) / (768 - 320)))
+              calc(10px + (15 - 10) * ((100vw - 320px) / (768 - 320))) 55px;
+          }
+
+          [dir="rtl"] & {
+            padding: 15px 55px 15px 15px;
+          }
+        }
+
+        &:focus {
+          box-shadow: none;
+          border-color: none;
+        }
+
+        &::placeholder {
+          color: rgba(var(--content-color), 1);
+        }
+      }
+
+      i {
+        position: absolute;
+        top: 50%;
+        left: 12px;
+        transform: translateY(-50%);
+        font-size: 16px;
+        padding-left: 5px;
+        --Iconsax-Color: rgba(var(--content-color), 1);
+
+        [dir="rtl"] & {
+          padding-left: unset;
+          padding-right: 5px;
+          left: unset;
+          right: 12px;
+        }
+      }
+    }
+    .dropdown {
+      .dropdown-toggle {
+        padding-left: 15px;
+        color: rgba(var(--content-color), 1);
+        background-color: rgba(var(--content-color), 0.05);
+        border-color: rgba(var(--content-color), 0.15);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+
+        @media (max-width: 600px) {
+          padding-left: calc(10px + (15 - 10) * ((100vw - 320px) / (768 - 320)));
+        }
+
+        .dropdown-icon {
+          --Iconsax-Color: rgba(var(--dark-text), 1);
+          --Iconsax-Size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+        &::after {
+          content: none;
+        }
+        &:first-child {
+          &:active {
+            border-color: rgba(var(--content-color), 0.15);
+          }
+        }
+        &:focus {
+          border-color: rgba(var(--content-color), 0.15);
+        }
+        .dropdown-icon {
+          --Iconsax-Color: rgba(var(--content-color), 1);
+          --Iconsax-Size: 16px;
+        }
+      }
+      .dropdown-menu {
+        &.show {
+          min-width: 100%;
+          background-color: rgba(var(--content-color), 0.5);
+          background-color: rgba(249, 249, 249, 1);
+        }
+        li {
+          width: 100%;
+          .dropdown-item {
+            color: rgba(var(--content-color), 1);
+            display: flex;
+            justify-content: center;
+            padding-inline: 0;
+            font-size: 16px;
+            &:active {
+              background-color: rgba(var(--content-color), 0.05);
+            }
+            &:hover {
+              background-color: transparent;
+            }
+          }
+        }
+      }
+    }
+
+    .form-check {
+      margin-top: 8px;
+      margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      float: unset;
+      padding-left: 0;
+      [dir="rtl"] & {
+        padding-left: unset;
+        padding-right: 0;
+      }
+      .form-check-label {
+        color: rgba(var(--content-color), 1);
+      }
+      .form-check-input {
+        width: 20px;
+        height: 20px;
+        margin-left: 0px;
+        background-color: rgba(var(--white), 1);
+        border: 1px solid rgba(var(--content-color), 0.5) !important;
+        border-radius: 4px;
+        box-shadow: 0px 2px 15px 0px rgba(78, 160, 247, 0.08);
+        transition: all 0.5s ease;
+        [dir="rtl"] & {
+          margin-left: unset;
+          margin-right: 0;
+        }
+        &:focus {
+          border-color: transparent;
+          box-shadow: none;
+        }
+        &:checked {
+          background-color: rgba(var(--theme-color), 1);
+          border-color: rgba(var(--content-color), 0.15);
+          float: unset;
+        }
+      }
+    }
+  }
+}
+
+.otp-form {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 20px;
+
+  @media (max-width: 600px) {
+    gap: calc(10px + (20 - 10) * ((100vw - 320px) / (600 - 320)));
+  }
+
+  .form-input {
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .form-control {
+      position: relative;
+      text-align: center;
+      border-radius: 8px;
+      border-color: rgba(var(--content-color), 0.15);
+      color: rgba(var(--content-color), 1);
+      background-color: rgba(var(--content-color), 0.05);
+      padding: 15px;
+      @media (max-width: 600px) {
+        padding: calc(10px + (15 - 10) * ((100vw - 320px) / (768 - 320)));
+      }
+
+      &::placeholder {
+        color: rgba(var(--content-color), 1);
+      }
+
+      &:focus {
+        box-shadow: none;
+        border: 1px solid rgba(var(--theme-color), 1);
+      }
+    }
+  }
+
+  .btn {
+    margin-top: 80px;
+  }
+}
+
+.profile-form {
+  margin-top: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--content-color), 0.15);
+  background: rgba(var(--white), 1);
+  box-shadow: 0px 2px 15px 0px rgba(var(--dark-text), 0.08);
+  padding: 20px;
+  .form-group {
+    &:first-child {
+      margin-top: 0;
+    }
+    .form-control {
+      padding: 15px;
+      color: rgba(var(--dark-text), 1);
+      background-color: rgba(var(--content-color), 0.05);
+      border: 1px solid rgba(var(--content-color), 0.15);
+      @media (max-width: 600px) {
+        padding: calc(10px + (15 - 10) * ((100vw - 320px) / (768 - 320)));
+      }
+
+      [dir="rtl"] & {
+        text-align: right;
+      }
+
+      &:focus {
+        box-shadow: none;
+        border-color: none;
+      }
+
+      &::placeholder {
+        color: rgba(var(--content-color), 1);
+      }
+    }
+  }
+}

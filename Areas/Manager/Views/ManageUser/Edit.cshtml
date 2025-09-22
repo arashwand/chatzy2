@@ -1,0 +1,49 @@
+@model UserDto
+@{
+    ViewData["Title"] = "Edit User";
+    var roleNames = SD_RoleName.GetListOfRoles();
+}
+
+<h1>Edit User</h1>
+
+<form asp-action="Edit">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="UserId" />
+    <div class="form-group">
+        <label asp-for="NameFamily" class="control-label"></label>
+        <input asp-for="NameFamily" class="form-control" />
+        <span asp-validation-for="NameFamily" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="RoleName" class="control-label"></label>
+        <select asp-for="RoleName" class="form-control" asp-items="@roleNames">
+        </select>
+        <span asp-validation-for="RoleName" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="RoleFaName" class="control-label"></label>
+        <input asp-for="RoleFaName" class="form-control" />
+        <span asp-validation-for="RoleFaName" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="DeptName" class="control-label"></label>
+        <input asp-for="DeptName" class="form-control" />
+        <span asp-validation-for="DeptName" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="ProfilePicName" class="control-label"></label>
+        <input asp-for="ProfilePicName" class="form-control" />
+        <span asp-validation-for="ProfilePicName" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <input type="submit" value="Save" class="btn btn-primary" />
+    </div>
+</form>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,137 @@
+/*=============================
+    Authentication CSS start
+===============================*/
+.login-img {
+  background-color: rgba(var(--theme-color), 0.1);
+  text-align: center;
+  border-radius: 0px 0px 10px 10px;
+  padding-block: 40px;
+}
+.login-title {
+  margin-top: 20px;
+  width: 100%;
+  font-weight: 700;
+  color: rgba(var(--theme-color), 1);
+}
+
+.login-content {
+  margin-top: 5px;
+  font-weight: 500;
+  color: rgba(var(--content-color), 1);
+}
+
+.otp-name {
+  margin: 25px 0 8px;
+}
+
+.country-select-box {
+  position: relative;
+  .form-check-input {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    margin: 0;
+    padding: 0;
+    min-height: unset;
+    border-radius: 6px;
+    background: unset;
+    box-shadow: unset;
+    filter: unset;
+    border: unset;
+    [dir="rtl"] & {
+      left: unset;
+      right: 0;
+    }
+    &:checked {
+      &::before {
+        opacity: 1;
+        transform: scale(1);
+      }
+      &::after {
+        transform: rotate(45deg) scale(1);
+      }
+      ~ .country-box {
+        border: 1px solid rgba(var(--theme-color), 0.5);
+        .country-name {
+          font-weight: 600;
+          color: rgba(var(--theme-color), 1);
+        }
+      }
+    }
+    &::after {
+      content: "";
+      position: absolute;
+      width: 7px;
+      height: 12px;
+      border: 2px solid rgba(255, 255, 255, 1);
+      top: 12px;
+      left: 16px;
+      transform: rotate(45deg) scale(0);
+      border-top: unset;
+      border-left: unset;
+      transition: all 0.3s ease-in-out;
+      [dir="rtl"] & {
+        left: unset;
+        right: 16px;
+      }
+    }
+    &::before {
+      content: "";
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 20px;
+      height: 20px;
+      background-color: rgba(var(--theme-color), 1);
+      opacity: 0;
+      transform: scale(0);
+      border-radius: 100%;
+      transition: all 0.3s ease-in-out;
+      [dir="rtl"] & {
+        left: unset;
+        right: 10px;
+      }
+    }
+  }
+  .country-box {
+    position: relative;
+    text-align: center;
+    transition: all 0.3s ease-in-out;
+    background-color: rgba(var(--white), 1);
+    border: 1px solid rgba(var(--content-color), 0.15);
+    border-radius: 6px;
+    box-shadow: 0px 2px 15px 0px rgba(var([--dark-text]), 0.06);
+    cursor: pointer;
+    .country-icon {
+      padding: 12px 0;
+    }
+
+    .country-name {
+      padding: 10px 0;
+      font-size: 13px;
+      transition: all 0.3s ease-in-out;
+      font-weight: 500;
+      border-top: 1px solid rgba(var(--content-color), 0.15);
+      color: rgba(var(--dark-text), 1);
+    }
+  }
+}
+
+.fixed-btn {
+  position: fixed;
+  width: 100%;
+  max-width: 600px;
+  padding: 20px 0;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%);
+  z-index: 2;
+  background-color: rgba(var(--white), 1);
+
+  .resend-btn {
+    border: 1px solid rgba(var(--theme-color), 1);
+  }
+}

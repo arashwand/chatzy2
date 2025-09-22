@@ -1,0 +1,42 @@
+﻿@model IEnumerable<ClassGroupDto>
+
+@{
+    ViewData["Title"] = "Taught Class Groups";
+}
+
+<h1>Taught Class Groups</h1>
+
+<p>
+    <a asp-action="Index">Back to My Class Groups</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Level Name</th>
+            <th>Class Timing</th>
+            <th>Active</th>
+            <th>Sessions Left</th>
+            <th>End Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var classGroup in Model)
+        {
+            <tr>
+                <td>@classGroup.LevelName</td>
+                <td>@classGroup.ClassTiming</td>
+                <td>@classGroup.IsActive</td>
+                <td>@classGroup.LeftSes</td>
+                <td>@(classGroup.EndDate.ToString("yyyy-MM-dd") ?? "N/A")</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@classGroup.ClassId">Details</a> |
+                    <a asp-action="Edit" asp-route-id="@classGroup.ClassId">Edit</a> |
+                    <a asp-action="Delete" asp-route-id="@classGroup.ClassId">Delete</a> |
+                    <a asp-action="Members" asp-route-id="@classGroup.ClassId">Members</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

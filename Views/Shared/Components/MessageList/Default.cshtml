@@ -1,0 +1,64 @@
+﻿@using System.Security.Claims
+@model IEnumerable<MessageDto>
+@{
+    DateTime? lastMessageDate = null;
+    long selfUserId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+}
+
+@foreach (var message in Model)
+{
+    <div class="message-day">
+        @* بررسی تاریخ پیام برای نمایش برچسب "امروز"، "دیروز" یا تاریخ کامل *@
+        @{
+            var messageDate = message.MessageDateTime.Date;
+            var today = DateTime.Today;
+            var yesterday = today.AddDays(-1);
+            string dateLabel;
+
+            @if (messageDate == today)
+            {
+                dateLabel = "امروز";
+            }
+            else if (messageDate == yesterday)
+            {
+                dateLabel = "دیروز";
+            }
+            else
+            {
+                // نمایش روز هفته و تاریخ برای روزهای قدیمی‌تر
+                dateLabel = message.MessageDateTime.ToString("dddd، d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"));
+            }
+
+            @* اگر تاریخ پیام با پیام قبلی متفاوت است، برچسب تاریخ را نمایش بده *@
+            @if (lastMessageDate == null || messageDate != lastMessageDate)
+            {               
+                    <div class="message-divider sticky-top pb-2" data-label="@dateLabel"> </div>               
+            }else
+            {
+                <div class="message-divider sticky-top pb-2" data-label="امروز">&nbsp;</div>
+            }
+        }
+
+        @* <div class="message-divider sticky-top pb-2" data-label="دیروز">&nbsp;</div> *@
+
+        <!-- Self Message Start -->
+        <div class="message @((message.SenderUserId == selfUserId) ? "self" : "")">
+            <div class="message-wrapper">
+                <div class="message-content">@message.MessageText</div>
+            </div>
+            <div class="message-options">
+                <div class="avatar avatar-sm"><img alt="" src="../assets/media/avatar/6.png"></div>
+
+                <span class="message-date">@message.MessageDateTime.ToString("hh:mm")</span>
+                @* <span class="message-status">@((message.edited) ? "ویرایش شده" : "")</span> *@
+
+
+            </div>
+        </div>
+        <!-- Self Message End -->
+
+    </div>
+    // به‌روزرسانی تاریخ آخرین پیام
+    lastMessageDate = messageDate;
+}

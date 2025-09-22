@@ -1,0 +1,38 @@
+﻿@model IEnumerable<ChannelDto>
+
+@{
+    ViewData["Title"] = "My Channels";
+}
+
+<h1>My Channels</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create New Channel</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Title</th>
+            <th>Created At</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var channel in Model)
+        {
+            <tr>
+                <td>@channel.ChannelName</td>
+                <td>@channel.ChannelTitle</td>
+                <td>@channel.CreateDate.ToString("yyyy-MM-dd")</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@channel.ChannelId">Details</a> |
+                    <a asp-action="Edit" asp-route-id="@channel.ChannelId">Edit</a> |
+                    <a asp-action="Delete" asp-route-id="@channel.ChannelId">Delete</a> |
+                    <a asp-action="Members" asp-route-id="@channel.ChannelId">Members</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

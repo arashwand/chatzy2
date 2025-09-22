@@ -1,0 +1,37 @@
+/*utils scss files */
+@import "utils/variables";
+
+/* base scss files */
+@import "base/reset";
+@import "base/typography";
+
+/* components scss files*/
+@import "components/button";
+@import "components/form";
+@import "components/modal";
+@import "components/offcanvas";
+@import "components/ratio";
+@import "components/tab";
+@import "components/title";
+
+/* layout scss files */
+@import "layout/header";
+@import "layout/nav";
+
+/* pages */
+@import "pages/authentication";
+@import "pages/call";
+@import "pages/chat";
+@import "pages/elements";
+@import "pages/empty-page";
+@import "pages/group";
+@import "pages/home";
+@import "pages/onboarding";
+@import "pages/page-list";
+@import "pages/profile";
+@import "pages/setting";
+@import "pages/starred";
+@import "pages/wallpaper";
+
+/* themes */
+@import "themes/dark";

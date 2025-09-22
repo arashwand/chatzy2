@@ -1,0 +1,25 @@
+﻿@model RemoveMemberFromGroupViewModel
+
+@{
+    ViewData["Title"] = "Remove Member";
+}
+
+<h1>Remove Member from @Model.LevelName</h1>
+
+<h3>Are you sure you want to remove this member?</h3>
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">User ID</dt>
+        <dd class="col-sm-10">@Model.UserIdToRemove</dd>
+        <dt class="col-sm-2">Class Group</dt>
+        <dd class="col-sm-10">@Model.LevelName</dd>
+    </dl>
+
+    <form asp-action="RemoveMember">
+        <input type="hidden" asp-for="ClassId" />
+        <input type="hidden" asp-for="UserIdToRemove" />
+        <input type="submit" value="Remove" class="btn btn-danger" /> |
+        <a asp-action="Members" asp-route-id="@Model.ClassId">Back to Members</a>
+    </form>
+</div>

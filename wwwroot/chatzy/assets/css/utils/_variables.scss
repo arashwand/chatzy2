@@ -1,0 +1,26 @@
+/*========================
+    Variable CSS start
+==========================*/
+/* font family */
+$manrope: "Manrope", sans-serif;
+
+/* color variables */
+:root {
+  --theme-color: 1, 170, 133;
+  --dark-text: 44, 44, 44;
+  --content-color: 127, 131, 132;
+  --success-color: 77, 214, 144;
+  --error-color: 238, 89, 92;
+  --white: 255, 255, 255;
+  --black: 0, 0, 0;
+}
+
+.dark {
+  --theme-color: 1, 170, 133;
+  --dark-text: 255, 255, 255;
+  --content-color: 127, 131, 132;
+  --white: 2, 13, 11;
+  --black: 0, 0, 0;
+  --success-color: 77, 214, 144;
+  --error-color: 238, 89, 92;
+}

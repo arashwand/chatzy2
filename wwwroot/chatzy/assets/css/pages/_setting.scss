@@ -1,0 +1,161 @@
+/*=============================
+    setting CSS start
+===============================*/
+.setting-list {
+    margin-top: 15px;
+    padding: 15px;
+    border: 1px solid rgba(var(--content-color), 0.15);
+    border-radius: 8px;
+    box-shadow: 0px 2px 15px 0px rgba(var(--dark-text), 0.08);
+
+    li {
+        width: 100%;
+        font-size: 18px;
+        padding: 15px 0;
+        border-bottom: 1px solid rgba(var(--content-color), 0.15);
+        margin-bottom: 0;
+        @media (max-width: 600px) {
+            padding: calc(10px + (15 - 10) * ((100vw - 320px) / (768 - 320)));
+        }
+        &:first-child {
+            padding-top: 0;
+        }
+        &:last-child {
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .setting-box {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+
+            .setting-img {
+                width: 44px;
+                height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 14px;
+
+                .icon {
+                    --Iconsax-Color: rgba(var(--dark-text), 1);
+                    --Iconsax-Size: 24px;
+                }
+            }
+        }
+
+        .setting-details {
+            width: calc(100% - 12px - 44px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            h5 {
+                font-weight: 500;
+                color: rgba(var(--dark-text), 1);
+                line-height: 1.2;
+            }
+
+            .arrow {
+                --Iconsax-Color: rgba(var(--dark-text), 1);
+                --Iconsax-Size: 16px;
+            }
+
+            .switch-btn {
+                input[type="checkbox"] {
+                    position: relative;
+                    width: 37px;
+                    height: 22px;
+                    appearance: none;
+                    background: rgba(var(--content-color), 0.1);
+                    outline: none;
+                    border-radius: 50px;
+                    cursor: pointer;
+
+                    &:checked {
+                        background: rgba(var(--theme-color), 0.1);
+
+                        &::before {
+                            transform: translateX(80%) translateY(-50%);
+                            background: rgba(var(--theme-color), 1);
+                        }
+                    }
+
+                    &:before {
+                        content: "";
+                        width: 15px;
+                        height: 15px;
+                        border-radius: 50%;
+                        background: rgba(var(--content-color), 0.5);
+                        position: absolute;
+                        top: 50%;
+                        left: 5px;
+                        transform: translateY(-50%);
+                        transition: 0.5s;
+                        [dir="rtl"] & {
+                            left: unset;
+                            right: 5px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+.person-list {
+    margin-top: 30px;
+    li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+
+        .person-box {
+            position: relative;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background-color: rgba(var(--white), 1);
+            border: 1px solid rgba(var(--content-color), 0.15);
+            border-radius: 8px;
+            box-shadow: 0px 2px 15px 0px rgba(var(--dark-text), 0.08);
+            padding: 15px;
+            @media (max-width: 600px) {
+                padding: calc(10px + (15 - 10) * ((100vw - 320px) / (768 - 320)));
+            }
+            .person-img {
+                width: 40px;
+                height: 40px;
+                .img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    border-radius: 100%;
+                }
+            }
+            h5 {
+                font-weight: 400;
+                color: rgba(var(--dark-text));
+            }
+
+            .invite-btn {
+                padding: 5px 20px;
+                color: rgba(var(--theme-color), 1);
+                background-color: rgba(229, 246, 243, 1);
+                border: 1px solid rgba(var(--theme-color), 0.15);
+                border-radius: 8px;
+                z-index: 1;
+                @media (max-width: 600px) {
+                    padding: 8px calc(10px + (20 - 10) * ((100vw - 320px) / (768 - 320)));
+                }
+                &:hover {
+                    color: rgba(255, 255, 255, 1);
+                    background-color: rgba(var(--theme-color), 1);
+                }
+            }
+        }
+    }
+}

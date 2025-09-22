@@ -1,0 +1,37 @@
+﻿@model ClassGroupMembersViewModel
+
+@{
+    ViewData["Title"] = "Class Group Members";
+}
+
+<h1>Members of @Model.LevelName</h1>
+
+<p>
+    <a asp-action="AddMember" asp-route-id="@Model.ClassId" class="btn btn-primary">Add Member</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>UserId</th>
+            <th>Display Name</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var member in Model.Members)
+        {
+            <tr>
+                <td>@member.UserId</td>
+                <td>@member.NameFamily</td>
+                <td>
+                    <a asp-action="RemoveMember" asp-route-id="@Model.ClassId" asp-route-userId="@member.UserId">Remove</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>

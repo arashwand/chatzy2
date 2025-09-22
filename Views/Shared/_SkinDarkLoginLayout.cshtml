@@ -1,0 +1,44 @@
+﻿<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <!-- Viewport-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    <title>@ViewData["Title"] - Messenger.WebApp</title>
+    <script type="importmap"></script>
+
+    <!--Skin Dark Files-->
+    <link rel="apple-touch-icon" sizes="180x180" href="~/assets/fav/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="~/assets/fav/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="~/assets/fav/favicon-16x16.png">
+    <link rel="shortcut icon" href="~/assets/fav/favicon.ico" />
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="~/assets/css/app.min.css">
+    <link rel="stylesheet" href="~/assets/css/skins/dark-skin.min.css">
+    <!--/Skin Dark Files-->
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @*  <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />    
+    <link rel="stylesheet" href="~/Messenger.WebApp.styles.css" asp-append-version="true" /> *@
+</head>
+<body class="authentication-page">
+
+    <!-- Main Layout Start -->
+   @RenderBody()
+    <!-- Main Layout End -->
+    <!-- Javascript Files -->
+    <script src="~/assets/vendors/jquery/jquery-3.5.0.min.js"></script>
+    <script src="~/assets/vendors/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="~/assets/vendors/magnific-popup/jquery.magnific-popup.min.js"></script>
+    <script src="~/assets/vendors/svg-inject/svg-inject.min.js"></script>
+    <script src="~/assets/vendors/modal-stepes/modal-steps.min.js"></script>
+    <script src="~/assets/js/app.min.js"></script>
+    <!--/Skin Dark Files-->
+
+    @* <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script> *@
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

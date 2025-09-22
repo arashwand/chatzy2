@@ -1,0 +1,160 @@
+﻿body {
+    font-family: 'Vazirmatn', sans-serif;
+    /*  background-color: #f8f9fa;
+                                                                                                                    padding: 20px; */
+}
+
+/* روش اول: مخفی کردن برای تمام مرورگرها */
+.method1 {
+    overflow-y: scroll;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+    .method1::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+
+.chat-input-container {
+    background-color: #212529;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #495057;
+}
+
+.form-control::placeholder {
+    color: #6c757d;
+}
+
+.no-resize {
+    resize: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* استایل‌های مربوط به پیش‌نمایش فایل */
+#filePreviewContainer {
+    margin-top: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 10px;
+    color: lightgray;
+}
+
+.file-preview-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #3a4149;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 8px;
+    border: 1px solid #495057;
+    /* Transition for beautiful removal */
+    transition: transform 0.4s ease, opacity 0.4s ease;
+}
+
+    /* کلاس برای افکت حذف */
+    .file-preview-item.removing {
+        opacity: 0;
+        transform: scale(0.8) translateX(-50px);
+    }
+
+.message.removing {
+    opacity: 0;
+    transform: scale(0.8) translateX(-50px);
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.file-thumbnail {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    margin-left: 12px;
+    background-color: #495057;
+}
+
+.file-icon {
+    font-size: 1.5rem;
+    margin-left: 12px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 250px;
+}
+
+.file-details {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #adb5bd;
+    font-size: 0.8em;
+}
+
+.status-text {
+    font-size: 0.8em;
+    display: flex;
+    align-items: center;
+}
+
+.status-icon {
+    width: 30px;
+    text-align: center;
+}
+
+.action-btn {
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: none;
+}
+
+.remove-file-btn {
+    color: #dc3545;
+}
+
+.retry-upload-btn {
+    color: #ffc107;
+}
+
+.cancel-upload-btn {
+    color: #6c757d;
+}
+
+.spinner {
+    display: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -1,0 +1,129 @@
+﻿﻿@using Messenger.Tools
+@model UserChatModel
+
+@{
+    var classGroups = Model.Groups;
+    var channels = Model.Channels;
+}
+<!-- First Chat Save Message -->
+<li class="contacts-item groups" id="classGroup_0">
+    <a class="contacts-link" onclick="GetSavedMessages()">
+        <div class="avatar bg-success text-light">
+            <input type="hidden" id="ClassGroupId" value="0" />
+            <input type="hidden" id="TeacherUserId" value="0" />
+            <span>
+                <i class="fa fa-bookmark-o" aria-hidden="true"></i>
+            </span>
+        </div>
+        <div class="contacts-content">
+            <div class="contacts-info">
+                <h6 class="chat-name">پیامهای ذخیره شده</h6>
+                @* <div class="chat-time"><span> @item.LastMessageTime?.ToString("hh:mm")</span></div> *@
+            </div>
+            <div class="contacts-texts">
+                @* <p class="text-truncate"><span>@item.LastMessageSenderName:</span> @item.LastMessage</p> *@
+                <div class="d-inline-flex align-items-center ml-1">
+                    @*  <i class="fa fa-bookmark-o" aria-hidden="true"></i> *@
+                </div>
+            </div>
+        </div>
+    </a>
+</li>
+
+
+<!-- Chat Groups Item Start -->
+@if (classGroups != null)
+{
+    foreach (var item in classGroups)
+    {
+        
+        
+
+        <li class="contacts-item groups" id="@ConstChat.ClassGroup@item.ClassId">
+            <a class="contacts-link" onclick="GetSelectedChatMessages(@item.ClassId, '@ConstChat.ClassGroupType')">
+                <div class="avatar bg-success text-light">
+                    <input type="hidden" id="ClassGroupId" value="@item.ClassId" />
+                    <input type="hidden" id="TeacherUserId" value="@item.TeacherUserId" />
+                    <span>
+                        <i class="fa fa-users" aria-hidden="true"></i>
+                    </span>
+                </div>
+                <div class="contacts-content">
+                    <div class="contacts-info">
+                        <h6 class="chat-name">@item.LevelName</h6>
+                        <div class="chat-time">
+                            <span id="chatTime_@ConstChat.ClassGroup@item.ClassId"> @item.LastMessage?.SentAt.ToString("hh:mm")</span>
+                        </div>
+                    </div>
+                    <div class="contacts-texts">
+                        <p class="text-truncate" id="chatText_@ConstChat.ClassGroup@item.ClassId">
+                            <span>@item.LastMessage?.SenderName:</span> @item.LastMessage?.Text
+                        </p>
+                        <div class="d-inline-flex align-items-center ml-1">
+                            <!--show count of new messages -->
+                            <div class="badge badge-rounded badge-primary ml-1 @(item.UnreadCount == 0 ? "d-none" : "")" id="unreadCountBadge_@ConstChat.ClassGroup@item.ClassId">
+                                @item.UnreadCount
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </li>
+    }
+}
+
+@if (channels?.Count() > 0)
+{
+    foreach (var item in channels)
+    {
+        if (item == null)
+        {
+            continue;
+        }
+
+        <li class="contacts-item groups" id="@ConstChat.ChannelGroup@item.ChannelId">
+            <a class="contacts-link" onclick="GetSelectedChatMessages(@item.ChannelId,'@ConstChat.ChannelGroupType')">
+                <div class="avatar bg-success text-light">
+                    <input type="hidden" id="ClassGroupId" value="@item.ChannelId" />
+                    <span>
+                        <i class="fa fa-bullhorn" aria-hidden="true"></i>
+                    </span>
+                </div>
+                <div class="contacts-content">
+                    <div class="contacts-info">
+                        <h6 class="chat-name">@item.ChannelName</h6>
+                        <div class="chat-time">
+                            <span id="chatTime_@ConstChat.ChannelGroup@item.ChannelId">
+                                @if (item.LastMessage != null)
+                                {
+                                    @item.LastMessage?.SentAt.ToString("hh:mm")
+                                }
+                            </span>
+                        </div>
+                    </div>
+                    <div class="contacts-texts">
+                        <p class="text-truncate" id="chatText_@ConstChat.ChannelGroup@item.ChannelId">
+                            @if (item.LastMessage != null)
+                            {
+                                <span>@item.LastMessage?.SenderName:</span>
+                                @item.LastMessage?.Text
+                            }
+                        </p>
+                        <div class="d-inline-flex align-items-center ml-1">
+                            <!--show count of new messages -->
+                            <div class="badge badge-rounded badge-primary ml-1 @(item.UnreadCount == 0 ? "d-none" : "")" id="unreadCountBadge_@ConstChat.ChannelGroup@item.ChannelId">
+                                @item.UnreadCount
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </li>
+    }
+}
+
+<!-- Chat Groups Item End -->
+
+

@@ -1,0 +1,280 @@
+/*=====================
+    Dark CSS start
+==========================*/
+body {
+    &.dark {
+        .offcanvas {
+            &.addtohome-popup {
+                .btn-close {
+                    filter: invert(1);
+                }
+            }
+        }
+
+        .onboarding-section {
+            background-color: rgba(var(--white), 1);
+        }
+
+        .main-header {
+            &.inner-page-header {
+                .header-panel {
+                    h4 {
+                        color: rgba(var(--dark-text), 1);
+                    }
+                    h6 {
+                        color: rgba(var(--dark-text), 1);
+                    }
+                    a {
+                        .icon-btn {
+                            --Iconsax-Color: rgba(var(--dark-text), 1);
+                        }
+                    }
+                }
+            }
+
+            .more-options {
+                .dropdown-menu {
+                    li {
+                        .dropdown-item {
+                            .icon {
+                                filter: brightness(0) invert(1);
+                            }
+                            &.error-icon {
+                                --Iconsax-Color: rgba(var(--error-color), 1) !important;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        .replay-section {
+            .replay-box {
+                background-color: rgba(2, 13, 11, 1);
+                border: 1px solid rgba(2, 13, 11, 1);
+            }
+        }
+        .navbar-menu {
+            ul {
+                li {
+                    a {
+                        .icon {
+                            .unactive {
+                                filter: brightness(0) invert(1);
+                            }
+                        }
+                        span {
+                            color: rgba(var(--dark-text), 1);
+                        }
+                    }
+                    &.active {
+                        span {
+                            color: rgba(var(--theme-color), 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        .story-modal {
+            .modal-content {
+                .modal-body {
+                    .story__slider {
+                        .swiper-slide {
+                            .message-send-btn {
+                                .icon-btn {
+                                    --Iconsax-Color: rgba(var(--dark-text), 1);
+                                }
+                            }
+
+                            .story-person-content {
+                                .close-btn {
+                                    --Iconsax-Color: rgba(var(--white), 1);
+                                    border: 1px solid rgba(var(--white), 0.5);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        .chat-bg {
+            background-color: rgba(4, 24, 21, 1);
+        }
+        .messages-panel {
+            background-color: rgba(4, 24, 21, 1);
+        }
+        .messages-panel {
+            background-color: rgba(var(--white), 1);
+        }
+
+        .message-box-list {
+            li {
+                &.new {
+                    .message-box {
+                        .message-box-details {
+                            background-color: rgba(2, 13, 11, 1) !important;
+                        }
+                    }
+                }
+            }
+        }
+
+        .scrollbar {
+            .contact-list {
+                li {
+                    .contact-box {
+                        .contact-details {
+                            .img {
+                                .icon {
+                                    --Iconsax-Color: rgba(var(--dark-text), 1);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        .group-feature-list {
+            li {
+                .features {
+                    .features-icon {
+                        filter: invert(1);
+                        background-color: transparent;
+                        &.error {
+                            filter: brightness(1);
+                        }
+                    }
+                }
+            }
+        }
+
+        .empty-section {
+            .empty-background-img {
+                .empty-img {
+                    filter: grayscale(1) invert(1);
+                }
+            }
+        }
+
+        .document-list {
+            li {
+                .document-box {
+                    .document-details {
+                        h5 {
+                            color: rgba(var(--dark-text), 1);
+                        }
+                    }
+
+                    .document-img {
+                        .file-img {
+                            &.link-icon {
+                                filter: brightness(0) invert(1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        .profile-pic-section {
+            .profile-pic {
+                .output-img {
+                    filter: invert(1);
+                }
+            }
+        }
+
+        .file-offcanvas {
+            .offcanvas-header {
+                .btn-close {
+                    filter: invert(1);
+                }
+            }
+        }
+
+        .add-modal {
+            .modal-content {
+                .modal-header {
+                    .btn-close {
+                        filter: invert(1);
+                    }
+                }
+            }
+        }
+
+        .person-list {
+            li {
+                .invite-btn {
+                    background-color: rgba(4, 52, 41, 1);
+                }
+            }
+        }
+
+        .new-group-profile-box {
+            .form-group {
+                .upload-image {
+                    .output-img {
+                        filter: invert(1);
+                        border: 4px solid rgba(var(--dark-text), 1);
+                    }
+                }
+            }
+        }
+
+        .call-button-section {
+            .call-buttons {
+                .main-button {
+                    .option-icon {
+                        &.theme-option-icon {
+                            background-color: rgba(4, 52, 41, 1);
+                        }
+                    }
+                }
+            }
+            .option-buttons {
+                .sub-button {
+                    .option-icon {
+                        background-color: rgba(45, 46, 46, 1);
+                    }
+                }
+            }
+        }
+
+        .auth-form {
+            .form-group {
+                .dropdown {
+                    .dropdown-menu {
+                        &.show {
+                            background-color: rgba(8, 19, 17, 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        .offcanvas {
+            &.element-offcanvas {
+                .offcanvas-header {
+                    .btn-close {
+                        filter: brightness(0) invert(1);
+                    }
+                }
+            }
+        }
+
+        .element-modal {
+            .modal-dialog {
+                .modal-content {
+                    .modal-header {
+                        .btn-close {
+                            filter: brightness(0) invert(1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

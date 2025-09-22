@@ -1,0 +1,100 @@
+/*=====================
+    Reset CSS start
+==========================*/
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+input {
+  &[type="number"] {
+    appearance: textfield;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+    }
+  }
+}
+
+.custom-container {
+  padding: 0 20px;
+  @media (max-width: 600px) {
+    padding: 0 calc(15px + (20 - 15) * ((100vw - 320px) / (768 - 320)));
+  }
+}
+
+.left-container {
+  padding-left: 20px;
+  @media (max-width: 600px) {
+    padding-left: calc(15px + (20 - 15) * ((100vw - 320px) / (768 - 320)));
+  }
+}
+
+section,
+.section-t-space {
+  padding-top: 25px;
+  @media (max-width: 600px) {
+    padding-top: calc(20px + (25 - 20) * ((100vw - 320px) / (768 - 320)));
+  }
+}
+
+.section-b-space {
+  padding-bottom: 25px;
+  @media (max-width: 600px) {
+    padding-bottom: calc(20px + (25 - 20) * ((100vw - 320px) / (768 - 320)));
+  }
+}
+
+.section-lg-t-space {
+  padding-top: 100px;
+}
+
+.section-lg-b-space {
+  padding-bottom: 100px;
+}
+
+.panel-space {
+  padding-top: 100px !important;
+}
+
+.theme-color {
+  color: rgba(var(--theme-color), 1) !important;
+}
+
+.theme-bg {
+  background-color: rgba(var(--theme-color), 1) !important;
+}
+
+.dark-text {
+  color: rgba(var(--dark-text), 1) !important;
+}
+
+.content-color {
+  color: rgba(var(--content-color), 1) !important;
+}
+
+.success-color {
+  color: rgba(var(--success-color), 1) !important;
+}
+.success-bg {
+  background-color: rgba(var(--success-color), 1) !important;
+}
+.error-color {
+  color: rgba(var(--error-color), 1) !important;
+}
+.error-bg {
+  background-color: rgba(var(--error-color), 1) !important;
+}
+
+.swiper {
+  [dir="rtl"] & {
+    direction: ltr;
+    .swiper-slide {
+      > * {
+        direction: rtl;
+      }
+    }
+  }
+}

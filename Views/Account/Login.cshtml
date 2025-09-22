@@ -1,0 +1,43 @@
+﻿@model LoginVM
+@{
+    ViewData["Title"] = "ورود به سایت";
+    Layout = "~/Views/Shared/_SkinDarkLoginLayout.cshtml";
+}
+
+<div class="main-layout card-bg-1 is-rtl">
+    <div class="container d-flex flex-column">
+        <div class="row no-gutters text-center align-items-center justify-content-center min-vh-100">
+            <div class="col-12 col-md-6 col-lg-5 col-xl-4">
+                <h1 class="font-weight-bold">ورود</h1>
+                <p class="text-dark mb-3">پورتال اختصاصی چت آموزشگاه زبان ایران اروپا.</p>
+                <form class="mb-3" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <div class="form-group">
+                        <label asp-for="LoginCode" class="sr-only">نام کاربری</label>
+                        <input asp-for="LoginCode" class="form-control form-control-md"  placeholder="نام کاربری خود را وارد کنید">
+                        <span asp-validation-for="LoginCode" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="Password" class="sr-only">رمز عبور</label>
+                        <input type="password" class="form-control form-control-md" asp-for="Password" placeholder="رمز عبور خود را وارد کنید">
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+                   @*  <div class="form-group d-flex justify-content-between">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" checked="" id="checkbox-remember">
+                            <label class="custom-control-label text-muted font-size-sm" for="checkbox-remember">من را بخاطر بسپار</label>
+                        </div>
+                        <a class="font-size-sm" href="reset-password.html">بازنشانی رمز عبور</a>
+                    </div> *@
+                    <button class="btn btn-primary btn-lg btn-block text-uppercase font-weight-semibold" type="submit">ورود</button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

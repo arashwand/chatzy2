@@ -1,0 +1,66 @@
+/*=====================
+    Button CSS start
+==========================*/
+.btn {
+    padding: 15px;
+    @media (max-width: 600px) {
+        padding: calc(10px + (15 - 10) * ((100vw - 320px) / (768 - 320)));
+    }
+    &-inline {
+        padding: 15px;
+        @media (max-width: 600px) {
+            padding-inline: calc(10px + (15 - 10) * ((100vw - 320px) / (768 - 320)));
+        }
+    }
+
+    &-lg {
+        padding: 12px 44px;
+    }
+
+    &:focus {
+        border-color: transparent;
+        box-shadow: none;
+    }
+
+    &:first-child {
+        &:active {
+            border-color: transparent;
+            color: unset;
+            background-color: unset;
+        }
+    }
+}
+
+.theme-btn {
+    background-color: rgba(var(--theme-color), 1);
+    color: rgba(255, 255, 255, 1);
+    @media (max-width: 600px) {
+        font-size: calc(16px + (18 - 16) * ((100vw - 320px) / (768 - 320)));
+    }
+
+    &:hover {
+        color: rgba(255, 255, 255, 1) !important;
+        background-color: rgba(var(--theme-color), 1) !important;
+    }
+
+    &:active {
+        color: rgba(255, 255, 255, 1) !important;
+        background-color: rgba(var(--theme-color), 1) !important;
+        border: 1px solid rgba(var(--theme-color), 1) !important;
+    }
+}
+
+.btn-link {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 18px;
+    color: rgba(var(--content-color), 1);
+
+    &:hover {
+        color: rgba(var(--content-color), 1);
+    }
+}

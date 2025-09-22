@@ -1,0 +1,454 @@
+﻿html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    margin-bottom: 60px;
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}
+
+.force-hide {
+    display: none !important;
+}
+
+/*تغیرات ظاهری چت*/
+.form-row {
+    display: flex;
+    align-items: flex-end; /* تراز عمودی به پایین */
+    position: relative;
+    width: 100%;
+    padding-bottom: 10px; /* فاصله از پایین برای جلوگیری از تداخل */
+}
+
+.input-group {
+    display: flex;
+    align-items: center; /* تراز افقی */
+    width: 100%;
+}
+
+.col-auto-input {
+    position: sticky;
+    bottom: 10px; /* چسبیده به پایین با فاصله 10px */
+    display: flex;
+    align-items: center; /* دکمه در وسط عمودی تراز شود */
+    margin-left: 10px; /* فاصله از ورودی پیام */
+}
+
+
+#message-input {
+    resize: none;
+    width: 100%;
+    min-height: 40px; /* حداقل ارتفاع برای 2 سطر */
+    max-height: 150px; /* حداکثر ارتفاع برای حدود 5 سطر */
+    overflow-y: auto; /* اسکرول عمودی در صورت نیاز */
+    line-height: 24px; /* ارتفاع خط */
+    padding: 8px;
+    box-sizing: border-box;
+    font-size: 16px; /* فونت هماهنگ با line-height */
+}
+
+    /* اطمینان از نمایش اسکرول */
+    #message-input::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    #message-input::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+    }
+
+    #message-input::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+/* نادیده گرفتن hide-scrollbar برای message-input */
+textarea#message-input.hide-scrollbar::-webkit-scrollbar {
+    display: block;
+}
+
+#chat_content {
+    background-image: url(/assets/media/avatar/new-pattern-6.png);
+    /*background-repeat: repeat-x;*/
+    position: relative;
+    background-position: top left;
+    background-size: 30%;
+
+}
+
+/*-------------------------------------------------------------------------------------------------------------------------*/
+/* --- 1. تنظیمات کلی برای پیام ارسالی --- */
+.message.self {
+    /* پیام را در سمت راست صفحه قرار می‌دهد */
+    justify-content: flex-end;
+}
+
+    /* --- 2. استایل اصلی حباب پیام (کادر آبی شما) --- */
+    .message.self .message-wrapper {
+        background-color: #dcf8c6; /* رنگ سبز روشن واتس‌اپ */
+        border-radius: 8px 0 8px 8px; /* گرد کردن گوشه‌ها به جز بالا سمت راست */
+        position: relative; /* برای موقعیت‌دهی "دُم" پیام */
+        padding: 8px;
+        max-width: 75%; /* محدود کردن عرض پیام */
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); /* سایه بسیار ملایم */
+    }
+
+        /* --- 3. ایجاد "دُم" یا زائده‌ی حباب پیام --- */
+        .message.self .message-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -10px; /* بیرون بردن زائده از کادر اصلی */
+            width: 0;
+            height: 0;
+            /* ایجاد مثلث با استفاده از border */
+            border-style: solid;
+            border-width: 0 0 10px 10px;
+            border-color: transparent transparent transparent #dcf8c6;
+        }
+
+    /* --- 4. مخفی کردن آواتار و نام برای پیام شخصی --- */
+    .message.self .message-options .avatar,
+    .message.self .message-options span[class="message-date"]:first-child { /* نام "آرش کارگر" را مخفی می‌کند */
+        display: none;
+    }
+
+/* --- 5. استایل و چیدمان متادیتا (زمان و تیک‌ها) --- */
+.message-content {
+    /* اطمینان از وجود فضای کافی برای متادیتا */
+    padding-bottom: 20px;
+    position: relative;
+}
+
+.message-options {
+    position: absolute; /* شناور کردن متادیتا روی محتوا */
+    bottom: 5px; /* فاصله از پایین کادر محتوا */
+    right: 8px; /* فاصله از راست کادر محتوا */
+
+    display: flex;
+    align-items: center;
+    gap: 5px; /* ایجاد فاصله بین زمان و تیک */
+    background-color: transparent !important; /* حذف هرگونه پس‌زمینه سفید */
+}
+
+    /* --- 6. استایل نهایی زمان و تیک‌ها --- */
+    .message-options .message-date {
+        font-size: 0.75rem; /* کوچک کردن فونت زمان */
+        color: #667781; /* رنگ خاکستری متادیتا در واتس‌اپ */
+    }
+
+    .message-options .message-status-ticks img {
+        width: 16px; /* تنظیم اندازه تیک‌ها */
+        vertical-align: middle;
+    }
+
+    /* استایل دکمه منو (...) برای هماهنگی بیشتر */
+    .message-options .dropdown a svg {
+        stroke: #667781; /* همرنگ کردن با بقیه متادیتا */
+    }
+
+
+
+
+/*-------------------------------------------------------------------------------------------------------------------------*/
+
+/*---start--------تغیر استایل برای موبایل*/
+/* Media Query برای صفحه‌نمایش‌های کوچکتر از 1199.98 پیکسل */
+@media screen and (max-width: 1199.98px) {
+    .message {
+        font-size: 1.25rem; 
+    }
+
+    .message .message-options {
+        font-size: .85rem;
+    }
+
+    .chat-body .chat-footer textarea {
+        font-size: 1rem;
+    }
+
+    .contacts-list .contacts-content .contacts-info .chat-name,
+    .contacts-list .contacts-content .contacts-texts p,
+    .contacts-list .contacts-content .contacts-info .chat-time {
+        font-size: 1rem;
+    }
+
+    .dropdown .btn .hw-20 {
+        height: 2.25rem;
+        width: 2.25rem;
+    }
+
+    .chat-info h6 {
+        font-size: 1rem;
+    }
+    .list-group-item .media .media-body p {
+        font-size: 1rem;
+    }
+
+    .list-group-item .media .avatar {
+        height: 5rem;
+        width: 5rem;
+    }
+
+    .avatar.avatar-offline:before, .avatar.avatar-online:before {
+        height: 1rem;
+        width: 1rem;
+    }
+
+    .sidebar-sub-header .btn, .sidebar-sub-header .dropdown .dropdown-menu a {
+        font-size: 1rem;
+    }
+}
+
+
+/* ========================================================= */
+/*      کد نهایی CSS برای رابط کاربری جدید ضبط صدا         */
+/* ========================================================= */
+
+/* کانتینر ورودی صدا باید بتواند فضای خالی را پر کند */
+#voice-input-area {
+    flex-grow: 1;
+}
+
+/* -- استایل اصلی نوار UI صدا -- */
+#voice-ui-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* چیدمان با فاصله بین آیتم‌ها */
+    width: 100%;
+    height: 40px;
+    padding: 0 15px;
+    background-color: #484f58; /* رنگ پس‌زمینه تیره‌تر مطابق تصویر */
+    border-radius: 20px;
+    box-sizing: border-box;
+    color: #b0b8c0;
+}
+
+    /* -- استایل‌های حالت ضبط (Recording) -- */
+    #voice-ui-container.recording-state .recording-timer {
+        font-family: monospace, sans-serif;
+        font-size: 16px;
+        direction: ltr;
+    }
+
+    #voice-ui-container.recording-state .recording-indicator {
+        font-size: 10px; /* دایره کوچک‌تر */
+        color: #e74c3c;
+        animation: blink-animation 1.5s infinite;
+    }
+
+@keyframes blink-animation {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* -- استایل‌های حالت پیش‌نمایش (Preview) -- */
+#voice-ui-container.preview-state .voice-duration {
+    font-family: monospace, sans-serif;
+    font-size: 14px;
+}
+
+#voice-ui-container.preview-state .voice-player-container {
+    flex-grow: 1;
+    margin: 0 15px;
+}
+
+#voice-ui-container.preview-state .voice-action-btn {
+    font-size: 18px;
+    cursor: pointer;
+    color: #b0b8c0;
+    margin-left: 10px; /* فاصله بین دکمه‌های راست */
+    transition: color 0.2s;
+}
+
+    #voice-ui-container.preview-state .voice-action-btn:hover {
+        color: #ffffff;
+    }
+
+#voice-ui-container.preview-state .delete-btn {
+    color: #e74c3c;
+}
+
+/* استایل نوار پیشرفت (تایم‌لاین) */
+.voice-player-container input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: #5e6670; /* رنگ ترک تیره‌تر */
+    border-radius: 5px;
+    cursor: pointer;
+    outline: none;
+}
+    /* هندل (دایره) روی نوار پیشرفت */
+    .voice-player-container input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        background: #8e44ad; /* رنگ بنفش */
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+/* ========================================================= */
+/*      Styles for Audio Message Display                     */
+/* ========================================================= */
+
+.audio-player-container {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 18px;
+    max-width: 280px;
+    min-width: 250px;
+    background-color: #f0f0f0;
+    direction: ltr;
+}
+
+.message.self .audio-player-container {
+    background-color: #e7ffdb; /* A WhatsApp-like color for sent messages */
+}
+
+.voice-playback-btn {
+    cursor: pointer;
+    font-size: 18px;
+    color: #555;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.voice-playback-btn .fa-play {
+    margin-left: 2px;
+}
+
+.voice-timeline-container {
+    flex-grow: 1;
+    margin: 0 10px;
+    position: relative;
+    height: 10px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.voice-timeline-bg {
+    width: 100%;
+    height: 4px;
+    background-color: #ccc;
+    border-radius: 2px;
+    position: absolute;
+}
+
+.voice-timeline-progress {
+    height: 4px;
+    background-color: #5c85d6;
+    border-radius: 2px;
+    width: 0%; /* Initially no progress */
+    position: absolute;
+    left: 0;
+}
+
+.voice-timeline-handle {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #5c85d6;
+    position: absolute;
+    left: 0%; /* Initially at the start */
+    transform: translateX(-7px);
+    display: none; /* Hidden by default, shown on hover/drag */
+}
+
+.voice-timeline-container:hover .voice-timeline-handle {
+    display: block;
+}
+
+
+.voice-duration-display {
+    font-size: 12px;
+    color: #666;
+    min-width: 40px; /* Prevent layout shifts */
+    text-align: center;
+    font-family: monospace, sans-serif;
+}
+
+.voice-download-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #a0a0a0;
+    color: white;
+    cursor: pointer;
+    border: none;
+    font-size: 18px;
+    transition: background-color 0.2s;
+}
+
+.voice-download-btn:hover {
+    background-color: #888;
+}
+
+.voice-download-btn .fa-spinner {
+    display: none; /* Hidden by default */
+}
+
+.voice-download-btn.loading .fa-download {
+    display: none; /* Hide download icon when loading */
+}
+
+.voice-download-btn.loading .fa-spinner {
+    display: inline-block;
+    animation: fa-spin 1s infinite linear;
+}
+
+    .voice-player-container input[type="range"]::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        background: #8e44ad;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+
