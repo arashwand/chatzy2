@@ -1712,7 +1712,7 @@ $(document).ready(function () {
                 // طراحی جدید برای حالت پیش‌نمایش
                 html = `
                 <div id="voice-ui-container" class="preview-state">
-                    <span class="voice-action-btn play-pause-btn" title="پخش/توقف"><i class="iconsax" data-icon="play" style="transform: rotate(180deg);"></i></span>
+                    <span class="voice-action-btn play-pause-btn" title="پخش/توقف"><i class="iconsax" data-icon="play"></i></span>
                     <div class="voice-player-container">
                         <input type="range" class="voice-timeline" value="0" max="${data.duration}" step="0.1">
                     </div>
@@ -1726,6 +1726,7 @@ $(document).ready(function () {
 
         console.log(html);
         voiceInputArea.html(html);
+        init_iconsax(); // Re-render icons after injecting new HTML
     }
 
     // --- توابع اصلی برای کنترل ضبط ---

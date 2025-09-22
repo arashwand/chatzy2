@@ -217,6 +217,22 @@ textarea#message-input.hide-scrollbar::-webkit-scrollbar {
     cursor: pointer;
 }
 
+/* --- Fix for Footer Alignment --- */
+.message-inputarea {
+    display: flex;
+    align-items: center;
+}
+
+.message-inputarea .message-input {
+    flex-grow: 1;
+    margin: 0 8px; /* Add some horizontal margin */
+}
+
+.message-inputarea a,
+.message-inputarea button {
+    flex-shrink: 0; /* Prevent buttons from shrinking */
+}
+
 /* ========================================================= */
 /*      Styles for Audio Message Display                     */
 /* ========================================================= */
