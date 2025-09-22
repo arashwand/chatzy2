@@ -28,14 +28,6 @@
 <div id="HomePageStartBody" class="h-100 w-100">
     <partial name="_HomePageStarted" />
 </div>
-<!-- Chat Body Start -->
-<div class="chat-body d-none" id="chatBody">
-</div>
-<!-- Chat Body End -->
-<!-- Chat Info Start -->
-<div class="chat-info chat-info-visible d-none" id="chatInfo">
-</div>
-<!-- Chat Info End -->
 @section Scripts {
 
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
@@ -56,6 +48,16 @@
          $(function (){
 
              GetUserChats();
+
+            // Handler for the new close button on the sliding panel
+            $(document).on('click', '#close-chat-panel-btn', function() {
+                $('#chat-details-panel').removeClass('visible');
+
+                // Optional: clear content after animation to free up memory
+                setTimeout(function() {
+                    $('#chat-details-panel').html('');
+                }, 300); // This duration should match your CSS transition time
+            });
          });
 
          function GetUserChats() {
@@ -121,15 +123,21 @@
                  type: 'GET',
                  data:{chatId : chatId, groupType : groupType},
                  success: function (data) {
-                     console.log('try to fetch last messages');
-                     $('#HomePageStartBody').addClass('d-none');
+                     console.log('try to fetch last messages for sliding panel');
 
-                     $('#chatBody').removeClass('d-none');
-                     $('#chatBody').html(data);
-                     console.log("Class groups messages loaded");
+                     // 1. Populate the panel
+                    $('#chat-details-panel').html(data);
 
-                     GetChatMembers(chatId,groupType);
+                    // 2. Slide the panel in
+                    $('#chat-details-panel').addClass('visible');
+
+                     console.log("Chat messages loaded into sliding panel");
+
+                     //GetChatMembers(chatId,groupType); // Temporarily disabled as we don't have a place for #chatInfo yet
                      window.chatApp.reAttachScrollListener();
+                     if (typeof init_iconsax === 'function') {
+                        init_iconsax();
+                     }
 
 
                      // ---- START: Intelligent scroll based on new messages ----
@@ -246,22 +254,24 @@
              });
          }
 
+         // This function is temporarily disabled because we don't have a visible #chatInfo element in the new design.
+         // We can re-enable this later if we add a new UI element for it.
          function GetChatMembers(chatId, groupType){
-             $.ajax({
-                 url: '/Home/GetChatMembers',
-                 type: 'GET',
-                 data:{chatId : chatId, groupType : groupType},
-                 success: function (data) {
-
-                     $('#chatInfo').removeClass('d-none');
-                     $('#chatInfo').html(data);
-                     console.log("Class group members loaded");
-                      window.chatApp.loadAndDisplayOnlineUsers(chatId, groupType);
-                 },
-                 error: function (error) {
-                     console.error("Error fetching class group chats:", error);
-                 }
-             });
+             // $.ajax({
+             //     url: '/Home/GetChatMembers',
+             //     type: 'GET',
+             //     data:{chatId : chatId, groupType : groupType},
+             //     success: function (data) {
+             //
+             //         $('#chatInfo').removeClass('d-none');
+             //         $('#chatInfo').html(data);
+             //         console.log("Class group members loaded");
+             //          window.chatApp.loadAndDisplayOnlineUsers(chatId, groupType);
+             //     },
+             //     error: function (error) {
+             //         console.error("Error fetching class group chats:", error);
+             //     }
+             // });
          }
 
          function GetSavedMessages() {
@@ -272,13 +282,14 @@
                  url: '/Home/GetSaveMessages',
                  type: 'GET',
                  success: function (data) {
-                     $('#HomePageStartBody').addClass('d-none');
-
-                     $('#chatBody').removeClass('d-none');
-                     $('#chatBody').html(); //ابتدا چت فعلی را خالی میکنیم
-                     $('#chatInfo').html();
-                     $('#chatBody').html(data);
-                     console.log("save messages loaded");
+                     // This function needs to be adapted for the new sliding panel UI
+                     console.log("GetSavedMessages needs to be adapted for the new UI.");
+                     // For now, it will load into the sliding panel as well.
+                     $('#chat-details-panel').html(data).addClass('visible');
+                     if (typeof init_iconsax === 'function') {
+                        init_iconsax();
+                     }
+                     console.log("save messages loaded into panel");
                  },
                  error: function (error) {
                      console.error("Error fetching save messages.", error);

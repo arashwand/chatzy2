@@ -629,6 +629,11 @@ window.chatApp = (function ($) {
             const $msgElement = $(msgHtml);
             chatMessages.append($msgElement);
 
+            // Re-initialize icons for the new message
+            if (typeof init_iconsax === 'function') {
+                init_iconsax();
+            }
+
             // 1. بررسی کنید آیا پیام حاوی فایل صوتی است یا خیر
             const hasAudioFile = message.messageFiles && message.messageFiles.some(file =>
                 file.fileName.toLowerCase().endsWith('.webm') ||

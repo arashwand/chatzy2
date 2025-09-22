@@ -1,0 +1,32 @@
+/* Styles for the sliding chat details panel */
+.chat-details-panel-container {
+    position: fixed;
+    top: 0;
+    right: -100%; /* Start off-screen */
+    width: 100%;
+    height: 100%;
+    background-color: #fff; /* Or your theme's background color */
+    z-index: 1050; /* Higher than the main content */
+    transition: right 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-details-panel-container.visible {
+    right: 0; /* Slide in */
+}
+
+/* Make sure the panel content is scrollable if it overflows */
+.chat-details-panel-container .chat-content {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+/* Ensure the header and footer are fixed */
+.chat-details-panel-container .chat-header {
+    flex-shrink: 0;
+}
+
+.chat-details-panel-container .chat-footer {
+    flex-shrink: 0;
+}
