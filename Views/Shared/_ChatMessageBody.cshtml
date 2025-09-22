@@ -105,7 +105,41 @@
 
                                     @if (message.MessageFiles?.Count > 0)
                                     {
-                                       // File rendering logic needs to be adapted here
+                                        <div class="form-row mt-1">
+                                            @foreach (var file in message.MessageFiles)
+                                            {
+                                                string fileTumbPath = System.IO.Path.Combine(_baseUrl, file.FileThumbPath);
+
+                                                <div class="col file-attachment-item" data-file-id="@file.MessageFileId" style="display: flex; flex-direction: column;">
+                                                    @if (AllowedImages.Contains(file.FileExtension.Extension, StringComparer.OrdinalIgnoreCase))
+                                                    {
+                                                        <a class="popup-media overflow-hidden" href="@fileTumbPath" target="_blank">
+                                                            <img class="img-fluid rounded" width="100" src="@fileTumbPath" data-oroginal-fileName="@file.OriginalFileName" alt="@file.FileName" style="max-height:150px">
+                                                        </a>
+                                                    }
+                                                    else if (file.FileExtension.Extension == ".webm")
+                                                    {
+                                                        <div class="audio-player-container">
+                                                            <button class="voice-download-btn" data-file-id="@file.MessageFileId">
+                                                                <i class="iconsax" data-icon="arrow-down-2"></i>
+                                                                <i class="fa fa-spinner fa-spin"></i>
+                                                            </button>
+                                                            <div class="file-meta text-light mx-1 text-dark">@FileSizeConverter.ConvertToReadableSize(file.FileSize)</div>
+                                                            <div class="voice-duration-display mx-1" style="margin-right: 15px;">صدای ضبط شده</div>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="iconsax" data-icon="document-text-1" style="font-size: 3em;"></i>
+                                                        @FileNameShorter.ShortenFileName(file.OriginalFileName ?? "")
+                                                        <span style="min-width:75px;" class="btn-download-file" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
+                                                            @FileSizeConverter.ConvertToReadableSize(file.FileSize)
+                                                            <i class="iconsax" data-icon="arrow-down-2" style="cursor:pointer"></i>
+                                                        </span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
                                     }
 
                                     <div class="timing">

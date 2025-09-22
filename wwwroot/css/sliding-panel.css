@@ -6,7 +6,7 @@
 
     /* --- Fix for Width Issue --- */
     width: 100%; /* Take full width on small screens */
-    max-width: 480px; /* But not more than 480px on larger screens */
+    max-width: 600px; /* But not more than 600px on larger screens */
     left: 0;
     right: 0;
     margin: auto;
@@ -19,7 +19,6 @@
     z-index: 1050;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 0 15px rgba(0,0,0,0.2);
 
     /* --- Animation --- */
     transition: transform 0.3s ease-in-out;
