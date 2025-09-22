@@ -10,11 +10,24 @@
     transition: right 0.3s ease-in-out;
     display: flex;
     flex-direction: column;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.1);
 }
 
 .chat-details-panel-container.visible {
     right: 0; /* Slide in */
 }
+
+/* This will be the main view with the chat list */
+#main-content-body {
+    transition: transform 0.3s ease-in-out;
+}
+
+/* When panel is visible, we can optionally push the main content to the left */
+body.panel-visible #main-content-body {
+    transform: translateX(-100px); /* Example push effect */
+    opacity: 0.5;
+}
+
 
 /* Make sure the panel content is scrollable if it overflows */
 .chat-details-panel-container .chat-content {
@@ -22,7 +35,7 @@
     overflow-y: auto;
 }
 
-/* Ensure the header and footer are fixed */
+/* Ensure the header and footer are fixed within the panel */
 .chat-details-panel-container .chat-header {
     flex-shrink: 0;
 }
