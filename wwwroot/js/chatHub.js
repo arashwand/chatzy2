@@ -1236,7 +1236,7 @@ window.chatApp = (function ($) {
     // این آبجکت به بیرون return می‌شود و توابع آن از همه جا قابل دسترس خواهند بود.
 
     const publicApi = {
-
+        updateChatInputUI: updateChatInputUI,
         connection: null,
         displayMessage: displayMessage,
         /**
@@ -1634,7 +1634,6 @@ $(document).ready(function () {
 
     //  ماژول چت را راه‌اندازی کن
     window.chatApp.init();
-    updateChatInputUI('default');
 
 
     // ======================================================================

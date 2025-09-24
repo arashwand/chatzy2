@@ -63,6 +63,9 @@
                     success: function (data) {
                         $('#chat-details-panel').html(data).addClass('visible');
 
+                        // Render the default input bar now that the container is loaded
+                        window.chatApp.updateChatInputUI('default');
+
                         window.chatApp.reAttachScrollListener();
 
                         if (typeof init_iconsax === 'function') {
