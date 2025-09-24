@@ -434,7 +434,8 @@ window.chatApp = (function ($) {
                     <span style="min-width:75px;" class="btn-download-file" data-file-id="${file.messageFileId}" data-file-originalName="${file.originalFileName}">
                         
                         <small class="d-block text-muted">${cleanFileSizeText}</small>
-                        <i class="iconsax" data-icon="arrow-down-2" style="cursor:pointer; margin-top: 5px;"></i>
+                        <i class="iconsax download-icon" data-icon="arrow-down-2" style="cursor:pointer; margin-top: 5px;"></i>
+                        <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
                     </span>
             </div>`;
 

@@ -134,7 +134,8 @@
                                                         @FileNameShorter.ShortenFileName(file.OriginalFileName ?? "")
                                                         <span style="min-width:75px;" class="btn-download-file" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
                                                             @FileSizeConverter.ConvertToReadableSize(file.FileSize)
-                                                            <i class="iconsax" data-icon="arrow-down-2" style="cursor:pointer"></i>
+                                                            <i class="iconsax download-icon" data-icon="arrow-down-2" style="cursor:pointer"></i>
+                                                            <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
                                                         </span>
                                                     }
                                                 </div>

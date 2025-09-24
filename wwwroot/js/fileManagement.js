@@ -15,11 +15,13 @@
         }
 
         const $button = $(this);
-        const originalContent = $button.html();
+        const $downloadIcon = $button.find('.download-icon');
+        const $spinnerIcon = $button.find('.spinner-icon');
         const apiUrl = '/api/chat/downloadFileById';
 
-        // نمایش یک پیام بارگذاری
-        $button.html('<i class="fa fa-spinner fa-spin"></i> در حال دانلود...');
+        // نمایش اسپینر و پنهان کردن آیکون دانلود
+        $downloadIcon.hide();
+        $spinnerIcon.show();
 
         try {
             const response = await fetch(apiUrl, {
@@ -65,8 +67,9 @@
             console.error('مشکل در دانلود فایل:', error);
             alert('خطا در دانلود فایل. لطفاً دوباره تلاش کنید.');
         } finally {
-            // بازگرداندن دکمه به حالت اولیه بعد از اتمام عملیات
-            $button.html(originalContent);
+            // بازگرداندن آیکون‌ها به حالت اولیه
+            $spinnerIcon.hide();
+            $downloadIcon.show();
         }
     });
 });
