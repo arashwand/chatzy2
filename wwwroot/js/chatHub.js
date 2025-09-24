@@ -1634,6 +1634,7 @@ $(document).ready(function () {
 
     //  ماژول چت را راه‌اندازی کن
     window.chatApp.init();
+    updateChatInputUI('default');
 
 
     // ======================================================================
@@ -1666,67 +1667,80 @@ $(document).ready(function () {
     // ======================================================================
 
 
+    function renderDefaultInput() {
+        return `
+            <input type="text" class="message-input" id="message-input" placeholder="Type here...">
+            <a href="#" onclick="$('#fileInput').click(); return false;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12.3299 12.1499L9.85993 14.6199C8.48993 15.9899 8.48993 18.1999 9.85993 19.5699C11.2299 20.9399 13.4399 20.9399 14.8099 19.5699L18.6999 15.6799C21.4299 12.9499 21.4299 8.50992 18.6999 5.77992C15.9699 3.04992 11.5299 3.04992 8.79993 5.77992L4.55993 10.0199C2.21993 12.3599 2.21993 16.1599 4.55993 18.5099" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+            <button class="btn-record-voice" type="button">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 15.5C14.21 15.5 16 13.71 16 11.5V6C16 3.79 14.21 2 12 2C9.79 2 8 3.79 8 6V11.5C8 13.71 9.79 15.5 12 15.5Z" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M4.3501 9.6499V11.3499C4.3501 15.5699 7.7801 18.9999 12.0001 18.9999C16.2201 18.9999 19.6501 15.5699 19.6501 11.3499V9.6499" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M10.6101 6.43012C11.5101 6.10012 12.4901 6.10012 13.3901 6.43012" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M11.2 8.55007C11.73 8.41007 12.28 8.41007 12.81 8.55007" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 19V22" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <a href="#" class="message-send-btn" id="send-message-button">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7.39999 6.32003L15.89 3.49003C19.7 2.22003 21.77 4.30003 20.51 8.11003L17.68 16.6C15.78 22.31 12.66 22.31 10.76 16.6L9.91999 14.08L7.39999 13.24C1.68999 11.34 1.68999 8.23003 7.39999 6.32003Z" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M10.11 13.6501L13.69 10.0601" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+        `;
+    }
+
     // تابع اصلی برای مدیریت نمایش UI در حالت‌های مختلف
     function updateChatInputUI(state, data = {}) {
-        console.log('state is : ******************************************************************' + state);
-        const textInputArea = $('#text-input-area');
-        const voiceInputArea = $('#voice-input-area');
-
-        // اگر المان‌ها پیدا نشدند، عملیات را متوقف کن
-        if (textInputArea.length === 0 || voiceInputArea.length === 0) {
-            console.error('خطای بحرانی: کانتینرهای ورودی پیدا نشدند!');
+        const chatInputContainer = $('#chat-input-container');
+        if (chatInputContainer.length === 0) {
+            console.error('خطای بحرانی: کانتینر ورودی چت (#chat-input-container) پیدا نشد!');
             return;
         }
 
-        // بازگرداندن به حالت پیش‌فرض
-        if (state === 'default') {
-            voiceInputArea.hide().empty();
-            textInputArea.show();
-            return;
-        }
-
-        // آماده‌سازی برای نمایش UI صدا
-        textInputArea.hide();
-        voiceInputArea.show(); // ابتدا کانتینر را نمایش بده
         let html = '';
-
         switch (state) {
             case 'recording':
-                // طراحی جدید برای حالت ضبط
                 html = `
-                <div id="voice-ui-container" class="recording-state">
-                    <span class="recording-timer">0:00</span>
-                    <i class="iconsax" data-icon="mic-2" style="color: red; animation: blink-animation 1.5s infinite;"></i>
+                <div id="voice-ui-container" class="d-flex align-items-center justify-content-between w-100">
+                    <button type="button" class="btn btn-danger btn-sm btn-stop-voice">توقف</button>
+                    <div class="d-flex align-items-center">
+                        <i class="iconsax theme-color" data-icon="mic-2" style="animation: blink-animation 1.5s infinite;"></i>
+                        <span class="recording-timer content-color ms-2">0:00</span>
+                    </div>
+                     <button type="button" class="btn btn-outline-secondary btn-sm btn-cancel-voice">انصراف</button>
                 </div>`;
                 break;
 
             case 'processing':
-                // حالت پردازش برای جلوگیری از سردرگمی کاربر
                 html = `
-                <div id="voice-ui-container" class="processing-state">
-                    <i class="fa fa-spinner fa-spin"></i>
-                    <span style="margin-right: 10px;">در حال پردازش...</span>
+                <div id="voice-ui-container" class="d-flex align-items-center justify-content-center w-100">
+                    <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="width: 24px; height: 24px;" alt="loading">
+                    <span class="ms-2 content-color">در حال پردازش...</span>
                 </div>`;
                 break;
 
             case 'preview':
-                // طراحی جدید برای حالت پیش‌نمایش
-                html = `
-                <div id="voice-ui-container" class="preview-state">
-                    <span class="voice-action-btn play-pause-btn" title="پخش/توقف"><i class="iconsax" data-icon="play"></i></span>
-                    <div class="voice-player-container">
-                        <input type="range" class="voice-timeline" value="0" max="${data.duration}" step="0.1">
+                 html = `
+                <div id="voice-ui-container" class="d-flex align-items-center justify-content-between w-100">
+                    <span class="voice-action-btn delete-btn" title="حذف"><i class="iconsax error-color" data-icon="trash"></i></span>
+                    <div class="voice-player-container d-flex align-items-center flex-grow-1 mx-2">
+                        <span class="voice-action-btn play-pause-btn" title="پخش/توقف"><i class="iconsax theme-color" data-icon="play"></i></span>
+                        <input type="range" class="voice-timeline form-range mx-2" value="0" max="${data.duration}" step="0.1">
+                        <span class="voice-duration content-color">${data.durationFormatted}</span>
                     </div>
-                    <span class="voice-duration">${data.durationFormatted}</span>
-                    
-                    <span class="voice-action-btn delete-btn mx-2" title="حذف"><i class="iconsax" data-icon="trash"></i></span>
                 </div>`;
+                break;
+
+            default:
+                html = renderDefaultInput();
                 break;
         }
 
-
-        console.log(html);
-        voiceInputArea.html(html);
+        chatInputContainer.html(html);
         init_iconsax(); // Re-render icons after injecting new HTML
     }
 
@@ -1749,7 +1763,6 @@ $(document).ready(function () {
         // 2. درخواست دسترسی به میکروفون
         navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
             isRecording = true;
-            $('.btn-record-voice i').removeClass('fa-microphone').addClass('fa-stop');
             updateChatInputUI('recording');
 
             let seconds = 0;
@@ -1797,7 +1810,6 @@ $(document).ready(function () {
         isRecording = false;
         isProcessing = true;
         clearInterval(recordingTimerInterval);
-        $('.btn-record-voice i').removeClass('fa-stop').addClass('fa-microphone');
         updateChatInputUI('processing');
         // بررسی وجود mediaRecorder قبل از فراخوانی stop
         if (mediaRecorder && mediaRecorder.state === 'recording') {
@@ -1933,19 +1945,20 @@ $(document).ready(function () {
 
         // بازگشت به حالت پیش‌فرض
         updateChatInputUI('default');
-        $('.btn-record-voice i').removeClass('fa-stop').addClass('fa-microphone');
     }
 
 
     // --- مدیریت رویدادها با Event Delegation ---
 
-    // کلیک روی دکمه میکروفون/توقف
-    $(document).on('click', '.btn-record-voice', function () {
-        if (isRecording) {
-            stopRecording();
-        } else {
-            startRecording();
-        }
+    // کلیک روی دکمه میکروفون برای شروع ضبط
+    $(document).on('click', '.btn-record-voice', startRecording);
+
+    // کلیک روی دکمه توقف ضبط
+    $(document).on('click', '.btn-stop-voice', stopRecording);
+
+    // کلیک روی دکمه انصراف ضبط
+    $(document).on('click', '.btn-cancel-voice', function() {
+        cleanupVoiceState(true, false);
     });
 
     // کلیک روی دکمه حذف پیش‌نمایش
