@@ -1,179 +1,154 @@
 @using System.Security.Claims
 @using Messenger.Tools
+@using Newtonsoft.Json
 @model IEnumerable<MessageSavedDto>
 @{
     long selfUserId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+    string[] AllowedImages = { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp" };
+    var _baseUrl = ViewData["baseUrl"]?.ToString() ?? "";
 }
 
-<!-- Chat Header Start-->
-<div class="chat-header">
-    <button class="btn btn-secondary btn-icon btn-minimal btn-sm d-xl-none" type="button" data-close="">
-        <i class="iconsax" data-icon="chevron-left"></i>
-    </button>
-
-    <div class="media chat-name align-items-center text-truncate">
-        <div class="avatar bg-success text-light d-none d-sm-inline-block mr-3">
-            <span>
-                 <i class="iconsax" data-icon="star-1"></i>
-            </span>
-        </div>
-        <div class="media-body align-self-center">
-            <h6 class="text-truncate mb-0">پیام‌های ذخیره شده</h6>
-        </div>
-    </div>
-
-    <ul class="nav flex-nowrap">
-         <li class="nav-item list-inline-item d-none d-sm-block mr-0">
-            <div class="dropdown">
-                <a class="nav-link text-muted px-1" href="#" role="button" title="گزینه‌ها" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                   <i class="iconsax" data-icon="more"></i>
+<!-- header starts -->
+<header id="header" class=" section-t-space main-header inner-page-header">
+    <div class="custom-container">
+        <div class="header-panel contact-panel">
+            <div class="d-flex align-items-center gap-2">
+                <a href="#" id="close-chat-panel-btn">
+                    <i class="iconsax icon-btn" data-icon="chevron-left"> </i>
                 </a>
-                <div class="dropdown-menu dropdown-menu-left">
-                    <a class="dropdown-item align-items-center d-flex" href="#">
-                        <i class="iconsax" data-icon="trash"></i>&nbsp;
-                        <span>حذف همه</span>
-                    </a>
+                <div class="profile-head">
+                     <div class="avatar bg-success text-light d-none d-sm-inline-block mr-3">
+                        <span>
+                             <i class="iconsax" data-icon="star-1"></i>
+                        </span>
+                    </div>
+                    <div>
+                        <h4 class="fw-semibold">پیام‌های ذخیره شده</h4>
+                    </div>
                 </div>
             </div>
-        </li>
-    </ul>
-</div>
-<!-- Chat Header End-->
 
-<!-- Chat Content Start-->
-<div class="chat-content p-2">
-    <div class="container">
-        <ul class="starred-box-list">
-            @if (Model != null && Model.Any())
+            <div class="d-flex align-items-center gap-sm-3 gap-2">
+                <div class="dropdown more-options dropdown-menu-end">
+                    <a class="btn dropdown-toggle mt-0 p-0" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="iconsax icon-btn" data-icon="menu-meatballs"> </i>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item align-items-center d-flex" href="#">
+                                <i class="iconsax" data-icon="trash"></i>&nbsp;
+                                <span>حذف همه</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+<!-- header end -->
+<!-- group chat section starts -->
+<section class="section-lg-b-space position-relative pt-0" id="chat_content">
+    <img class="img-fluid chat-bg" src="~/chatzy/assets/images/wallpaper/wallpaper0.png" alt="wallpaper">
+    <div class="custom-container">
+        <div id="Message_Days">
+            @{
+                var groupedMessages = Model
+                    .OrderBy(m => m.Message.MessageDateTime)
+                    .GroupBy(m => m.Message.MessageDateTime.Date);
+            }
+            @foreach (var group in groupedMessages)
             {
-                foreach (var item in Model.OrderByDescending(m => m.Message.MessageDateTime))
-                {
-                    var message = item.Message;
-                    var isSelfMessage = message.SenderUserId == selfUserId;
+                <h6 class="fw-normal text-center heading pt-4">@group.Key.ToString("dddd, d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"))</h6>
+                <ul class="message-box-list">
+                    @foreach (var savedMessage in group)
+                    {
+                        var message = savedMessage.Message;
+                        var isSelf = message.SenderUserId == selfUserId;
 
-                    <li>
-                        <div class="starred-box">
-                            <div class="starred-box-head">
-                                <div class="d-flex align-items-center gap-2">
-                                    <img class="img-fluid person-img" src="/assets/media/avatar/@(message.SenderUser.ProfilePicName ?? "default.jpg")" alt="avatar">
-                                    <div>
-                                        <h5>@message.SenderUser.NameFamily</h5>
-                                        <h6>
-                                            @if(isSelfMessage)
-                                            {
-                                                <span>شما</span>
-                                            }
-                                            else
-                                            {
-                                                <span>@message.SenderUser.NameFamily</span>
-                                            }
-                                            <span> | @message.MessageDateTime.ToPersianDate("d MMMM yyyy")</span>
-                                        </h6>
+                        <li class="@(isSelf ? "personal" : "new")" id="message-@message.MessageId"
+                            data-message-id="@message.MessageId"
+                            data-sender-id="@message.SenderUserId">
+                            <div class="message-box">
+                                @if (!isSelf)
+                                {
+                                    <img class="img-fluid person-img" src="~/assets/media/avatar/@message.SenderUser.ProfilePicName" alt="p9">
+                                }
+                                <div class="message-box-details">
+                                     <div class="d-flex justify-content-between">
+                                        @if (!isSelf)
+                                        {
+                                            <span class="sender-name">@message.SenderUser.NameFamily</span>
+                                        }
+                                        <a href="#" class="actionDeleteSavedMessage" data-messagesavedid="@savedMessage.MessageSavedId" title="حذف از ذخیره شده ها">
+                                            <i class="iconsax icon text-danger" data-icon="trash"></i>
+                                        </a>
                                     </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                     <a href="#" class="actionDeleteSavedMessage" data-messagesavedid="@item.MessageSavedId" title="حذف از ذخیره شده ها">
-                                        <i class="iconsax icon text-danger" data-icon="trash"></i>
-                                     </a>
-                                     <a href="#" onclick="focusOnMessage('@message.ClassGroupId', '@message.MessageId')" title="مشاهده در گفتگو">
-                                        <i class="iconsax icon" data-icon="chevron-left"></i>
-                                     </a>
-                                </div>
-                            </div>
-                            <div class="starred-box-details">
-                                <div class="starred-content">
-                                     @if (message.ReplyMessageId != null && message.ReplyMessage != null)
+                                    @if (message.ReplyMessageId != null)
                                     {
                                         <div class="reply-preview border p-2 rounded bg-light mb-2" style="cursor:pointer;" onclick="document.getElementById('message-@message.ReplyMessage?.MessageId')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
-                                            <div class="text-muted small">
-                                                پاسخ به: <strong>@message.ReplyMessage?.SenderUser.NameFamily</strong>
-                                            </div>
-                                            <div class="text-truncate">
-                                                 @Html.Raw(message.ReplyMessage.MessageText?.MessageTxt)
-                                            </div>
+                                            <div class="text-muted small">پاسخ به: <strong>@message.ReplyMessage?.SenderUser.NameFamily</strong></div>
+                                            <div class="text-truncate">@message.ReplyMessage?.MessageText?.MessageTxt</div>
                                         </div>
                                     }
 
-                                    @if (message.MessageFiles != null && message.MessageFiles.Any())
+                                    <h5>@Html.Raw(message.MessageText?.MessageTxt.Replace("\n", "<br />"))</h5>
+
+                                    @if (message.MessageFiles?.Count > 0)
                                     {
-                                        foreach(var file in message.MessageFiles)
-                                        {
-                                            // Image
-                                            if (file.FileType.IsImage())
+                                        <div class="form-row mt-1">
+                                            @foreach (var file in message.MessageFiles)
                                             {
-                                                <div class="message-gallery">
-                                                    <div class="row">
-                                                        <div class="col-6">
-                                                            <a href="/@file.FilePath" data-fancybox="gallery">
-                                                                <img class="img-fluid rounded" src="/@file.FileThumbPath" alt="@file.FileName">
-                                                            </a>
+                                                string fileTumbPath = System.IO.Path.Combine(_baseUrl, file.FileThumbPath);
+
+                                                <div class="col file-attachment-item" data-file-id="@file.MessageFileId" style="display: flex; flex-direction: column;">
+                                                    @if (AllowedImages.Contains(file.FileExtension.Extension, StringComparer.OrdinalIgnoreCase))
+                                                    {
+                                                        <a class="popup-media overflow-hidden" href="@fileTumbPath" target="_blank">
+                                                            <img class="img-fluid rounded" width="100" src="@fileTumbPath" data-oroginal-fileName="@file.OriginalFileName" alt="@file.FileName" style="max-height:150px">
+                                                        </a>
+                                                    }
+                                                    else if (file.FileExtension.Extension == ".webm")
+                                                    {
+                                                        <div class="audio-player-container">
+                                                            <button class="voice-download-btn" data-file-id="@file.MessageFileId">
+                                                                <i class="iconsax" data-icon="arrow-down-2"></i>
+                                                                <i class="fa fa-spinner fa-spin"></i>
+                                                            </button>
+                                                            <div class="file-meta text-light mx-1 text-dark">@FileSizeConverter.ConvertToReadableSize(file.FileSize)</div>
+                                                            <div class="voice-duration-display mx-1" style="margin-right: 15px;">صدای ضبط شده</div>
                                                         </div>
-                                                    </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="iconsax" data-icon="document-text-1" style="font-size: 3em;"></i>
+                                                        @FileNameShorter.ShortenFileName(file.OriginalFileName ?? "")
+                                                        <span style="min-width:75px;" class="btn-download-file" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
+                                                            @FileSizeConverter.ConvertToReadableSize(file.FileSize)
+                                                            <i class="iconsax" data-icon="arrow-down-2" style="cursor:pointer"></i>
+                                                        </span>
+                                                    }
                                                 </div>
                                             }
-                                            // Voice
-                                            else if (file.FileType == (int)FileType.Voice)
-                                            {
-                                                <div class="voice-player-container py-2">
-                                                    <audio class="voice-player" src="/@file.FilePath" controls></audio>
-                                                </div>
-                                            }
-                                            // Other files
-                                            else
-                                            {
-                                                <div class="document-img">
-                                                     <div class="d-flex align-items-center gap-2">
-                                                        <img class="img-fluid file-img" src="/chatzy/assets/images/svg/document.svg" alt="doc">
-                                                         <div>
-                                                            <h5>@file.FileName</h5>
-                                                            <h6>@file.FileExtension | @file.FileSize.ToSizeString()</h6>
-                                                        </div>
-                                                        <a href="/Home/DownloadFile?filePath=@file.FilePath" class="download-link"><i class="iconsax" data-icon="arrow-down-to-bracket"></i></a>
-                                                    </div>
-                                                </div>
-                                            }
-                                        }
+                                        </div>
                                     }
-                                    else
-                                    {
-                                        <h5>@Html.Raw(message.MessageText?.MessageTxt)</h5>
-                                    }
-                                </div>
-                                <div class="starred-timing">
-                                    <i class="iconsax text-warning" data-icon="star-1"></i>
-                                    <h6>@message.MessageDateTime.ToString("HH:mm")</h6>
+
+                                    <div class="timing">
+                                        <h6>@message.MessageDateTime.ToString("HH:mm")</h6>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </li>
-                }
+                        </li>
+                    }
+                </ul>
             }
-            else
-            {
-                <div class="d-flex justify-content-center align-items-center h-100">
-                    <p>هیچ پیام ذخیره شده‌ای وجود ندارد.</p>
-                </div>
-            }
-        </ul>
+        </div>
+         <div class="chat-finished" id="chat-finished"></div>
     </div>
-</div>
-<!-- Chat Content End-->
-
+</section>
+<!-- group chat section end -->
 <script>
-    // Ensure icons are rendered after dynamic load
     if (window.init_iconsax) {
         window.init_iconsax();
-    }
-
-    // Re-initialize audio players if Plyr is used
-    if (typeof Plyr !== 'undefined') {
-        document.querySelectorAll('.voice-player').forEach(player => {
-            new Plyr(player);
-        });
-    }
-
-    // Re-initialize gallery view if fancybox is used
-    if ($.fn.fancybox) {
-        $('[data-fancybox="gallery"]').fancybox();
     }
 </script>

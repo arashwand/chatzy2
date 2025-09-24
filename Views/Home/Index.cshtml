@@ -75,6 +75,24 @@
                 });
             };
 
+            // When "Saved Messages" is selected
+            window.GetSavedMessages = function() {
+                $.ajax({
+                    url: '/Home/GetSaveMessages',
+                    type: 'GET',
+                    success: function (data) {
+                        $('#chat-details-panel').html(data).addClass('visible');
+
+                        if (typeof init_iconsax === 'function') {
+                            init_iconsax();
+                        }
+                    },
+                    error: function (error) {
+                        console.error("Error fetching saved messages:", error);
+                    }
+                });
+            };
+
             // When closing the chat view to go back to the list
             $(document).on('click', '#close-chat-panel-btn', function() {
                 $('#chat-details-panel').removeClass('visible');
