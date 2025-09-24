@@ -105,41 +105,51 @@
 
                                     @if (message.MessageFiles?.Count > 0)
                                     {
-                                        <div class="form-row mt-1">
-                                            @foreach (var file in message.MessageFiles)
-                                            {
-                                                string fileTumbPath = System.IO.Path.Combine(_baseUrl, file.FileThumbPath);
+                                        var imageFiles = message.MessageFiles.Where(f => AllowedImages.Contains(f.FileExtension.Extension, StringComparer.OrdinalIgnoreCase)).ToList();
+                                        var otherFiles = message.MessageFiles.Where(f => !AllowedImages.Contains(f.FileExtension.Extension, StringComparer.OrdinalIgnoreCase)).ToList();
 
-                                                <div class="col file-attachment-item" data-file-id="@file.MessageFileId" style="display: flex; flex-direction: column;">
-                                                    @if (AllowedImages.Contains(file.FileExtension.Extension, StringComparer.OrdinalIgnoreCase))
-                                                    {
-                                                        <a class="popup-media overflow-hidden" href="@fileTumbPath" target="_blank">
-                                                            <img class="img-fluid rounded" width="100" src="@fileTumbPath" data-oroginal-fileName="@file.OriginalFileName" alt="@file.FileName" style="max-height:150px">
+                                        if (imageFiles.Any())
+                                        {
+                                            <ul class="media-img">
+                                                @foreach (var file in imageFiles)
+                                                {
+                                                    string fileTumbPath = System.IO.Path.Combine(_baseUrl, file.FileThumbPath);
+                                                    <li class="p-0">
+                                                        <a href="@fileTumbPath" data-fancybox="gallery-@message.MessageId">
+                                                            <img class="img-fluid img-thumbnail" src="@fileTumbPath" alt="@file.OriginalFileName">
                                                         </a>
-                                                    }
-                                                    else if (file.FileExtension.Extension == ".webm")
-                                                    {
-                                                        <div class="audio-player-container">
-                                                            <button class="voice-download-btn" data-file-id="@file.MessageFileId">
-                                                                <i class="iconsax" data-icon="arrow-down-2"></i>
-                                                                <i class="fa fa-spinner fa-spin"></i>
-                                                            </button>
-                                                            <div class="file-meta text-light mx-1 text-dark">@FileSizeConverter.ConvertToReadableSize(file.FileSize)</div>
-                                                            <div class="voice-duration-display mx-1" style="margin-right: 15px;">صدای ضبط شده</div>
-                                                        </div>
-                                                    }
-                                                    else
-                                                    {
-                                                        <i class="iconsax" data-icon="document-text-1" style="font-size: 3em;"></i>
-                                                        @FileNameShorter.ShortenFileName(file.OriginalFileName ?? "")
-                                                        <span style="min-width:75px;" class="btn-download-file" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
-                                                            @FileSizeConverter.ConvertToReadableSize(file.FileSize)
-                                                            <i class="iconsax" data-icon="arrow-down-2" style="cursor:pointer"></i>
-                                                        </span>
-                                                    }
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+
+                                        @foreach (var file in otherFiles)
+                                        {
+                                            string filePath = System.IO.Path.Combine(_baseUrl, file.FilePath);
+                                            // Voice messages
+                                            if (file.FileExtension.Extension == ".webm")
+                                            {
+                                                <div class="audio-player-container my-2">
+                                                    <audio class="voice-player" src="@filePath" controls></audio>
                                                 </div>
                                             }
-                                        </div>
+                                            // Other files
+                                            else
+                                            {
+                                                <div class="d-flex align-items-center gap-2 file-attachment-container p-2 rounded">
+                                                    <div class="document-img">
+                                                        <i class="iconsax" data-icon="document-text-1" style="font-size: 2em;"></i>
+                                                    </div>
+                                                    <div class="file-details">
+                                                        <h5>@FileNameShorter.ShortenFileName(file.OriginalFileName ?? file.FileName, 20)</h5>
+                                                        <h6>@file.FileExtension.Extension.ToUpper() | @FileSizeConverter.ConvertToReadableSize(file.FileSize)</h6>
+                                                    </div>
+                                                    <a href="#" class="btn-download-file ms-auto" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
+                                                        <i class="iconsax" data-icon="arrow-down-to-bracket" style="font-size: 1.5em;"></i>
+                                                    </a>
+                                                </div>
+                                            }
+                                        }
                                     }
 
                                     <div class="timing">
