@@ -105,7 +105,7 @@
 
                                     @if (message.MessageFiles != null)
                                     {
-                                        <div class="form-row mt-1">
+                                        <div class="form-row mt-1 overflow-hidden">
                                             @foreach (var file in message.MessageFiles)
                                             {
                                                 string fileTumbPath = System.IO.Path.Combine(_baseUrl, file.FileThumbPath);
