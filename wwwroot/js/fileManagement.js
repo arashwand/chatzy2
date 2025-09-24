@@ -1,12 +1,16 @@
 ﻿$(document).ready(function () {
     // رویداد کلیک را به صورت delegation برای المان‌های .btn-download-file تعریف می‌کنیم.
     // این روش برای المان‌هایی که بعداً به صفحه اضافه می‌شوند نیز کار می‌کند.
-    $(document).on('click', '.btn-download-file', async function () {
-        console.log('دکمه دانلود کلیک شد!');
+$(document).on('click', '.download-icon', async function (e) {
+    e.stopPropagation(); // جلوگیری از اینکه کلیک به span والد منتقل شود
+    console.log('آیکون دانلود کلیک شد!');
 
-        // دریافت fileId از data attribute
-        const fileId = $(this).data('file-id');
-        const oroginalFileName = $(this).data('file-originalname');
+    const $icon = $(this);
+    const $button = $icon.closest('.btn-download-file'); // پیدا کردن span والد
+
+    // دریافت fileId از data attribute والد
+    const fileId = $button.data('file-id');
+    const oroginalFileName = $button.data('file-originalname');
         console.log('File ID:', fileId);
 
         if (!fileId) {
@@ -14,13 +18,11 @@
             return;
         }
 
-        const $button = $(this);
-        const $downloadIcon = $button.find('.download-icon');
-        const $spinnerIcon = $button.find('.spinner-icon');
+    const $spinnerIcon = $button.find('.spinner-icon'); // پیدا کردن اسپینر همزاد
         const apiUrl = '/api/chat/downloadFileById';
 
         // نمایش اسپینر و پنهان کردن آیکون دانلود
-        $downloadIcon.hide();
+    $icon.hide();
         $spinnerIcon.show();
 
         try {
@@ -69,7 +71,7 @@
         } finally {
             // بازگرداندن آیکون‌ها به حالت اولیه
             $spinnerIcon.hide();
-            $downloadIcon.show();
+        $icon.show();
         }
     });
 });
