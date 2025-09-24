@@ -19,6 +19,7 @@
     <meta name="msapplication-TileImage" content="~/chatzy/assets/images/logo/favicon.png">
     <meta name="msapplication-TileColor" content="#FFFFFF">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
     <!--Google font-->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,9 +34,12 @@
 
     <!-- template css -->
     <link rel="stylesheet" id="change-link" type="text/css" href="~/chatzy/assets/css/style.css">
+
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 
 <body>
+
     @RenderBody()
 
     <!-- iconsax js -->
@@ -53,6 +57,7 @@
     <!-- template Setting js -->
     <script src="~/chatzy/assets/js/template-setting.js"></script>
 
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 

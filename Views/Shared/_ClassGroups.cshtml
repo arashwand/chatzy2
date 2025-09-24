@@ -29,23 +29,22 @@
 {
     foreach (var item in classGroups)
     {
-        <li id="@(ConstChat.ClassGroup + item.ClassId)">
+        <li id="@(ConstChat.ClassGroup + "_" + item.ClassId)">
             <a class="chat-list-box" onclick="GetSelectedChatMessages(@item.ClassId, '@ConstChat.ClassGroupType')" style="cursor: pointer;">
                 <div class="chat-list-image">
-                    @* <img class="img-fluid img" src="... some dynamic image ..." alt="p_img"> *@
                     <i class="iconsax" data-icon="group" style="font-size: 24px;"></i>
                 </div>
                 <div class="chat-details">
                     <div class="d-flex align-items-center justify-content-between">
                         <h5 class="name">@item.LevelName</h5>
-                        <h6 id="chatTime_@(ConstChat.ClassGroup + item.ClassId)">@item.LastMessage?.SentAt.ToString("hh:mm")</h6>
+                        <h6 id="chatTime_@(ConstChat.ClassGroup)_@item.ClassId">@item.LastMessage?.SentAt.ToString("hh:mm")</h6>
                     </div>
                     <div class="content">
                          <div class="d-flex align-items-center justify-content-between gap-2">
-                            <p class="text-truncate" id="chatText_@(ConstChat.ClassGroup + item.ClassId)">
+                            <p class="text-truncate" id="chatText_@(ConstChat.ClassGroup)_@item.ClassId">
                                 <span>@item.LastMessage?.SenderName:</span> @item.LastMessage?.Text
                             </p>
-                            <div class="badge badge-rounded badge-primary ml-1 @(item.UnreadCount == 0 ? "d-none" : "")" id="unreadCountBadge_@(ConstChat.ClassGroup + item.ClassId)">
+                            <div class="badge badge-rounded badge-primary ml-1 @(item.UnreadCount == 0 ? "d-none" : "")" id="unreadCountBadge_@(ConstChat.ClassGroup)_@item.ClassId">
                                 @item.UnreadCount
                             </div>
                         </div>
@@ -62,7 +61,7 @@
     foreach (var item in channels)
     {
         if (item == null) { continue; }
-        <li id="@(ConstChat.ChannelGroup + item.ChannelId)">
+        <li id="@(ConstChat.ChannelGroup + "_" + item.ChannelId)">
             <a class="chat-list-box" onclick="GetSelectedChatMessages(@item.ChannelId, '@ConstChat.ChannelGroupType')" style="cursor: pointer;">
                 <div class="chat-list-image">
                      <i class="iconsax" data-icon="megaphone" style="font-size: 24px;"></i>
@@ -70,20 +69,20 @@
                 <div class="chat-details">
                     <div class="d-flex align-items-center justify-content-between">
                         <h5 class="name">@item.ChannelName</h5>
-                         <h6 id="chatTime_@(ConstChat.ChannelGroup + item.ChannelId)">
+                         <h6 id="chatTime_@(ConstChat.ChannelGroup)_@item.ChannelId">
                             @if (item.LastMessage != null) { @item.LastMessage?.SentAt.ToString("hh:mm") }
                         </h6>
                     </div>
                     <div class="content">
                         <div class="d-flex align-items-center justify-content-between gap-2">
-                            <p class="text-truncate" id="chatText_@(ConstChat.ChannelGroup + item.ChannelId)">
+                            <p class="text-truncate" id="chatText_@(ConstChat.ChannelGroup)_@item.ChannelId">
                                 @if (item.LastMessage != null)
                                 {
                                     <span>@item.LastMessage?.SenderName:</span>
                                     @item.LastMessage?.Text
                                 }
                             </p>
-                            <div class="badge badge-rounded badge-primary ml-1 @(item.UnreadCount == 0 ? "d-none" : "")" id="unreadCountBadge_@(ConstChat.ChannelGroup + item.ChannelId)">
+                            <div class="badge badge-rounded badge-primary ml-1 @(item.UnreadCount == 0 ? "d-none" : "")" id="unreadCountBadge_@(ConstChat.ChannelGroup)_@item.ChannelId)">
                                 @item.UnreadCount
                             </div>
                         </div>

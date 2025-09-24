@@ -244,7 +244,7 @@ window.chatApp = (function ($) {
         if (isSelf == 'self') {
             actionEditMessageBody = `
                  <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageId="${message.messageId}" href="#">
-                    <i class="iconsax" data-icon="edit-1"></i>&nbsp;
+                    <i class="fa fa-edit"></i>&nbsp;
                      <span> ویرایش</span>
                  </a>
             `;
@@ -303,7 +303,7 @@ window.chatApp = (function ($) {
 
         actionReplyMessageBody = `
             <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageId="${message.messageId}" href="#">
-                    <i class="iconsax" data-icon="reply"></i>&nbsp;
+                    <i class="fa fa-reply"></i>&nbsp;
                     <span> پاسخ دادن</span>
                 </a>
         `;
@@ -345,12 +345,14 @@ window.chatApp = (function ($) {
                             ${actionReplyMessageBody}
 
                             <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageId="${message.messageId}" href="#">
-                                <i class="iconsax" data-icon="star"></i>&nbsp;
+                                <i class="fa fa-save"></i>&nbsp;
                                 <span> ذخیره</span>
                             </a>
 
-                             <a class="dropdown-item align-items-center d-flex actionDeleteMessage" data-messageId="${message.messageId}" href="#">
-                                <i class="iconsax" data-icon="trash"></i>&nbsp;
+                             <a class="dropdown-item align-items-center d-flex" data-messageId="${message.messageId}" href="#">
+                                <svg class="hw-20 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
                                 <span>حذف</span>
                             </a>
 
@@ -390,7 +392,7 @@ window.chatApp = (function ($) {
                 fileHtml = `
             <div class="col file-attachment-item audio-attachment" data-file-id="${file.messageFileId}">
                 <div class="audio-player-container">
-                    <button class="voice-playback-btn"><i class="iconsax" data-icon="play"></i></button>
+                    <button class="voice-playback-btn"><i class="fa fa-play"></i></button>
                     <div class="voice-timeline-container">
                         <div class="voice-timeline-bg"></div>
                         <div class="voice-timeline-progress"></div>
@@ -408,7 +410,7 @@ window.chatApp = (function ($) {
                  <div class="col file-attachment-item audio-attachment" data-file-id="${file.messageFileId}">
                      <div class="audio-player-container">
                           <button class="voice-download-btn" data-file-id="${file.messageFileId}">
-                             <i class="iconsax" data-icon="arrow-down-2"></i>
+                             <i class="fa fa-download"></i>
                              <i class="fa fa-spinner fa-spin" style="display: none;"></i> <!-- اسپینر پنهان -->
                          </button>
                          <div class="file-meta text-light mx-1 text-dark">${fileSize}</div>
@@ -429,12 +431,12 @@ window.chatApp = (function ($) {
 
             fileHtml = `
             <div class="col file-attachment-item" data-file-id="${file.messageFileId}" style="display: flex; flex-direction: column;">
-                    <i class="iconsax" data-icon="document-text-1" style="font-size: 3em;" aria-hidden="true"></i>
+                    <i class="fa fa-file-o fa-3x" aria-hidden="true"></i>
                     ${displayName}
-                    <span style="min-width:75px;" class="btn-download-file" data-file-id="${file.messageFileId}" data-file-originalName="${file.originalFileName}">
+                    <span style="min-width:75px;" class="btn-download-file" data-file-id="${file.messageFileId}">
                         
                         <small class="d-block text-muted">${cleanFileSizeText}</small>
-                        <i class="iconsax" data-icon="arrow-down-2" style="cursor:pointer; margin-top: 5px;"></i>
+                        <i class="fa fa-download" style="cursor:pointer; margin-top: 5px;"></i>
                     </span>
             </div>`;
 
@@ -552,12 +554,12 @@ window.chatApp = (function ($) {
             // بررسی اینکه آیا فایل صوتی است یا خیر
             // برای اطمینان، از همان متغیرهای سراسری استفاده می‌کنیم
             if (ALLOWED_AUDIO.includes(fileExtension)) {
-                return '<i class="iconsax" data-icon="mic-2" style="margin-left: 5px;"></i> فایل ضبط شده';
+                return '<i class="fa fa-microphone" style="margin-left: 5px;"></i> فایل ضبط شده';
             }
 
             // بررسی اینکه آیا فایل تصویر است یا خیر
             if (ALLOWED_IMAGES.includes(fileExtension)) {
-                return '<i class="iconsax" data-icon="camera" style="margin-left: 5px;"></i> عکس';
+                return '<i class="fa fa-camera" style="margin-left: 5px;"></i> عکس';
             }
 
             // برای سایر فایل‌ها (داکیومنت و غیره)
@@ -566,7 +568,7 @@ window.chatApp = (function ($) {
                 ? fileName.substring(0, 18) + '...'
                 : fileName;
 
-            return `<i class="iconsax" data-icon="paperclip-2" style="margin-left: 5px;"></i> ${truncatedName}`;
+            return `<i class="fa fa-paperclip" style="margin-left: 5px;"></i> ${truncatedName}`;
         }
 
         // حالت نهایی: اگر پیام به هر دلیلی کاملاً خالی بود
@@ -626,11 +628,6 @@ window.chatApp = (function ($) {
             const msgHtml = createMessageHtmlBody(message);
             const $msgElement = $(msgHtml);
             chatMessages.append($msgElement);
-
-            // Re-initialize icons for the new message
-            if (typeof init_iconsax === 'function') {
-                init_iconsax();
-            }
 
             // 1. بررسی کنید آیا پیام حاوی فایل صوتی است یا خیر
             const hasAudioFile = message.messageFiles && message.messageFiles.some(file =>
@@ -1695,7 +1692,7 @@ $(document).ready(function () {
                 html = `
                 <div id="voice-ui-container" class="recording-state">
                     <span class="recording-timer">0:00</span>
-                    <i class="iconsax" data-icon="mic-2" style="color: red; animation: blink-animation 1.5s infinite;"></i>
+                    <i class="fa fa-circle recording-indicator"></i>
                 </div>`;
                 break;
 
@@ -1712,13 +1709,13 @@ $(document).ready(function () {
                 // طراحی جدید برای حالت پیش‌نمایش
                 html = `
                 <div id="voice-ui-container" class="preview-state">
-                    <span class="voice-action-btn play-pause-btn" title="پخش/توقف"><i class="iconsax" data-icon="play"></i></span>
+                    <span class="voice-action-btn play-pause-btn" title="پخش/توقف"><i class="fa fa-play" style="transform: rotate(180deg);"></i></span>
                     <div class="voice-player-container">
                         <input type="range" class="voice-timeline" value="0" max="${data.duration}" step="0.1">
                     </div>
                     <span class="voice-duration">${data.durationFormatted}</span>
                     
-                    <span class="voice-action-btn delete-btn mx-2" title="حذف"><i class="iconsax" data-icon="trash"></i></span>
+                    <span class="voice-action-btn delete-btn mx-2" title="حذف"><i class="fa fa-trash"></i></span>
                 </div>`;
                 break;
         }
@@ -1726,7 +1723,6 @@ $(document).ready(function () {
 
         console.log(html);
         voiceInputArea.html(html);
-        init_iconsax(); // Re-render icons after injecting new HTML
     }
 
     // --- توابع اصلی برای کنترل ضبط ---
@@ -1957,16 +1953,14 @@ $(document).ready(function () {
         const icon = $(this).find('i');
         if (pendingVoiceAudioElement.paused) {
             pendingVoiceAudioElement.play();
-            icon.attr('data-icon', 'pause');
+            icon.removeClass('fa-play').addClass('fa-pause');
         } else {
             pendingVoiceAudioElement.pause();
-            icon.attr('data-icon', 'play');
+            icon.removeClass('fa-pause').addClass('fa-play');
         }
-        init_iconsax(); // Re-render the icon
 
         pendingVoiceAudioElement.onended = () => {
-            icon.attr('data-icon', 'play');
-            init_iconsax();
+            icon.removeClass('fa-pause').addClass('fa-play');
             $('.voice-timeline').val(0); // ریست تایم‌لاین
         };
     });
@@ -2630,7 +2624,7 @@ $(document).ready(function () {
             previewElement = `<img src="${imageURL}" class="file-thumbnail" alt="پیش‌نمایش">`;
         } else {
 
-            let icon = `<i class="iconsax" data-icon="document-text-1" aria-hidden="true"></i>`
+            let icon = `<i class="fa fa-file-o" aria-hidden="true"></i>`
             previewElement = `<div class="file-icon">${icon}</div>`;
         }
 

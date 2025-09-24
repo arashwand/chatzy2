@@ -36,9 +36,13 @@
     <link rel="stylesheet" id="rtl-link" type="text/css" href="~/chatzy/assets/css/vendors/bootstrap.css">
     <!-- template css -->
     <link rel="stylesheet" id="change-link" type="text/css" href="~/chatzy/assets/css/style.css">
+    <!-- FancyBox CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css" />
-  <link rel="stylesheet" href="~/css/imported-chat-styles.css" asp-append-version="true" />
-  <link rel="stylesheet" href="~/css/sliding-panel.css" asp-append-version="true" />
+
+    <!-- Custom App CSS -->
+    <link rel="stylesheet" href="~/css/imported-chat-styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/sliding-panel.css" asp-append-version="true" />
+
     @await RenderSectionAsync("Styles", required: false)
 </head>
 
@@ -68,27 +72,21 @@
 
                         <ul class="dropdown-menu">
                             <li>
-                                <a href="new-group-contact.html" class="dropdown-item">
+                                <a href="#" class="dropdown-item">
                                     <i class="iconsax icon" data-icon="group"></i>
                                     New Group
                                 </a>
                             </li>
                             <li>
-                                <a href="new-broadcast-contact.html" class="dropdown-item">
-                                    <img class="icon"
-                                         src="~/chatzy/assets/images/svg/megaphone.svg" alt="megaphone"> New Broadcast
-                                </a>
-                            </li>
-                            <li>
-                                <a href="starred-message.html" class="dropdown-item">
+                                <a href="#" class="dropdown-item">
                                     <i class="iconsax icon" data-icon="star"></i>
                                     Starred Message
                                 </a>
                             </li>
-                            <li>
-                                <a href="invite-people.html" class="dropdown-item">
-                                    <i class="iconsax icon" data-icon="add-square">
-                                    </i>Invite a Friend
+                             <li>
+                                <a asp-area="" asp-controller="Account" asp-action="Logout" class="dropdown-item">
+                                    <i class="iconsax icon" data-icon="logout-2"></i>
+                                    Logout
                                 </a>
                             </li>
                         </ul>
@@ -98,122 +96,6 @@
         </div>
     </header>
     <!-- header end -->
-    <!-- sidebar starts -->
-    <div class="offcanvas sidebar-offcanvas offcanvas-start" tabindex="-1" id="offcanvasLeft">
-        <div class="offcanvas-header sidebar-header">
-            <div class="sidebar-logo">
-                <img class="img-fluid logo" src="~/chatzy/assets/images/logo/mini-logo.png" alt="logo">
-                <span class="fw-bold dark-text">Chatzy</span>
-            </div>
-        </div>
-
-        <div class="offcanvas-body">
-            <ul class="link-section switch-section">
-                <li class="active">
-                    <a href="home.html" class="pages">
-                        <i class="iconsax sidebar-icon" data-icon="messages-2"> </i>
-                        <h3>Chats</h3>
-                    </a>
-                </li>
-                <li>
-                    <a href="new-group-contact.html" class="pages">
-                        <i class="iconsax sidebar-icon" data-icon="group"> </i>
-                        <h3>New Group</h3>
-                    </a>
-                </li>
-                <li>
-                    <a href="new-broadcast-contact.html" class="pages">
-                        <img class=" ing-fluid sidebar-icon icon" src="~/chatzy/assets/images/svg/megaphone.svg" alt="megaphone">
-                        <h3>New Broadcast</h3>
-                    </a>
-                </li>
-                <li>
-                    <a href="call.html" class="pages">
-                        <i class="iconsax sidebar-icon" data-icon="phone-add"> </i>
-                        <h3>New Calls</h3>
-                    </a>
-                </li>
-                <li>
-                    <a href="starred-message.html" class="pages">
-                        <i class="iconsax sidebar-icon" data-icon="star"> </i>
-
-                        <h3>Starred Message</h3>
-                    </a>
-                </li>
-
-                <li>
-                    <a href="add-chat-contact.html" class="pages">
-                        <i class="iconsax sidebar-icon" data-icon="user-1-square"> </i>
-                        <h3>Add New Contact</h3>
-                    </a>
-                </li>
-                <li>
-                    <a href="invite-friend.html" class="pages">
-                        <i class="iconsax sidebar-icon" data-icon="add-square"> </i>
-                        <h3>Invite Friend</h3>
-                    </a>
-                </li>
-
-                <li>
-                    <a href="page-listing.html" class="pages">
-                        <i class="iconsax sidebar-icon" data-icon="book-closed"> </i>
-                        <h3>template Pages</h3>
-                    </a>
-                </li>
-
-                <li>
-                    <a href="components-page.html" class="pages">
-                        <i class="iconsax sidebar-icon" data-icon="document-text-1"> </i>
-                        <h3>template Components</h3>
-                    </a>
-                </li>
-                <li>
-                    <a href="profile.html" class="pages">
-                        <i class="iconsax sidebar-icon" data-icon="user-1"> </i>
-                        <h3>Profile</h3>
-                    </a>
-                </li>
-
-                <li>
-                    <div class="pages">
-                        <i class="iconsax sidebar-icon" data-icon="repeat"> </i>
-                        <h3>RTL</h3>
-                    </div>
-                    <div class="switch-btn">
-                        <input id="dir-switch" type="checkbox">
-                    </div>
-                </li>
-
-                <li>
-                    <div class="pages">
-                        <i class="iconsax sidebar-icon" data-icon="brush-3"> </i>
-                        <h3>Dark</h3>
-                    </div>
-                    <div class="switch-btn">
-                        <input id="dark-switch" type="checkbox">
-                    </div>
-                </li>
-            </ul>
-
-            <div class="bottom-sidebar">
-                <ul class="link-section">
-                    <li>
-                        <a href="setting.html" class="pages">
-                            <i class="iconsax sidebar-icon" data-icon="nut"> </i>
-                            <h3>Setting</h3>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="login.html" class="pages">
-                            <i class="iconsax sidebar-icon" data-icon="logout-2"> </i>
-                            <h3>Logout</h3>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-    <!-- sidebar end -->
 
     @RenderBody()
 
@@ -225,11 +107,12 @@
     <!-- panel-space start -->
     <section class="panel-space"></section>
     <!-- panel-space end -->
+
     <!-- bottom navbar start -->
     <div class="navbar-menu">
         <ul>
             <li class="active">
-                <a href="home.html">
+                <a href="#">
                     <div class="icon">
                         <img class="unactive" src="~/chatzy/assets/images/svg/chat.svg" alt="chat">
                         <img class="active" src="~/chatzy/assets/images/svg/chat-fill.svg" alt="chat">
@@ -239,7 +122,7 @@
             </li>
 
             <li>
-                <a href="call.html">
+                <a href="#">
                     <div class="icon">
                         <img class="unactive" src="~/chatzy/assets/images/svg/call.svg" alt="call">
                         <img class="active" src="~/chatzy/assets/images/svg/call-fill.svg" alt="call">
@@ -249,7 +132,7 @@
             </li>
 
             <li>
-                <a href="setting.html">
+                <a href="#">
                     <div class="icon">
                         <img class="unactive" src="~/chatzy/assets/images/svg/setting.svg" alt="setting">
                         <img class="active" src="~/chatzy/assets/images/svg/setting-fill.svg" alt="setting">
@@ -259,7 +142,7 @@
             </li>
 
             <li>
-                <a href="profile.html">
+                <a href="#">
                     <div class="icon">
                         <img class="unactive" src="~/chatzy/assets/images/svg/profile.svg" alt="profile">
                         <img class="active" src="~/chatzy/assets/images/svg/profile-fill.svg" alt="profile">
@@ -270,215 +153,9 @@
         </ul>
     </div>
     <!-- bottom navbar end -->
-    <!-- search offcanvas starts -->
-    <div class="offcanvas offcanvas-top search-offcanvas" tabindex="-1" id="search-offcanvas">
-        <div class="offcanvas-header">
-            <a href="setting.html" data-bs-dismiss="offcanvas">
-                <i class="iconsax icon-btn" data-icon="chevron-left"> </i>
-            </a>
-            <div class="form-input">
-                <input type="search" class="form-control search" id="inputusername" placeholder="Search here...">
-                <i class="iconsax search" data-icon="search-normal-2"> </i>
-            </div>
-        </div>
 
-        <div class="offcanvas-body">
-            <ul class="search-categories-list">
-                <li>
-                    <div class="search-categories-box">
-                        <img class="img img-fluid" src="~/chatzy/assets/images/svg/video.svg" alt="video">
-                        <h6>Video</h6>
-                    </div>
-                </li>
-                <li>
-                    <div class="search-categories-box">
-                        <img class="img img-fluid" src="~/chatzy/assets/images/svg/gallery.svg" alt="video">
-                        <h6>Photos</h6>
-                    </div>
-                </li>
-                <li>
-                    <div class="search-categories-box">
-                        <img class="img img-fluid" src="~/chatzy/assets/images/svg/headphone.svg" alt="video">
-                        <h6>Audios</h6>
-                    </div>
-                </li>
-                <li>
-                    <div class="search-categories-box">
-                        <img class="img img-fluid" src="~/chatzy/assets/images/svg/document.svg" alt="video">
-                        <h6>Documents</h6>
-                    </div>
-                </li>
-                <li>
-                    <div class="search-categories-box">
-                        <img class="img img-fluid" src="~/chatzy/assets/images/svg/gif.svg" alt="video">
-                        <h6>GIFs</h6>
-                    </div>
-                </li>
-                <li>
-                    <div class="search-categories-box">
-                        <img class="img img-fluid" src="~/chatzy/assets/images/svg/link.svg" alt="video">
-                        <h6>Links</h6>
-                    </div>
-                </li>
-
-                <li>
-                    <div class="search-categories-box">
-                        <img class="img img-fluid" src="~/chatzy/assets/images/svg/message.svg" alt="video">
-                        <h6>Unread</h6>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-    <!-- search offcanvas end -->
-    <!-- add story modal starts -->
-    <div class="modal fade add-modal" id="add-story-modal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Add Story</h3>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <ul class="story-list">
-                        <li>
-                            <div class="story-types-box">
-                                <div class="story-image">
-                                    <img src="~/chatzy/assets/images/icons/gallery.png" alt="gallery">
-                                </div>
-                                <h5>Select From Gallery</h5>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="story-types-box">
-                                <div class="story-image">
-                                    <img src="~/chatzy/assets/images/icons/camera.png" alt="camera">
-                                </div>
-                                <h5>Open Camera</h5>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="story-types-box">
-                                <div class="story-image">
-                                    <img src="~/chatzy/assets/images/icons/text.png" alt="text">
-                                </div>
-                                <h5>Write Text</h5>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- add story modal end  -->
-    <!-- friend story modal starts -->
-    <div class="modal fade story-modal" id="friend-story" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen">
-            <div class="modal-content">
-                <div class="modal-body">
-                    <div class="swiper story__slider">
-                        <div class="swiper-wrapper">
-                            <div class="swiper-slide position-relative">
-                                <img class="img-fluid story-img" src="~/chatzy/assets/images/story-img1.png" alt="story-img">
-                                <div class="story-person-content">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="story-person-img">
-                                            <img class="img-fluid person-icon" src="~/chatzy/assets/images/profile/p2.png" alt="p2">
-                                        </div>
-                                        <h3> Albert Flores</h3>
-                                        <h6>10 min ago</h6>
-                                    </div>
-                                    <a href="#" data-bs-dismiss="modal">
-                                        <i class="iconsax close-btn" data-icon="add"> </i>
-                                    </a>
-                                </div>
-
-                                <form class="message-inputarea">
-                                    <input type="text" class="message-input" placeholder="Type here...">
-                                    <img class="img-fluid smile" src="~/chatzy/assets/images/svg/smile.svg" alt="">
-                                    <i class="iconsax file" data-icon="paperclip-2"> </i>
-                                    <i class="iconsax mic" data-icon="mic-2"> </i>
-
-                                    <a href="home.html" type="button" class="message-send-btn">
-                                        <i class="iconsax icon-btn" data-icon="send-2"> </i>
-                                    </a>
-                                </form>
-                            </div>
-                            <div class="swiper-slide">
-                                <img class="img-fluid story-img" src="~/chatzy/assets/images/story-img2.png" alt="story-img">
-                                <div class="story-person-content">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="story-person-img">
-                                            <img class="img-fluid person-icon" src="~/chatzy/assets/images/profile/p2.png" alt="p2">
-                                        </div>
-                                        <h3> Albert Flores</h3>
-                                        <h6>10 min ago</h6>
-                                    </div>
-                                    <a href="#" data-bs-dismiss="modal">
-                                        <i class="iconsax close-btn" data-icon="add"> </i>
-                                    </a>
-                                </div>
-
-                                <form class="message-inputarea">
-                                    <input type="text" class="message-input" placeholder="Type here...">
-                                    <img class="img-fluid smile" src="~/chatzy/assets/images/svg/smile.svg" alt="">
-                                    <i class="iconsax file" data-icon="paperclip-2"> </i>
-                                    <i class="iconsax mic" data-icon="mic-2"> </i>
-
-                                    <a href="home.html" type="button" class="message-send-btn">
-                                        <i class="iconsax icon-btn" data-icon="send-2"> </i>
-                                    </a>
-                                </form>
-                            </div>
-                            <div class="swiper-slide">
-                                <img class="img-fluid story-img" src="~/chatzy/assets/images/story-img3.png" alt="story-img">
-                                <div class="story-person-content">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="story-person-img">
-                                            <img class="img-fluid person-icon" src="~/chatzy/assets/images/profile/p2.png" alt="p2">
-                                        </div>
-                                        <h3> Albert Flores</h3>
-                                        <h6>10 min ago</h6>
-                                    </div>
-                                    <a href="#" data-bs-dismiss="modal">
-                                        <i class="iconsax close-btn" data-icon="add"> </i>
-                                    </a>
-                                </div>
-                                <form class="message-inputarea">
-                                    <input type="text" class="message-input" placeholder="Type here...">
-                                    <img class="img-fluid smile" src="~/chatzy/assets/images/svg/smile.svg" alt="">
-                                    <i class="iconsax file" data-icon="paperclip-2"> </i>
-                                    <i class="iconsax mic" data-icon="mic-2"> </i>
-
-                                    <a href="home.html" type="button" class="message-send-btn">
-                                        <i class="iconsax icon-btn" data-icon="send-2"> </i>
-                                    </a>
-                                </form>
-                            </div>
-                        </div>
-                        <div class="story__pagination swiper-pagination"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- friend story modal end -->
-
-    <!-- Chat Members Modal -->
-    <div class="modal fade" id="chat-members-modal" tabindex="-1" aria-labelledby="chatMembersModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="chatMembersModalLabel">Chat Members</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="chat-members-modal-body">
-                    <!-- Member list will be loaded here -->
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- JQuery -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
 
     <!-- iconsax js -->
     <script src="~/chatzy/assets/js/iconsax.js"></script>
@@ -490,7 +167,8 @@
     <script src="~/chatzy/assets/js/swiper-bundle.min.js"></script>
     <script src="~/chatzy/assets/js/custom-swiper.js"></script>
 
-
+    <!-- FancyBox JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js"></script>
 
     <!-- script js -->
     <script src="~/chatzy/assets/js/script.js"></script>
@@ -498,8 +176,6 @@
     <!-- template Setting js -->
     <script src="~/chatzy/assets/js/template-setting.js"></script>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 

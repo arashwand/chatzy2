@@ -9,28 +9,26 @@
     <img class="img-fluid img" src="~/chatzy/assets/images/login-vector.svg" alt="login-img">
 </div>
 <div class="custom-container">
-    <h2 class="login-title">ورود</h2>
-    <h3 class="login-content">پورتال اختصاصی چت آموزشگاه زبان ایران اروپا.</h3>
+    <h2 class="login-title">Login</h2>
+    <h3 class="login-content">Let’s start again to chat with friends</h3>
     <form class="auth-form pb-3" method="post">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
         <div class="form-group mt-4">
-            <label class="form-label fw-semibold dark-text" asp-for="LoginCode">نام کاربری</label>
+            <label asp-for="LoginCode" class="form-label fw-semibold dark-text">Username</label>
             <div class="form-input">
-                <input asp-for="LoginCode" class="form-control" placeholder="نام کاربری خود را وارد کنید" required>
+                <input asp-for="LoginCode" class="form-control" placeholder="Enter your username" required>
             </div>
-            <span asp-validation-for="LoginCode" class="text-danger"></span>
+             <span asp-validation-for="LoginCode" class="text-danger"></span>
         </div>
-
         <div class="form-group mt-2">
-            <label class="form-label fw-semibold dark-text" asp-for="Password">رمز عبور</label>
+            <label asp-for="Password" class="form-label fw-semibold dark-text">Password</label>
             <div class="form-input">
-                <input type="password" asp-for="Password" class="form-control" placeholder="رمز عبور خود را وارد کنید" required>
+                <input asp-for="Password" type="password" class="form-control" placeholder="Enter your password" required>
             </div>
             <span asp-validation-for="Password" class="text-danger"></span>
         </div>
 
-        <button type="submit" class="btn theme-btn w-100 mt-4">ورود</button>
+        <button type="submit" class="btn theme-btn w-100 mt-4" role="button">Login</button>
     </form>
 </div>
 <!-- login page end -->
