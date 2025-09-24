@@ -17,9 +17,9 @@
                     <i class="iconsax icon-btn" data-icon="chevron-left"> </i>
                 </a>
                 <div class="profile-head">
-                     <div class="avatar bg-success text-light d-none d-sm-inline-block mr-3">
+                    <div class="avatar bg-success text-light d-none d-sm-inline-block mr-3">
                         <span>
-                             <i class="iconsax" data-icon="star-1"></i>
+                            <i class="iconsax" data-icon="star-1"></i>
                         </span>
                     </div>
                     <div>
@@ -54,8 +54,8 @@
         <div id="Message_Days">
             @{
                 var groupedMessages = Model
-                    .OrderBy(m => m.Message.MessageDateTime)
-                    .GroupBy(m => m.Message.MessageDateTime.Date);
+                .OrderBy(m => m.Message.MessageDateTime)
+                .GroupBy(m => m.Message.MessageDateTime.Date);
             }
             @foreach (var group in groupedMessages)
             {
@@ -75,7 +75,7 @@
                                     <img class="img-fluid person-img" src="~/assets/media/avatar/@message.SenderUser.ProfilePicName" alt="p9">
                                 }
                                 <div class="message-box-details">
-                                     <div class="d-flex justify-content-between">
+                                    <div class="d-flex justify-content-between">
                                         @if (!isSelf)
                                         {
                                             <span class="sender-name">@message.SenderUser.NameFamily</span>
@@ -94,9 +94,9 @@
 
                                     <h5>@Html.Raw(message.MessageText?.MessageTxt.Replace("\n", "<br />"))</h5>
 
-                                    @if (message.MessageFiles?.Count > 0)
+                                    @if (message.MessageFiles != null)
                                     {
-                                        <div class="form-row mt-1">
+                                        <div class="form-row mt-1 overflow-hidden">
                                             @foreach (var file in message.MessageFiles)
                                             {
                                                 string fileTumbPath = System.IO.Path.Combine(_baseUrl, file.FileThumbPath);
@@ -143,7 +143,7 @@
                 </ul>
             }
         </div>
-         <div class="chat-finished" id="chat-finished"></div>
+        <div class="chat-finished" id="chat-finished"></div>
     </div>
 </section>
 <!-- group chat section end -->

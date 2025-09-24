@@ -103,7 +103,7 @@
 
                                     <h5>@Html.Raw(message.MessageText?.MessageTxt.Replace("\n", "<br />"))</h5>
 
-                                    @if (message.MessageFiles?.Count > 0)
+                                    @if (message.MessageFiles != null)
                                     {
                                         <div class="form-row mt-1">
                                             @foreach (var file in message.MessageFiles)
