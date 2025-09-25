@@ -133,8 +133,10 @@
                                                     {
                                                         <i class="iconsax" data-icon="document-text-1" style="font-size: 3em;"></i>
                                                         @FileNameShorter.ShortenFileName(file.OriginalFileName ?? "")
-                                                        <span style="min-width:75px;" class="btn-download-file" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
-                                                            @FileSizeConverter.ConvertToReadableSize(file.FileSize)
+                                                        <span>&nbsp;</span>
+                                                        @FileSizeConverter.ConvertToReadableSize(file.FileSize)
+                                                        <span style="max-width:35px;" class="btn-download-file btn btn-sm btn-light p-0" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
+                                                           
                                                             <img src="/chatzy/assets/iconsax/download.svg" class="download-icon" style="cursor:pointer; width: 24px; height: 24px;" alt="download">
                                                             <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
                                                         </span>
@@ -172,6 +174,7 @@
                     <path d="M12.3299 12.1499L9.85993 14.6199C8.48993 15.9899 8.48993 18.1999 9.85993 19.5699C11.2299 20.9399 13.4399 20.9399 14.8099 19.5699L18.6999 15.6799C21.4299 12.9499 21.4299 8.50992 18.6999 5.77992C15.9699 3.04992 11.5299 3.04992 8.79993 5.77992L4.55993 10.0199C2.21993 12.3599 2.21993 16.1599 4.55993 18.5099" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
             </a>
+
             <button class="btn-record-voice" type="button">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 15.5C14.21 15.5 16 13.71 16 11.5V6C16 3.79 14.21 2 12 2C9.79 2 8 3.79 8 6V11.5C8 13.71 9.79 15.5 12 15.5Z" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
@@ -181,6 +184,7 @@
                     <path d="M12 19V22" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
             </button>
+
             <input type="text" class="message-input" id="message-input" placeholder="Type here...">
            
             <a href="#" class="message-send-btn" id="send-message-button">
