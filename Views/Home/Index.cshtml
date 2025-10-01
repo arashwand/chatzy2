@@ -90,6 +90,17 @@
             text-align: right;
             direction: rtl;
         }
+
+        .chatInDateLabelClass{
+            position: -webkit-sticky; /* برای سازگاری با مرورگرهای قدیمی سافاری */
+            position: sticky;
+            top: 0; /* در بالاترین نقطه کانتینر والد می‌چسبد */
+            z-index: 10; /* برای اینکه روی محتوای دیگر قرار بگیرد */
+            background-color: #f8f9fa; /* رنگ پس‌زمینه برای پوشاندن متن زیرین (رنگ را به دلخواه تغییر دهید) */
+            padding-top: 5px;
+            padding-bottom: 5px;
+            margin-bottom: 0; /* برای جلوگیری از فاصله اضافی */
+        }
     </style>
 
 }

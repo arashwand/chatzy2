@@ -67,6 +67,7 @@
     </div>
 </header>
 <!-- header end -->
+
 <!-- group chat section starts -->
 <section class="section-lg-b-space position-relative pt-0" id="chat_content">
     <img class="img-fluid chat-bg" src="" alt="wallpaper">
@@ -77,8 +78,9 @@
             }
             @foreach (var group in groupedMessages)
             {
-                <h6 class="fw-normal text-center heading pt-4">@group.Key.ToString("dddd, d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"))</h6>
-                <ul class="message-box-list" id="chatMessages-@group.Key.ToString("yyyy-MM-dd")">
+                var chatInDateLabel = @group.Key.ToString("yyyy-MM-dd");
+                <h6 class="fw-normal text-center heading chatInDateLabelClass">@group.Key.ToString("dddd, d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"))</h6>
+                <ul class="message-box-list" id="chatMessages-@chatInDateLabel">
                    
                     @foreach (var message in group)
                     {
@@ -202,6 +204,7 @@
     </div>
 </section>
 <!-- group chat section end -->
+
 <!--  message input section starts -->
 <div class="messages-panel">
     <form onsubmit="return false;">
