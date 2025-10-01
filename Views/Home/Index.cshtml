@@ -1,9 +1,98 @@
-@{
+﻿@{
     ViewData["Title"] = "Home Page";
     Layout = "~/Views/Shared/_ChatzyLayout.cshtml";
 }
 @using System.Security.Claims
 @using Messenger.Tools
+
+@section Styles {
+    <style>
+        /* ====================================================== */
+        /*  ۱. چیدمان اصلی پیام‌ها با Flexbox                      */
+        /* ====================================================== */
+        .message-box-list > li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+            position: relative;
+        }
+
+        /* کانتینر اصلی بدنه پیام */
+        .message-box-list li .message-box {
+            order: 1;
+        }
+
+        /* کانتینر اصلی منوی سه نقطه */
+        .message-box-list li .message-options {
+            order: 2;
+            margin: 0 8px;
+        }
+
+        /* چیدمان پیام‌های ارسالی (شخصی) */
+        .message-box-list li.personal {
+            flex-direction: row-reverse; /* ترتیب عناصر را معکوس می‌کند (منو، پیام) */
+            justify-content: end; /* <<< این خط اضافه شده و مشکل را حل می‌کند >>> */
+        }
+
+        /* چیدمان پیام‌های دریافتی (جدید) */
+        .message-box-list li.new {
+            flex-direction: row;
+            justify-content: flex-start; /* برای اطمینان از چیدمان صحیح از چپ */
+        }
+
+
+        /* ====================================================== */
+        /*  ۲. استایل نهایی برای دکمه و آیکون سه نقطه             */
+        /* ====================================================== */
+
+        /* استایل دکمه سه نقطه */
+        .message-options .btn {
+            background-color: rgba(240, 242, 245, 0.9);
+            border: none;
+            box-shadow: none;
+            padding: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+            /* استایل آیکون سه نقطه (عمودی شده) */
+            .message-options .btn i {
+                font-size: 20px;
+                display: block;
+                transform: rotate(90deg);
+                color: #54656f;
+            }
+
+        /* افکت هاور: وقتی موس روی کل ردیف پیام قرار می‌گیرد */
+        .message-box-list > li:hover .message-options .btn {
+            background-color: #e9edef;
+        }
+
+        /* پررنگ ماندن پس‌زمینه وقتی منو باز است */
+        .message-options .btn[aria-expanded="true"] {
+            background-color: #e9edef;
+        }
+
+
+        /* ====================================================== */
+        /*  ۳. استایل منوی باز شونده (Dropdown)                   */
+        /* ====================================================== */
+        .message-options .dropdown-menu {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: none;
+            border-radius: 8px;
+            z-index: 1050;
+            text-align: right;
+        }
+
+        .dropdown-menu .dropdown-item {
+            text-align: right;
+            direction: rtl;
+        }
+    </style>
+
+}
 
 <input type="hidden" value="@User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value" id="userId" />
 <input type="hidden" value="@User.Claims.FirstOrDefault(c => c.Type == "NameFamily")?.Value" id="fullName" />
@@ -48,6 +137,10 @@
     <script src="~/js/fileManagement.js" asp-append-version="true"></script>
 
     <script>
+        $(document).ready(function () {
+
+        });
+
         $(function () {
             GetUserChats();
 
@@ -159,6 +252,8 @@
                      console.error("Error fetching chat members:", error);
                  }
              });
-         }
+        }
+
+
     </script>
 }

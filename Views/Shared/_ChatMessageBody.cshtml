@@ -3,43 +3,6 @@
 @using Newtonsoft.Json
 @model IEnumerable<MessageDto>
 
-<style>
-    .message-box-list > li {
-        position: relative;
-    }
-
-    .message-box-list li .dropdown {
-        position: absolute;
-        top: 5px;
-        z-index: 10;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
-    }
-
-    /* This class will be toggled by JavaScript */
-    .message-box-list li.menu-visible .dropdown {
-        opacity: 1;
-        visibility: visible;
-    }
-
-    .message-box-list li.personal .dropdown {
-        left: 15px;
-    }
-
-    .message-box-list li.new .dropdown {
-        right: 15px;
-    }
-
-    .dropdown-menu {
-        min-width: 130px;
-    }
-
-    .dropdown-item i {
-        width: 18px;
-        text-align: center;
-    }
-</style>
 
 @{
     long selfUserId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
@@ -106,7 +69,7 @@
 <!-- header end -->
 <!-- group chat section starts -->
 <section class="section-lg-b-space position-relative pt-0" id="chat_content">
-    <img class="img-fluid chat-bg" src="~/chatzy/assets/images/wallpaper/wallpaper0.png" alt="wallpaper">
+    <img class="img-fluid chat-bg" src="" alt="wallpaper">
     <div class="custom-container">
         <div id="Message_Days">
             @{
@@ -116,6 +79,7 @@
             {
                 <h6 class="fw-normal text-center heading pt-4">@group.Key.ToString("dddd, d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"))</h6>
                 <ul class="message-box-list" id="chatMessages-@group.Key.ToString("yyyy-MM-dd")">
+                   
                     @foreach (var message in group)
                     {
                         var isSelf = message.SenderUserId == selfUserId;
@@ -126,37 +90,40 @@
                             data-sender-id="@message.SenderUserId"
                             data-sender-username="@message.SenderUser.NameFamily"
                             data-message-details='@messageDetailsJson'>
-                            <div class="dropdown">
-                                <a class="text-muted" href="#" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                                    </svg>
+
+                            <!--
+                                تغییر اصلی: دراپ‌دان به ابتدای li منتقل شده
+                                و از data-bs-toggle برای فعال‌سازی خودکار توسط بوت‌استرپ استفاده می‌کند
+                            -->
+                            <div class="dropdown message-options">
+                                <a class="btn" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src="~/chatzy/assets/iconsax/menu-meatballs.svg" alt="Alternate Text" />
                                 </a>
-                                <div class="dropdown-menu dropdown-menu-left">
+                                <div class="dropdown-menu">
                                     @if (isSelf)
                                     {
                                         <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="@message.MessageId" href="#">
-                                            <i class="iconsax" data-icon="edit-2"></i>&nbsp;
-                                            <span>ویرایش</span>
+                                           <img src="~/chatzy/assets/iconsax/menu-meatballs.svg" alt="menu options" />
                                         </a>
                                     }
                                     <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="@message.MessageId" href="#">
-                                        <i class="iconsax" data-icon="reply"></i>&nbsp;
+                                        <img src="~/chatzy/assets/iconsax/redo-arrow.svg" />&nbsp;
                                         <span>پاسخ دادن</span>
                                     </a>
                                     <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="@message.MessageId" href="#">
-                                        <i class="iconsax" data-icon="save-2"></i>&nbsp;
+                                        <img src="~/chatzy/assets/iconsax/save-2.svg" />&nbsp;
                                         <span>ذخیره</span>
                                     </a>
                                     @if (isSelf)
                                     {
                                         <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="@message.MessageId" href="#">
-                                            <i class="iconsax" data-icon="trash"></i>&nbsp;
+                                            <img src="~/chatzy/assets/iconsax/trash.svg" />&nbsp;
                                             <span>حذف</span>
                                         </a>
                                     }
                                 </div>
                             </div>
+
                             <div class="message-box @(message.IsReadByAnyRecipient ? "read" : "")">
                                 @if (!isSelf)
                                 {
@@ -193,7 +160,7 @@
                                                             <button class="voice-download-btn" data-file-id="@file.MessageFileId">
                                                                 <img src="/chatzy/assets/iconsax/download.svg" class="download-icon" style="cursor:pointer; width: 24px; height: 24px;" alt="download">
                                                                 <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
-                                                               
+
                                                             </button>
                                                             <div class="file-meta text-light mx-1 text-dark">@FileSizeConverter.ConvertToReadableSize(file.FileSize)</div>
                                                             <div class="voice-duration-display mx-1" style="margin-right: 15px;">صدای ضبط شده</div>
@@ -206,7 +173,7 @@
                                                         <span>&nbsp;</span>
                                                         @FileSizeConverter.ConvertToReadableSize(file.FileSize)
                                                         <span style="max-width:35px;" class="btn-download-file btn btn-sm btn-light p-0" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
-                                                           
+
                                                             <img src="/chatzy/assets/iconsax/download.svg" class="download-icon" style="cursor:pointer; width: 24px; height: 24px;" alt="download">
                                                             <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
                                                         </span>
@@ -280,61 +247,5 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const chatContent = document.getElementById('chat_content');
-
-        // Use a single delegated event listener for efficiency.
-        if (chatContent) {
-            // For mobile: toggle menu on tap
-            chatContent.addEventListener('click', function (e) {
-                const messageLi = e.target.closest('.message-box-list > li');
-                if (!messageLi) return;
-
-                // If the click is on a dropdown item, let it proceed.
-                if (e.target.closest('.dropdown-menu')) {
-                    return;
-                }
-
-                // Close any other open menus
-                const currentlyVisible = document.querySelector('.menu-visible');
-                if (currentlyVisible && currentlyVisible !== messageLi) {
-                    currentlyVisible.classList.remove('menu-visible');
-                }
-
-                // Toggle the current menu
-                messageLi.classList.toggle('menu-visible');
-            });
-
-            // For desktop: show menu on hover
-            chatContent.addEventListener('mouseenter', function (e) {
-                const messageLi = e.target.closest('.message-box-list > li');
-                if (messageLi) {
-                    // Close any other open menus before showing the new one
-                    const currentlyVisible = document.querySelector('.menu-visible');
-                    if (currentlyVisible && currentlyVisible !== messageLi) {
-                        currentlyVisible.classList.remove('menu-visible');
-                    }
-                    messageLi.classList.add('menu-visible');
-                }
-            }, true); // Use capture phase to handle hover reliably
-
-            // For desktop: hide menu on leave
-            chatContent.addEventListener('mouseleave', function (e) {
-                const messageLi = e.target.closest('.message-box-list > li');
-                if (messageLi) {
-                    // Only hide if the mouse is not over the dropdown menu itself
-                    if (!messageLi.querySelector('.dropdown-menu:hover')) {
-                        messageLi.classList.remove('menu-visible');
-                    }
-                }
-            }, true);
-
-            // Hide menu if mouse leaves the dropdown menu as well
-            chatContent.addEventListener('mouseleave', function (e) {
-                if (e.target.classList.contains('dropdown-menu')) {
-                    e.target.closest('li').classList.remove('menu-visible');
-                }
-            }, true);
-        }
-    });
+   
 </script>

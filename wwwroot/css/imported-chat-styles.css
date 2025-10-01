@@ -104,32 +104,7 @@ textarea#message-input.hide-scrollbar::-webkit-scrollbar {
     position: relative;
 }
 
-.message-options {
-    position: absolute; /* شناور کردن متادیتا روی محتوا */
-    bottom: 5px; /* فاصله از پایین کادر محتوا */
-    right: 8px; /* فاصله از راست کادر محتوا */
 
-    display: flex;
-    align-items: center;
-    gap: 5px; /* ایجاد فاصله بین زمان و تیک */
-    background-color: transparent !important; /* حذف هرگونه پس‌زمینه سفید */
-}
-
-    /* --- 6. استایل نهایی زمان و تیک‌ها --- */
-    .message-options .message-date {
-        font-size: 0.75rem; /* کوچک کردن فونت زمان */
-        color: #667781; /* رنگ خاکستری متادیتا در واتس‌اپ */
-    }
-
-    .message-options .message-status-ticks img {
-        width: 16px; /* تنظیم اندازه تیک‌ها */
-        vertical-align: middle;
-    }
-
-    /* استایل دکمه منو (...) برای هماهنگی بیشتر */
-    .message-options .dropdown a svg {
-        stroke: #667781; /* همرنگ کردن با بقیه متادیتا */
-    }
 
 /* ========================================================= */
 /*      کد نهایی CSS برای رابط کاربری جدید ضبط صدا         */
