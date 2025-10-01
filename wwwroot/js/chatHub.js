@@ -208,114 +208,66 @@ window.chatApp = (function ($) {
      *  و بعد از ارسال موفق اپدیت میشود
      */
     function createMessageHtmlBody(message, edited = false) {
-        console.log("createMessageHtmlBody: Creating new message HTML for", message);
-
         const isSelf = (currentUser == message.senderUserId);
         const liClass = isSelf ? 'personal' : 'new';
-
-        // For optimistic messages, the elementId is temporary. For real messages, it's permanent.
         const elementId = message.status === 'sending' ? `msg-temp-${message.clientMessageId}` : `message-${message.messageId}`;
-
-        // The messageId might not exist for optimistic messages, so we use an empty string as a fallback for data-attributes.
         const messageId = message.messageId || '';
+        const messageDetailsJson = message.jsonMessageDetails || makeJsonObjectForMessateDetails(message);
 
-        var messageDetailsJson = message.jsonMessageDetails || makeJsonObjectForMessateDetails(message);
-
-        // Dropdown Menu HTML
         let dropdownHtml = `
             <div class="dropdown">
                 <a class="text-muted" href="#" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                    </svg>
+                    <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>
                 </a>
-                <div class="dropdown-menu dropdown-menu-left">
-        `;
+                <div class="dropdown-menu dropdown-menu-left">`;
         if (isSelf) {
-            dropdownHtml += `
-                <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="${messageId}" href="#">
-                    <i class="iconsax" data-icon="edit-2"></i>&nbsp;
-                    <span>ویرایش</span>
-                </a>`;
+            dropdownHtml += `<a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="${messageId}" href="#"><i class="iconsax" data-icon="edit-2"></i>&nbsp;<span>ویرایش</span></a>`;
         }
-        dropdownHtml += `
-            <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="${messageId}" href="#">
-                <i class="iconsax" data-icon="reply"></i>&nbsp;
-                <span>پاسخ دادن</span>
-            </a>
-            <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="${messageId}" href="#">
-                <i class="iconsax" data-icon="save-2"></i>&nbsp;
-                <span>ذخیره</span>
-            </a>
-        `;
+        dropdownHtml += `<a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="${messageId}" href="#"><i class="iconsax" data-icon="reply"></i>&nbsp;<span>پاسخ دادن</span></a>
+                         <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="${messageId}" href="#"><i class="iconsax" data-icon="save-2"></i>&nbsp;<span>ذخیره</span></a>`;
         if (isSelf) {
-            dropdownHtml += `
-                <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="${messageId}" href="#">
-                    <i class="iconsax" data-icon="trash"></i>&nbsp;
-                    <span>حذف</span>
-                </a>`;
+            dropdownHtml += `<a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="${messageId}" href="#"><i class="iconsax" data-icon="trash"></i>&nbsp;<span>حذف</span></a>`;
         }
         dropdownHtml += `</div></div>`;
 
-        // Reply Preview HTML
         let replyPreviewHtml = '';
         if (message.replyToMessageId && message.replyMessage) {
-            replyPreviewHtml = `
-                <div class="reply-preview border p-2 rounded bg-light mb-2" style="cursor:pointer;" onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
-                    <div class="text-muted small">پاسخ به: <strong>${message.replyMessage.senderUserName}</strong></div>
-                    <div class="text-truncate">${message.replyMessage.messageText || ''}</div>
-                </div>
-            `;
+            replyPreviewHtml = `<div class="reply-preview border p-2 rounded bg-light mb-2" style="cursor:pointer;" onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
+                                    <div class="text-muted small">پاسخ به: <strong>${message.replyMessage.senderUserName}</strong></div>
+                                    <div class="text-truncate">${message.replyMessage.messageText || ''}</div>
+                                </div>`;
         }
 
-        // Message Files HTML
         let filesHtml = '';
         if (message.messageFiles && message.messageFiles.length > 0) {
             filesHtml += '<div class="form-row mt-1 overflow-hidden">';
-            message.messageFiles.forEach(file => {
-                filesHtml += createDisplayFileBody(file, isSelf);
-            });
+            message.messageFiles.forEach(file => { filesHtml += createDisplayFileBody(file, isSelf); });
             filesHtml += '</div>';
         }
 
-        // Message Text
         const messageTextHtml = message.messageText ? message.messageText.replace(/\n/g, '<br />') : '';
         const editedIndicator = edited ? ` <small class="text-muted fst-italic">(ویرایش شده)</small>` : '';
 
-        // Timing and Ticks
         let timingHtml = `<div class="timing"><h6>${convertDateTohhmm(message.messageDateTime)}</h6>`;
         if (isSelf) {
             if (message.status === 'sending') {
                 timingHtml += '🕒';
             } else {
-                // These images will be updated by other functions (handleMessageReadByRecipient, etc.)
-                timingHtml += `<img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: inline;">
-                               <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: none;">`;
+                timingHtml += `<img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: ${message.isReadByAnyRecipient ? "none" : "inline"};">
+                               <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: ${message.isReadByAnyRecipient ? "inline" : "none"};">`;
             }
         }
         timingHtml += '</div>';
 
-        // Person Image for received messages
         let personImageHtml = '';
         if (!isSelf) {
-            const profilePic = message.profilePicName || 'UserIcon.png';
-            personImageHtml = `<img class="img-fluid person-img" src="/assets/media/avatar/${profilePic}" alt="p9">`;
+            personImageHtml = `<img class="img-fluid person-img" src="/assets/media/avatar/${message.profilePicName || 'UserIcon.png'}" alt="p9">`;
         }
 
-        const readClass = message.isReadByAnyRecipient ? "read" : "";
-
-        // Final HTML
-        const msgHtml = `
-            <li class="${liClass}" id="${elementId}"
-                data-message-id="${messageId}"
-                data-client-id="${message.clientMessageId || ''}"
-                data-sender-id="${message.senderUserId}"
-                data-sender-username="${message.senderUserName}"
-                data-message-details='${messageDetailsJson}'>
-
+        return `
+            <li class="${liClass}" id="${elementId}" data-message-id="${messageId}" data-client-id="${message.clientMessageId || ''}" data-sender-id="${message.senderUserId}" data-sender-username="${message.senderUserName}" data-message-details='${messageDetailsJson}'>
                 ${dropdownHtml}
-
-                <div class="message-box ${readClass}">
+                <div class="message-box ${message.isReadByAnyRecipient ? "read" : ""}">
                     ${personImageHtml}
                     <div class="message-box-details">
                         ${replyPreviewHtml}
@@ -324,10 +276,7 @@ window.chatApp = (function ($) {
                         ${timingHtml}
                     </div>
                 </div>
-            </li>
-        `;
-
-        return msgHtml;
+            </li>`;
     }
 
 
@@ -573,39 +522,31 @@ window.chatApp = (function ($) {
 
         // ۲. بررسی اینکه پیام متعلق به گروه فعال است یا نه
         if (message.groupId === activeGroupId) {
-            // اگر پیام برای گروه فعال است، آن را در پنجره چت نمایش بده
-            console.log('message.groupId === activeGroupId')
+            console.log('message.groupId === activeGroupId');
             const chat_content = $('#chat_content');
 
-            // New logic to find the correct UL
             const messageDate = new Date(message.messageDateTime);
-            const dateStr = formatDate(messageDate); // e.g., "2025-10-01"
+            const dateStr = formatDate(messageDate);
             let messageList = $(`#chatMessages-${dateStr}`);
 
-            // If a container for this date doesn't exist, create it.
             if (!messageList.length) {
                 const persianDate = new Date(message.messageDateTime).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
-                const newDayHtml = `
-                    <h6 class="fw-normal text-center heading pt-4">${persianDate}</h6>
-                    <ul class="message-box-list" id="chatMessages-${dateStr}"></ul>
-                `;
+                const newDayHtml = `<h6 class="fw-normal text-center heading pt-4">${persianDate}</h6>
+                                    <ul class="message-box-list" id="chatMessages-${dateStr}"></ul>`;
                 $('#Message_Days').append(newDayHtml);
                 messageList = $(`#chatMessages-${dateStr}`);
             }
 
-            // اطمینان از وجود داشتن عناصر اصلی
             if (!chat_content.length || !messageList.length) {
                 console.error("Chat container elements not found.");
                 return;
             }
 
-            // بررسی وضعیت اسکرول (قبل از اضافه کردن پیام جدید)
             const scrollHeightBefore = chat_content.prop("scrollHeight");
             const scrollTopBefore = chat_content.scrollTop();
             const clientHeight = chat_content.innerHeight();
-            const wasAtBottom = (scrollHeightBefore - (scrollTopBefore + clientHeight)) <= 30; // کمی تلورانس
+            const wasAtBottom = (scrollHeightBefore - (scrollTopBefore + clientHeight)) <= 30;
 
-            // ساخت و اضافه کردن HTML پیام
             const msgHtml = createMessageHtmlBody(message);
             const $msgElement = $(msgHtml);
             messageList.append($msgElement);
@@ -738,28 +679,19 @@ window.chatApp = (function ($) {
       * محتوای یک پیام ویرایش شده را در UI به‌روز می‌کند و داده‌های پنهان آن را نیز آپدیت می‌کند.
       */
     function handleEditedMessage(message) {
-        console.log("Received edit for a messageId: " + message.messageId);
-
-        // 1. Find the message li element in the DOM
+        console.log("Received edit for messageId: " + message.messageId);
         const messageElement = $('#message-' + message.messageId);
         if (!messageElement.length) {
             console.warn("Received edit for a message that is not currently visible:", message.messageId);
             return;
         }
 
-        // 2. Create the complete new HTML for the message using the existing function,
-        // passing `true` to indicate it's an edited message.
-        const newHtml = createMessageHtmlBody(message, true);
-
-        // 3. Replace the entire old li element with the newly generated HTML.
-        // This ensures the structure is always consistent with the latest design.
+        const newHtml = createMessageHtmlBody(message, true); // Pass true for edited
         messageElement.replaceWith(newHtml);
 
-        // 4. Re-initialize iconsax for the new element if the function exists.
         if (typeof init_iconsax === 'function') {
             init_iconsax();
         }
-
         console.log(`Message ${message.messageId} UI was successfully replaced and updated.`);
     }
 

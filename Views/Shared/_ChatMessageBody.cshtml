@@ -1,5 +1,9 @@
+@using System.Security.Claims
+@using Messenger.Tools
+@using Newtonsoft.Json
+@model IEnumerable<MessageDto>
+
 <style>
-    /* Position the dropdown absolute to the message li */
     .message-box-list > li {
         position: relative;
     }
@@ -8,44 +12,35 @@
         position: absolute;
         top: 5px;
         z-index: 10;
-        opacity: 0; /* Initially hidden */
+        opacity: 0;
         visibility: hidden;
-        transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
     }
 
-    /* Show on hover for desktop */
-    .message-box-list li:hover .dropdown {
+    /* This class will be toggled by JavaScript */
+    .message-box-list li.menu-visible .dropdown {
         opacity: 1;
         visibility: visible;
     }
 
-    /* Adjust position for sent ('personal') vs. received ('new') messages */
     .message-box-list li.personal .dropdown {
-        left: 15px; /* For right-aligned messages */
+        left: 15px;
     }
 
     .message-box-list li.new .dropdown {
-        right: 15px; /* For left-aligned messages */
+        right: 15px;
     }
 
-    /* Ensure dropdown menu is not overly wide */
     .dropdown-menu {
         min-width: 130px;
     }
 
     .dropdown-item i {
-        width: 18px; /* Fixed width for icons */
+        width: 18px;
         text-align: center;
     }
-
-    /* On mobile, tapping the message will make the menu appear and stick. */
-    /* No extra CSS needed as Bootstrap's JS handles this, but we ensure visibility on hover for desktop. */
 </style>
 
-@using System.Security.Claims
-@using Messenger.Tools
-@using Newtonsoft.Json
-@model IEnumerable<MessageDto>
 @{
     long selfUserId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
     int classGroupId = 0;
@@ -283,3 +278,63 @@
 <div id="reply-to-container" class="replay-section">
     <!-- Reply preview will be injected here by JS -->
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const chatContent = document.getElementById('chat_content');
+
+        // Use a single delegated event listener for efficiency.
+        if (chatContent) {
+            // For mobile: toggle menu on tap
+            chatContent.addEventListener('click', function (e) {
+                const messageLi = e.target.closest('.message-box-list > li');
+                if (!messageLi) return;
+
+                // If the click is on a dropdown item, let it proceed.
+                if (e.target.closest('.dropdown-menu')) {
+                    return;
+                }
+
+                // Close any other open menus
+                const currentlyVisible = document.querySelector('.menu-visible');
+                if (currentlyVisible && currentlyVisible !== messageLi) {
+                    currentlyVisible.classList.remove('menu-visible');
+                }
+
+                // Toggle the current menu
+                messageLi.classList.toggle('menu-visible');
+            });
+
+            // For desktop: show menu on hover
+            chatContent.addEventListener('mouseenter', function (e) {
+                const messageLi = e.target.closest('.message-box-list > li');
+                if (messageLi) {
+                    // Close any other open menus before showing the new one
+                    const currentlyVisible = document.querySelector('.menu-visible');
+                    if (currentlyVisible && currentlyVisible !== messageLi) {
+                        currentlyVisible.classList.remove('menu-visible');
+                    }
+                    messageLi.classList.add('menu-visible');
+                }
+            }, true); // Use capture phase to handle hover reliably
+
+            // For desktop: hide menu on leave
+            chatContent.addEventListener('mouseleave', function (e) {
+                const messageLi = e.target.closest('.message-box-list > li');
+                if (messageLi) {
+                    // Only hide if the mouse is not over the dropdown menu itself
+                    if (!messageLi.querySelector('.dropdown-menu:hover')) {
+                        messageLi.classList.remove('menu-visible');
+                    }
+                }
+            }, true);
+
+            // Hide menu if mouse leaves the dropdown menu as well
+            chatContent.addEventListener('mouseleave', function (e) {
+                if (e.target.classList.contains('dropdown-menu')) {
+                    e.target.closest('li').classList.remove('menu-visible');
+                }
+            }, true);
+        }
+    });
+</script>
