@@ -208,157 +208,124 @@ window.chatApp = (function ($) {
      *  و بعد از ارسال موفق اپدیت میشود
      */
     function createMessageHtmlBody(message, edited = false) {
-        console.log("Inside createMessageHtmlBody - received message object:", message);
-        console.log("Inside createMessageHtmlBody - messageFiles:", message.messageFiles);
+        console.log("createMessageHtmlBody: Creating new message HTML for", message);
 
+        const isSelf = (currentUser == message.senderUserId);
+        const liClass = isSelf ? 'personal' : 'new';
 
-        const isOptimistic = message.status === 'sending';
-        const elementId = isOptimistic ? `msg-temp-${message.clientMessageId}` : `message-${message.messageId}`;
+        // For optimistic messages, the elementId is temporary. For real messages, it's permanent.
+        const elementId = message.status === 'sending' ? `msg-temp-${message.clientMessageId}` : `message-${message.messageId}`;
 
-        const isSelf = (currentUser == message.senderUserId) ? 'self' : '';
-        const initialReadStatus = isSelf ? 'true' : 'false'; // Self messages are initially "read" by self
-        const initialTicks = isSelf ? '✓' : ''; // Single tick for sent self-messages
+        // The messageId might not exist for optimistic messages, so we use an empty string as a fallback for data-attributes.
+        const messageId = message.messageId || '';
 
-        let statusTicks = '';
-         var messageDetailsJson = '';        
-        if (message.jsonMessageDetails) {
-            console.log('****************************************** has jsonMessageDetails');
-            messageDetailsJson = message.jsonMessageDetails;
-        } else {
-            console.log('*********************************--------- has not jsonMessageDetails');
-             messageDetailsJson = makeJsonObjectForMessateDetails(message);
-        }
+        var messageDetailsJson = message.jsonMessageDetails || makeJsonObjectForMessateDetails(message);
 
+        // Dropdown Menu HTML
+        let dropdownHtml = `
+            <div class="dropdown">
+                <a class="text-muted" href="#" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+                    </svg>
+                </a>
+                <div class="dropdown-menu dropdown-menu-left">
+        `;
         if (isSelf) {
-            statusTicks = isOptimistic ? '🕒' : '✓'; // ساعت برای در حال ارسال، تیک برای ارسال شده
-            // آبجکتی از جزئیات ضروری پیام برای استفاده در زمان ویرایش
-
+            dropdownHtml += `
+                <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="${messageId}" href="#">
+                    <i class="iconsax" data-icon="edit-2"></i>&nbsp;
+                    <span>ویرایش</span>
+                </a>`;
         }
-
-        var actionEditMessageBody = "";
-        var actionReplyMessageBody = "";
-        var replyMessageBody = "";
-        // var messageFiles = "";
-        var mainMessageFilesBody = "";
-        var dateHHMM = convertDateTohhmm(message.messageDateTime);
-        if (isSelf == 'self') {
-            actionEditMessageBody = `
-                 <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageId="${message.messageId}" href="#">
-                    <i class="iconsax" data-icon="edit-1"></i>&nbsp;
-                     <span> ویرایش</span>
-                 </a>
-            `;
+        dropdownHtml += `
+            <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="${messageId}" href="#">
+                <i class="iconsax" data-icon="reply"></i>&nbsp;
+                <span>پاسخ دادن</span>
+            </a>
+            <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="${messageId}" href="#">
+                <i class="iconsax" data-icon="save-2"></i>&nbsp;
+                <span>ذخیره</span>
+            </a>
+        `;
+        if (isSelf) {
+            dropdownHtml += `
+                <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="${messageId}" href="#">
+                    <i class="iconsax" data-icon="trash"></i>&nbsp;
+                    <span>حذف</span>
+                </a>`;
         }
+        dropdownHtml += `</div></div>`;
 
-        if (message.replyToMessageId != null && message.replyMessage != null) {
-            let filesHtml = "";
-            if (message.replyMessage.messageFiles != null && message.replyMessage.messageFiles.length > 0) {
-
-                filesHtml += '<div class="form-row mt-2">';
-                message.replyMessage.messageFiles.forEach((file, index) => {
-                    console.log(`  File #${index} - FileName:`, file.FileName, "FileThumbPath:", file.FileThumbPath);
-
-                    let fileThumbPath = file.fileThumbPath;
-
-                    var createFileHtml = createDisplayFileBody(file, isSelf, true);
-                    filesHtml += createFileHtml;
-                    console.log('Create File Html Body ############ ');
-                });
-                filesHtml += '</div>';
-                // messageFiles = filesHtml;
-                console.log(filesHtml);
-            }
-
-            replyMessageBody = `
-                <div class="reply-preview border p-2 rounded bg-dark mb-2" style="cursor:pointer;"
-                onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
-                    <div class="text-muted small">
-                        پاسخ به: <strong>${message.replyMessage.senderUserName}</strong>
-                    </div>
-                    <div class="text-truncate">
-                         ${message.replyMessage.messageText || ''}
-                    </div>
-                    ${filesHtml}
+        // Reply Preview HTML
+        let replyPreviewHtml = '';
+        if (message.replyToMessageId && message.replyMessage) {
+            replyPreviewHtml = `
+                <div class="reply-preview border p-2 rounded bg-light mb-2" style="cursor:pointer;" onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
+                    <div class="text-muted small">پاسخ به: <strong>${message.replyMessage.senderUserName}</strong></div>
+                    <div class="text-truncate">${message.replyMessage.messageText || ''}</div>
                 </div>
             `;
         }
 
-        // content for show images
-        if (message.messageFiles != null && message.messageFiles.length > 0) {
-            let filesHtml = "";
-            filesHtml += '<div class="form-row mt-2">';
-            message.messageFiles.forEach((file, index) => {
-                console.log(`  File #${index} - FileName:`, file.FileName, "FileThumbPath:", file.FileThumbPath);
-
-                let fileThumbPath = file.fileThumbPath;
-
-                var createFileHtml = createDisplayFileBody(file, isSelf);
-                filesHtml += createFileHtml;
-                console.log('Create File Html Body ############ ');
+        // Message Files HTML
+        let filesHtml = '';
+        if (message.messageFiles && message.messageFiles.length > 0) {
+            filesHtml += '<div class="form-row mt-1 overflow-hidden">';
+            message.messageFiles.forEach(file => {
+                filesHtml += createDisplayFileBody(file, isSelf);
             });
             filesHtml += '</div>';
-            mainMessageFilesBody = filesHtml;
-            console.log(filesHtml);
         }
 
-        actionReplyMessageBody = `
-            <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageId="${message.messageId}" href="#">
-                    <i class="iconsax" data-icon="reply"></i>&nbsp;
-                    <span> پاسخ دادن</span>
-                </a>
-        `;
+        // Message Text
+        const messageTextHtml = message.messageText ? message.messageText.replace(/\n/g, '<br />') : '';
+        const editedIndicator = edited ? ` <small class="text-muted fst-italic">(ویرایش شده)</small>` : '';
 
-        const primaryMessageTextFormated = message.messageText.replace(/\n/g, '<br>')
+        // Timing and Ticks
+        let timingHtml = `<div class="timing"><h6>${convertDateTohhmm(message.messageDateTime)}</h6>`;
+        if (isSelf) {
+            if (message.status === 'sending') {
+                timingHtml += '🕒';
+            } else {
+                // These images will be updated by other functions (handleMessageReadByRecipient, etc.)
+                timingHtml += `<img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: inline;">
+                               <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: none;">`;
+            }
+        }
+        timingHtml += '</div>';
+
+        // Person Image for received messages
+        let personImageHtml = '';
+        if (!isSelf) {
+            const profilePic = message.profilePicName || 'UserIcon.png';
+            personImageHtml = `<img class="img-fluid person-img" src="/assets/media/avatar/${profilePic}" alt="p9">`;
+        }
+
+        const readClass = message.isReadByAnyRecipient ? "read" : "";
+
+        // Final HTML
         const msgHtml = `
-            <div class="message ${isSelf}" id="message-${elementId}"
-            data-message-id="${message.messageId}"
-            data-client-id="${message.clientMessageId || ''}"
-            data-sender-id="${message.senderUserId}"
-            data-sender-username="${message.senderUserName}"
-            data-is-read="${initialReadStatus}"
-            data-message-details='${messageDetailsJson}'>
-                <div class="message-wrapper">
-                    <div class="message-content">
-                        ${replyMessageBody}
-                        ${primaryMessageTextFormated}
-                        ${mainMessageFilesBody}
+            <li class="${liClass}" id="${elementId}"
+                data-message-id="${messageId}"
+                data-client-id="${message.clientMessageId || ''}"
+                data-sender-id="${message.senderUserId}"
+                data-sender-username="${message.senderUserName}"
+                data-message-details='${messageDetailsJson}'>
+
+                ${dropdownHtml}
+
+                <div class="message-box ${readClass}">
+                    ${personImageHtml}
+                    <div class="message-box-details">
+                        ${replyPreviewHtml}
+                        <h5>${messageTextHtml}${editedIndicator}</h5>
+                        ${filesHtml}
+                        ${timingHtml}
                     </div>
                 </div>
-                <div class="message-options">
-                    <div class="avatar avatar-sm">
-                        <img alt="${message.senderUserName}" src="../assets/media/avatar/${message.profilePicName}" />
-                    </div>
-                    <span class="message-sender-name">${message.senderUserName}</span>
-                    <span class="message-date">${dateHHMM}</span>
-                    <span class="message-status-ticks mb-1">${statusTicks}</span>
-                    <div class="dropdown">
-                        <a class="text-muted" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <!-- Default :: Inline SVG -->
-                            <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                            </svg>
-                        </a>
-
-                        <div class="dropdown-menu dropdown-menu-left" style="">
-
-                            ${actionEditMessageBody}
-                            ${actionReplyMessageBody}
-
-                            <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageId="${message.messageId}" href="#">
-                                <i class="iconsax" data-icon="star"></i>&nbsp;
-                                <span> ذخیره</span>
-                            </a>
-
-                             <a class="dropdown-item align-items-center d-flex actionDeleteMessage" data-messageId="${message.messageId}" href="#">
-                                <i class="iconsax" data-icon="trash"></i>&nbsp;
-                                <span>حذف</span>
-                            </a>
-
-                        </div>
-                    </div>
-                </div>
-            </div>`
-            ;
+            </li>
+        `;
 
         return msgHtml;
     }
@@ -609,11 +576,26 @@ window.chatApp = (function ($) {
             // اگر پیام برای گروه فعال است، آن را در پنجره چت نمایش بده
             console.log('message.groupId === activeGroupId')
             const chat_content = $('#chat_content');
-            const chatMessages = $('#chatMessages');
+
+            // New logic to find the correct UL
+            const messageDate = new Date(message.messageDateTime);
+            const dateStr = formatDate(messageDate); // e.g., "2025-10-01"
+            let messageList = $(`#chatMessages-${dateStr}`);
+
+            // If a container for this date doesn't exist, create it.
+            if (!messageList.length) {
+                const persianDate = new Date(message.messageDateTime).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+                const newDayHtml = `
+                    <h6 class="fw-normal text-center heading pt-4">${persianDate}</h6>
+                    <ul class="message-box-list" id="chatMessages-${dateStr}"></ul>
+                `;
+                $('#Message_Days').append(newDayHtml);
+                messageList = $(`#chatMessages-${dateStr}`);
+            }
 
             // اطمینان از وجود داشتن عناصر اصلی
-            if (!chat_content.length || !chatMessages.length) {
-                console.error("Chat container elements (#chat_content or #chatMessages) not found.");
+            if (!chat_content.length || !messageList.length) {
+                console.error("Chat container elements not found.");
                 return;
             }
 
@@ -626,7 +608,7 @@ window.chatApp = (function ($) {
             // ساخت و اضافه کردن HTML پیام
             const msgHtml = createMessageHtmlBody(message);
             const $msgElement = $(msgHtml);
-            chatMessages.append($msgElement);
+            messageList.append($msgElement);
 
             // Re-initialize icons for the new message
             if (typeof init_iconsax === 'function') {
@@ -756,88 +738,29 @@ window.chatApp = (function ($) {
       * محتوای یک پیام ویرایش شده را در UI به‌روز می‌کند و داده‌های پنهان آن را نیز آپدیت می‌کند.
       */
     function handleEditedMessage(message) {
-
         console.log("Received edit for a messageId: " + message.messageId);
 
-        // ۱. پیدا کردن عنصر پیام در DOM
+        // 1. Find the message li element in the DOM
         const messageElement = $('#message-' + message.messageId);
         if (!messageElement.length) {
             console.warn("Received edit for a message that is not currently visible:", message.messageId);
             return;
         }
 
-        // ==========================================================
-        // ۲. بازسازی بخش‌های قابل نمایش پیام (مشابه createMessageHtmlBody)
-        // ==========================================================
+        // 2. Create the complete new HTML for the message using the existing function,
+        // passing `true` to indicate it's an edited message.
+        const newHtml = createMessageHtmlBody(message, true);
 
-        var replyMessageBody = "";
-        // اگر پیام ویرایش شده، در پاسخ یک پیام است
-        if (message.replyToMessageId != null && message.replyMessage != null) {
-            replyMessageBody = `
-            <div class="reply-preview border p-2 rounded bg-dark mb-2" style="cursor:pointer;" onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
-                <div class="text-muted small">
-                    پاسخ به: <strong>${message.replyMessage.senderUserName}</strong>
-                </div>
-                <div class="text-truncate">
-                    ${message.replyMessage.messageText}
-                </div>
-            </div>
-        `;
+        // 3. Replace the entire old li element with the newly generated HTML.
+        // This ensures the structure is always consistent with the latest design.
+        messageElement.replaceWith(newHtml);
+
+        // 4. Re-initialize iconsax for the new element if the function exists.
+        if (typeof init_iconsax === 'function') {
+            init_iconsax();
         }
 
-        var messageFiles = "";
-        // اگر پیام ویرایش شده، حاوی فایل است
-        if (message.messageFiles != null && message.messageFiles.length > 0) {
-            let filesHtml = "";
-            const baseUrl = $('#baseUrl').val();
-            filesHtml += '<div class="form-row mt-2">';
-            message.messageFiles.forEach(file => {
-                let fileThumbPath = baseUrl + file.fileThumbPath;
-                filesHtml += `
-              <div class="col file-attachment-item" style="display: flex; flex-direction: column;">
-                  <a class="popup-media overflow-hidden" href="${fileThumbPath}" target="_blank">
-                      <img class="img-fluid rounded" width="100" src="${fileThumbPath}" alt="${file.fileName}" style="max-height:150px">
-                  </a>
-              </div>`;
-            });
-            filesHtml += '</div>';
-            messageFiles = filesHtml;
-        }
-
-        // اضافه کردن یک نشانگر "ویرایش شده" برای اطلاع کاربر
-        const editedIndicator = `<small class="text-muted font-italic">(ویرایش شده)</small>`;
-
-        // ==========================================================
-        // ۳. به‌روزرسانی HTML قابل مشاهده
-        // ==========================================================
-        const messageContentDiv = messageElement.find('.message-content');
-        const primaryMessageText = message.messageText.replace(/\n/g, '<br>');
-        messageContentDiv.html(`
-        ${replyMessageBody}
-        ${primaryMessageText}
-        ${editedIndicator}
-        ${messageFiles}
-        `);
-
-        // ==========================================================
-        // ۴. به‌روزرسانی داده‌های پنهان (بسیار مهم)
-        // ==========================================================
-        // یک آبجکت جدید برای ذخیره در data-attribute می‌سازیم. این ساختار باید دقیقاً
-        // با ساختاری که در Razor View تولید می‌شود، یکسان باشد.
-        const updatedDetailsForEdit = {
-            messageText: message.messageText,
-            replyToMessageId: message.replyToMessageId,
-            replyMessage: message.replyMessage,
-            messageFiles: message.messageFiles
-
-        };
-
-        // آبجکت را به رشته JSON تبدیل کرده و مقدار data-message-details را به‌روز می‌کنیم.
-
-        messageElement.removeAttr('data-message-details');
-        messageElement.attr('data-message-details', JSON.stringify(updatedDetailsForEdit));
-
-        console.log(`Message ${message.messageId} UI and data were successfully updated.`);
+        console.log(`Message ${message.messageId} UI was successfully replaced and updated.`);
     }
 
 

@@ -1,3 +1,47 @@
+<style>
+    /* Position the dropdown absolute to the message li */
+    .message-box-list > li {
+        position: relative;
+    }
+
+    .message-box-list li .dropdown {
+        position: absolute;
+        top: 5px;
+        z-index: 10;
+        opacity: 0; /* Initially hidden */
+        visibility: hidden;
+        transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    }
+
+    /* Show on hover for desktop */
+    .message-box-list li:hover .dropdown {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Adjust position for sent ('personal') vs. received ('new') messages */
+    .message-box-list li.personal .dropdown {
+        left: 15px; /* For right-aligned messages */
+    }
+
+    .message-box-list li.new .dropdown {
+        right: 15px; /* For left-aligned messages */
+    }
+
+    /* Ensure dropdown menu is not overly wide */
+    .dropdown-menu {
+        min-width: 130px;
+    }
+
+    .dropdown-item i {
+        width: 18px; /* Fixed width for icons */
+        text-align: center;
+    }
+
+    /* On mobile, tapping the message will make the menu appear and stick. */
+    /* No extra CSS needed as Bootstrap's JS handles this, but we ensure visibility on hover for desktop. */
+</style>
+
 @using System.Security.Claims
 @using Messenger.Tools
 @using Newtonsoft.Json
@@ -87,6 +131,37 @@
                             data-sender-id="@message.SenderUserId"
                             data-sender-username="@message.SenderUser.NameFamily"
                             data-message-details='@messageDetailsJson'>
+                            <div class="dropdown">
+                                <a class="text-muted" href="#" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+                                    </svg>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-left">
+                                    @if (isSelf)
+                                    {
+                                        <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="@message.MessageId" href="#">
+                                            <i class="iconsax" data-icon="edit-2"></i>&nbsp;
+                                            <span>ویرایش</span>
+                                        </a>
+                                    }
+                                    <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="@message.MessageId" href="#">
+                                        <i class="iconsax" data-icon="reply"></i>&nbsp;
+                                        <span>پاسخ دادن</span>
+                                    </a>
+                                    <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="@message.MessageId" href="#">
+                                        <i class="iconsax" data-icon="save-2"></i>&nbsp;
+                                        <span>ذخیره</span>
+                                    </a>
+                                    @if (isSelf)
+                                    {
+                                        <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="@message.MessageId" href="#">
+                                            <i class="iconsax" data-icon="trash"></i>&nbsp;
+                                            <span>حذف</span>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
                             <div class="message-box @(message.IsReadByAnyRecipient ? "read" : "")">
                                 @if (!isSelf)
                                 {
