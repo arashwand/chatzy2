@@ -210,24 +210,38 @@ window.chatApp = (function ($) {
     function createMessageHtmlBody(message, edited = false) {
         const isSelf = (currentUser == message.senderUserId);
         const liClass = isSelf ? 'personal' : 'new';
-        const elementId = message.status === 'sending' ? `msg-temp-${message.clientMessageId}` : `message-${message.messageId}`;
+        const elementId = message.status === 'sending' ? `message-msg-temp-${message.clientMessageId}` : `message-${message.messageId}`;
         const messageId = message.messageId || '';
         const messageDetailsJson = message.jsonMessageDetails || makeJsonObjectForMessateDetails(message);
 
         let dropdownHtml = `
-            <div class="dropdown">
-                <a class="text-muted" href="#" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>
+            <div class="dropdown message-options">
+                <a class="btn" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="/chatzy/assets/iconsax/menu-meatballs.svg" alt="menu" />
                 </a>
-                <div class="dropdown-menu dropdown-menu-left">`;
+            <div class="dropdown-menu">`;
         if (isSelf) {
-            dropdownHtml += `<a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="${messageId}" href="#"><i class="iconsax" data-icon="edit-2"></i>&nbsp;<span>ویرایش</span></a>`;
+            dropdownHtml += `
+                             <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="${messageId}" href="#">
+                                <img src="/chatzy/assets/iconsax/edit.svg" class="svgInvertColor" alt="ویرایش" />&nbsp;
+                                 <span>ویرایش</span>
+                             </a>
+                            
+
+                              <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="${messageId}" href="#">
+                                  <img src="/chatzy/assets/iconsax/trash.svg" />&nbsp;
+                                  <span>حذف</span>
+                              </a>`;
         }
-        dropdownHtml += `<a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="${messageId}" href="#"><i class="iconsax" data-icon="reply"></i>&nbsp;<span>پاسخ دادن</span></a>
-                         <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="${messageId}" href="#"><i class="iconsax" data-icon="save-2"></i>&nbsp;<span>ذخیره</span></a>`;
-        if (isSelf) {
-            dropdownHtml += `<a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="${messageId}" href="#"><i class="iconsax" data-icon="trash"></i>&nbsp;<span>حذف</span></a>`;
-        }
+        dropdownHtml += `<a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="${messageId}" href="#">
+                              <img src="/chatzy/assets/iconsax/redo-arrow.svg" class="svgInvertColor" />&nbsp;
+                              <span>پاسخ دادن</span>
+                          </a>
+                          <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="${messageId}" href="#">
+                              <img src="/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
+                              <span>ذخیره</span>
+                          </a>`;
+        
         dropdownHtml += `</div></div>`;
 
         let replyPreviewHtml = '';
@@ -905,6 +919,7 @@ window.chatApp = (function ($) {
             return;
         }
 
+        const timingElement = messageElement.find('.timing');
         if (newStatus === 'sent') {
             // ۲. اگر ارسال موفق بود، تمام اطلاعات را با داده‌های نهایی سرور آپدیت کن
 
@@ -923,13 +938,16 @@ window.chatApp = (function ($) {
             console.log('**********************************End for update json details  ********************************** ');
 
 
-            // تغییر آیکون وضعیت از "ساعت" به "تیک"
-            // فرض می‌شود شما یک المان با این کلاس برای نمایش وضعیت دارید
-            const statusTicksElement = messageElement.find('.message-status-ticks');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('✓'); // تیک برای "ارسال شد"
-                statusTicksElement.attr('title', 'ارسال شد');
+            // تغییر آیکون وضعیت از "ساعت" به "تیک"  
+            if (timingElement.length) {
+                timingElement.html(`
+                    <img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: inline;">
+                    <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: none;">
+                `);
+            } else {
+                console.log('timingElement not found!');
             }
+            
 
             //  بروزرسانی نام فرستنده
             const messageSenderElement = messageElement.find('.message-sender-name').last();
@@ -981,13 +999,9 @@ window.chatApp = (function ($) {
         }
         else if (newStatus === 'failed') {
             // ۳. اگر ارسال ناموفق بود، یک استایل خطا به آن بده
-            messageElement.addClass('failed-to-send');
+            const timingElement = messageElement.find('.timing');
+            timingElement.html('<span class="text-danger">❗</span>');
 
-            const statusTicksElement = messageElement.find('.message-status-ticks mb-1');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('❗'); // علامت برای "خطا"
-                statusTicksElement.attr('title', 'ارسال ناموفق');
-            }
         }
     }
 
@@ -1729,7 +1743,7 @@ $(document).ready(function () {
             };
             fileReader.onerror = () => reject('FileReader error');
             fileReader.readAsArrayBuffer(voiceBlob);
-        });
+        }); 
 
         // Promise for uploading the file
         const uploadPromise = new Promise((resolve, reject) => {
