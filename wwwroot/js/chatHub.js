@@ -2015,11 +2015,19 @@ $(document).ready(function () {
             if (actionType === 'edit') {
                 const contextId = parseInt($('#message-context-id').val());
                 const messageText = $('#message-input').val();
-                const fileUploadedIds = collectServerIdsFromContainer('#uploadedFileIds');// فایلهای جدید بارگذاری شده
-                const fileDeletedIds = collectServerIdsFromContainer('#deletUploadedFileIds'); // فایلهای حذف شده
+                const newFileIds = collectServerIdsFromContainer('#uploadedFileIds');
+                const deletedFileIds = collectServerIdsFromContainer('#deletUploadedFileIds');
+                const previousFileIds = collectServerIdsFromContainer('#previousFileIds');
+
+                // ترکیب لیست نهایی فایل‌ها
+                // شروع با فایل‌های قبلی، حذف موارد حذف شده، و سپس اضافه کردن موارد جدید
+                const finalFileIds = previousFileIds
+                    .filter(id => !deletedFileIds.includes(id))
+                    .concat(newFileIds);
+
 
                 // فراخوانی متد ویرایش در API عمومی
-                window.chatApp.editMessage(contextId, messageText, groupId, groupType, fileUploadedIds, fileDeletedIds);
+                window.chatApp.editMessage(contextId, messageText, groupId, groupType, finalFileIds, deletedFileIds);
 
             } else if (actionType === 'reply') {
                 // حالت پاسخ: فراخوانی متد ارسال پیام با پارامتر اضافی
