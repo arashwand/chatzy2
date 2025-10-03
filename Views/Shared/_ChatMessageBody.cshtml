@@ -72,31 +72,95 @@
 <section class="section-lg-b-space position-relative pt-0" id="chat_content">
     <img class="img-fluid chat-bg" src="" alt="wallpaper">
     <div class="custom-container">
+       
+        <div id="newMessagesNotice" class="sticky-top mt-4 pb-2 btn btn-primary" style="display:none; cursor:pointer; z-index: 10; padding-bottom: 5px !important; margin-bottom: 5px;" data-newCount="0">
+            مشاهده پیام‌های جدید
+        </div>
+        <input type="hidden" id="lastMessageIdLoad" value="@(Model.Count() > 0 ? Model.Last().MessageId : 0)" />
+        <input type="hidden" id="hasMoreMessages" value="@(Model.Count() >= 50 ? true : false)" />
+
         <div id="Message_Days">
             @{
+               
+                var today = DateTime.Today;
+                var yesterday = today.AddDays(-1);
+                bool createdTodayBodyMessage = false;
+
                 var groupedMessages = Model.OrderBy(m => m.MessageDateTime).GroupBy(m => m.MessageDateTime.Date);
             }
             @foreach (var group in groupedMessages)
             {
+                string dateLabel;
+                string todayMessageContent = "";
+                string dateClass = "date-" + @group.Key.ToString("yyyy-MM-dd");
+                if (group.Key == today)
+                {
+                    dateLabel = "امروز";
+                    todayMessageContent = "chatMessages";
+                    createdTodayBodyMessage = true;
+                }
+                else if (group.Key == yesterday)
+                {
+                    dateLabel = "دیروز";
+                }
+                else
+                {
+                    dateLabel = group.Key.ToString("dddd، d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"));
+                }
+
+
                 var chatInDateLabel = @group.Key.ToString("yyyy-MM-dd");
-                <h6 class="fw-normal text-center heading chatInDateLabelClass">@group.Key.ToString("dddd, d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"))</h6>
+                <h6 class="fw-normal text-center heading chatInDateLabelClass" data-label="@dateLabel" id="@dateClass">@dateLabel</h6>
                 <ul class="message-box-list" id="chatMessages-@chatInDateLabel">
                    
                     @foreach (var message in group)
                     {
                         var isSelf = message.SenderUserId == selfUserId;
-                        var messageDetailsJson = JsonConvert.SerializeObject(new { messageText = message.MessageText?.MessageTxt, replyToMessageId = message.ReplyMessageId, replyMessage = message.ReplyMessageId != null ? new { senderUserName = message.ReplyMessage?.SenderUser.NameFamily, messageText = message.ReplyMessage?.MessageText?.MessageTxt } : null, messageFiles = message.MessageFiles?.Select(f => new { messageFileId = f.MessageFileId, fileName = f.FileName, fileThumbPath = f.FileThumbPath, originalFileName = f.OriginalFileName, FileSizeConverter = f.FileSize }) });
+                        // var messageDetailsJson = JsonConvert.SerializeObject(new 
+                        //     { 
+                        //         messageText = message.MessageText?.MessageTxt,
+                        //         replyToMessageId = message.ReplyMessageId,
+                        //         replyMessage = message.ReplyMessageId != null ? new { senderUserName = message.ReplyMessage?.SenderUser.NameFamily,
+                        //             messageText = message.ReplyMessage?.MessageText?.MessageTxt } : null,
+                        //             messageFiles = message.MessageFiles?.Select(f => new 
+                        //                 { 
+                        //                     messageFileId = f.MessageFileId,
+                        //                     fileName = f.FileName,
+                        //                     fileThumbPath = f.FileThumbPath,
+                        //                     originalFileName = f.OriginalFileName,
+                        //                     FileSizeConverter = f.FileSize
+                        //                 }
+                        //             )
+                        //     }
+                        // );
+                        object messageDetailsForEdit = new
+                        {
+                            messageText = message.MessageText?.MessageTxt,
+                            replyToMessageId = message.ReplyMessageId,
+                            // فقط در صورتی که پاسخ وجود دارد، اطلاعات آن را اضافه کن
+                            replyMessage = message.ReplyMessageId != null ? new
+                            {
+                                senderUserName = message.ReplyMessage?.SenderUser?.NameFamily,
+                                messageText = message.ReplyMessage?.MessageText?.MessageTxt
+                            } : null,
+                            // اطلاعات فایل‌ها را به صورت یک لیست از آبجکت‌ها اضافه کن
+                            messageFiles = message.MessageFiles?.Select(f => new
+                            {
+                                messageFileId = f.MessageFileId, // شناسه فایل در دیتابیس
+                                fileName = f.FileName,
+                                fileThumbPath = f.FileThumbPath,
+                                originalFileName = f.OriginalFileName,
+                                FileSizeConverter = f.FileSize
+                            })
+                        };
+                        var messageDetailsJson = JsonConvert.SerializeObject(messageDetailsForEdit);
 
-                        <li class="@(isSelf ? "personal" : "new")" id="message-@message.MessageId"
+                        <li class="message @(isSelf ? "personal" : "new")" id="message-@message.MessageId"
                             data-message-id="@message.MessageId"
                             data-sender-id="@message.SenderUserId"
                             data-sender-username="@message.SenderUser.NameFamily"
-                            data-message-details='@messageDetailsJson'>
+                            data-message-details='@Html.Raw(messageDetailsJson)'>
 
-                            <!--
-                                تغییر اصلی: دراپ‌دان به ابتدای li منتقل شده
-                                و از data-bs-toggle برای فعال‌سازی خودکار توسط بوت‌استرپ استفاده می‌کند
-                            -->
                             <div class="dropdown message-options">
                                 <a class="btn" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <img src="~/chatzy/assets/iconsax/menu-meatballs.svg" alt="menu" />

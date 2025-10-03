@@ -10,14 +10,14 @@
 <li>
     <a class="chat-list-box" onclick="GetSavedMessages()" style="cursor: pointer;">
         <div class="chat-list-image">
-            <i class="iconsax" data-icon="star" style="font-size: 24px; color: #01AA85;"></i>
+            <img src="~/chatzy/assets/iconsax/star.svg" alt="Save Messages" class="groupIcons" />
         </div>
         <div class="chat-details">
             <div class="d-flex align-items-center justify-content-between">
                 <h5 class="name">پیامهای ذخیره شده</h5>
             </div>
             <div class="content">
-                 <p>پیام های ذخیره شده شما</p>
+                <p>پیام های ذخیره شده شما</p>
             </div>
         </div>
     </a>
@@ -32,8 +32,7 @@
         <li id="@(ConstChat.ClassGroup + item.ClassId)">
             <a class="chat-list-box" onclick="GetSelectedChatMessages(@item.ClassId, '@ConstChat.ClassGroupType')" style="cursor: pointer;">
                 <div class="chat-list-image">
-                    @* <img class="img-fluid img" src="... some dynamic image ..." alt="p_img"> *@
-                    <i class="iconsax" data-icon="group" style="font-size: 24px;"></i>
+                    <img src="/chatzy/assets/iconsax/group.svg" alt="Group" class="groupIcons" />
                 </div>
                 <div class="chat-details">
                     <div class="d-flex align-items-center justify-content-between">
@@ -41,7 +40,7 @@
                         <h6 id="chatTime_@(ConstChat.ClassGroup + item.ClassId)">@item.LastMessage?.SentAt.ToString("hh:mm")</h6>
                     </div>
                     <div class="content">
-                         <div class="d-flex align-items-center justify-content-between gap-2">
+                        <div class="d-flex align-items-center justify-content-between gap-2">
                             <p class="text-truncate" id="chatText_@(ConstChat.ClassGroup + item.ClassId)">
                                 <span>@item.LastMessage?.SenderName:</span> @item.LastMessage?.Text
                             </p>
@@ -65,13 +64,16 @@
         <li id="@(ConstChat.ChannelGroup + item.ChannelId)">
             <a class="chat-list-box" onclick="GetSelectedChatMessages(@item.ChannelId, '@ConstChat.ChannelGroupType')" style="cursor: pointer;">
                 <div class="chat-list-image">
-                     <i class="iconsax" data-icon="megaphone" style="font-size: 24px;"></i>
+                    <img src="/chatzy/assets/iconsax/phone.svg" alt="Channels" class="groupIcons" />
                 </div>
                 <div class="chat-details">
                     <div class="d-flex align-items-center justify-content-between">
                         <h5 class="name">@item.ChannelName</h5>
-                         <h6 id="chatTime_@(ConstChat.ChannelGroup + item.ChannelId)">
-                            @if (item.LastMessage != null) { @item.LastMessage?.SentAt.ToString("hh:mm") }
+                        <h6 id="chatTime_@(ConstChat.ChannelGroup + item.ChannelId)">
+                            @if (item.LastMessage != null)
+                            {
+                                @item.LastMessage?.SentAt.ToString("hh:mm")
+                            }
                         </h6>
                     </div>
                     <div class="content">

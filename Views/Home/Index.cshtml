@@ -9,10 +9,17 @@
     <style>
 
         /*ایکون هایی که رنگ روشن دارند را با فیلتر رنگ مشکلی دادم*/
-        .svgInvertColor{
+        .svgInvertColor {
             filter: invert(100%) sepia(90%) saturate(500%) hue-rotate(0deg);
         }
-       
+
+        /*استایل برای نمایش ایکون چت ها*/
+        .groupIcons {
+            padding: 10px;
+            background-color: #01aa85;
+            border-radius: 50%;
+        }
+
         .message-box-list > li {
             display: flex;
             align-items: center;
@@ -90,7 +97,7 @@
         }
 
         /*برای تاریخ چسبان هر روز*/
-        .chatInDateLabelClass{
+        .chatInDateLabelClass {
             position: -webkit-sticky; /* برای سازگاری با مرورگرهای قدیمی سافاری */
             position: sticky;
             top: 5px; /* در بالاترین نقطه کانتینر والد می‌چسبد */
@@ -98,10 +105,12 @@
             background-color: #00bf95; /* رنگ پس‌زمینه برای پوشاندن متن زیرین (رنگ را به دلخواه تغییر دهید) */
             padding-top: 5px;
             padding-bottom: 5px;
-            margin-bottom: 0; /* برای جلوگیری از فاصله اضافی */
+            width: 30%;
+            margin: 0 auto;
+            border-radius: 15px;
         }
 
-        .messages-panel{
+        .messages-panel {
             z-index: 10 !important;
         }
     </style>
@@ -116,7 +125,7 @@
 
 <div id="main-content-body">
     <!-- story section starts -->
-    <section class="story-section pt-0">
+    @*   <section class="story-section pt-0">
         <div class="left-container">
             <h6 class="content-color fw-medium">Recent Update</h6>
             <div class="swiper story-box">
@@ -125,12 +134,12 @@
                 </div>
             </div>
         </div>
-    </section>
+    </section> *@
     <!-- story section end -->
     <!-- chat section starts -->
-    <section class="chat-section">
+    <section class="chat-section pt-0">
         <div class="custom-container">
-            <h6 class="content-color fw-medium">Chat</h6>
+            @* <h6 class="content-color fw-medium">Chat</h6> *@
             <ul class="chat-list" id="chatContactTab">
                 <!-- Chat list items will be dynamically inserted here by GetUserChats() -->
             </ul>
