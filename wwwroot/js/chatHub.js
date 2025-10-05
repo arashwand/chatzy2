@@ -24,10 +24,6 @@ window.chatApp = (function ($) {
     let heartbeatTimer = null; // متغیر برای نگهداری تایمر Heartbeat
     const HEARTBEAT_INTERVAL = 180 * 1000; // ارسال Heartbeat هر 90 ثانیه (90000 میلی‌ثانیه)
 
-    // لیست پسوندهای مجاز
-    let ALLOWED_IMAGES = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
-    let ALLOWED_DOCS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rar'];
-    let ALLOWED_AUDIO = ['webm', 'ogg', 'mp3', 'wav'];
 
 
     // =================================================
@@ -295,7 +291,6 @@ window.chatApp = (function ($) {
 
 
     function createDisplayFileBody(file, isSelf, isReplyed = null) {
-        window.chatApp.callAlloewExtentions();
         const fileExtension = file.fileName.split('.').pop().toLowerCase();
         console.log('file record extention is : ' + fileExtension);
         var fileHtml = "";
@@ -304,7 +299,7 @@ window.chatApp = (function ($) {
         let path = file.fileThumbPath || file.filePath || '';
         const finalPath = path.startsWith('blob:') ? path : baseUrl + path;
 
-        if (ALLOWED_IMAGES.includes(fileExtension)) {
+        if (publicApi.ALLOWED_IMAGES.includes(fileExtension)) {
             const imageWidth = isReplyed ? '50' : '100';
             fileHtml = `
                 <div class="col file-attachment-item" data-file-id="${file.messageFileId}" style="display: flex; flex-direction: column;">
@@ -481,13 +476,12 @@ window.chatApp = (function ($) {
             const fileExtension = fileName.split('.').pop().toLowerCase();
 
             // بررسی اینکه آیا فایل صوتی است یا خیر
-            // برای اطمینان، از همان متغیرهای سراسری استفاده می‌کنیم
-            if (ALLOWED_AUDIO.includes(fileExtension)) {
+            if (publicApi.ALLOWED_AUDIO.includes(fileExtension)) {
                 return '<i class="iconsax" data-icon="mic-2" style="margin-left: 5px;"></i> فایل ضبط شده';
             }
 
             // بررسی اینکه آیا فایل تصویر است یا خیر
-            if (ALLOWED_IMAGES.includes(fileExtension)) {
+            if (publicApi.ALLOWED_IMAGES.includes(fileExtension)) {
                 return '<i class="iconsax" data-icon="camera" style="margin-left: 5px;"></i> عکس';
             }
 
@@ -1124,6 +1118,9 @@ window.chatApp = (function ($) {
          * این تابع باید در ابتدای بارگذاری صفحه فراخوانی شود.
          */
         init: function () {
+            // فراخوانی اولیه برای بارگذاری پسوندها
+            publicApi.callAlloewExtentions();
+
             currentUser = $('#userId').val(); // Ensure this is correctly fetching the numeric or string ID as used in senderUserId
             if (!currentUser) {
                 console.error("UserId not found. ChatApp cannot initialize.");
@@ -1479,6 +1476,11 @@ window.chatApp = (function ($) {
             console.log("Public API: Manually triggering updateUnreadCountForGroup.");
             //updateUnreadCountForGroup();
         },
+        // Properties for allowed file extensions
+        ALLOWED_IMAGES: [],
+        ALLOWED_DOCS: [],
+        ALLOWED_AUDIO: [],
+
         callAlloewExtentions: async function loadFileExtensions() {
             try {
                 const response = await fetch('/Home/GetAllowedExtensions');
@@ -1487,14 +1489,15 @@ window.chatApp = (function ($) {
                 }
                 const data = await response.json();
 
-                // به‌روزرسانی متغیرها با داده‌های دریافت‌شده
-                ALLOWED_IMAGES = data.allowedImages || ALLOWED_IMAGES;
-                ALLOWED_DOCS = data.allowedDocs || ALLOWED_DOCS;
-                ALLOWED_AUDIO = data.allowedAudio || ALLOWED_AUDIO;
+                // به‌روزرسانی متغیرهای عمومی با داده‌های دریافت‌شده
+                publicApi.ALLOWED_IMAGES = data.allowedImages || [];
+                publicApi.ALLOWED_DOCS = data.allowedDocs || [];
+                publicApi.ALLOWED_AUDIO = data.allowedAudio || [];
+                console.log("Allowed extensions loaded and set publicly.");
 
             } catch (error) {
                 console.error('Error loading extensions:', error);
-                // در صورت خطا، متغیرهای پیش‌فرض حفظ می‌شوند
+                // در صورت خطا، متغیرهای پیش‌فرض خالی می‌مانند
             }
         },
 
@@ -2491,254 +2494,6 @@ $(document).ready(function () {
         window.chatApp.markMarkAllMessagesAsRead(currentGroupIdForCheck, currentGroupTypeForCheck);
 
     });
-
-
-    //------------------------------------------------------------------------- ارسال فایل
-    $(document).off('change', '#fileInput').on('change', '#fileInput', function (event) {
-        const files = event.target.files;
-        if (!files.length) return;
-
-        // پردازش تک‌تک فایل‌های انتخاب شده
-        for (const file of files) {
-            processFile(file);
-        }
-
-        // خالی کردن input تا کاربر بتواند مجدداً همان فایل را انتخاب کند
-        $(this).val('');
-    });
-
-    // قالب بندی حجم فایل
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 بایت';
-        const k = 1024;
-        const sizes = ['بایت', 'کیلوبایت', 'مگابایت', 'گیگابایت', 'ترابایت'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-    }
-
-    // لیست پسوندهای مجاز
-    const ALLOWED_IMAGES = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
-    const ALLOWED_DOCS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rar'];
-    let ALLOWED_AUDIO = ['webm', 'ogg', 'mp3', 'wav'];
-
-
-
-    /**
-     * هر فایل را پردازش، اعتبارسنجی و برای آپلود آماده می‌کند
-     * @param {File} file - فایل انتخاب شده توسط کاربر
-     */
-    async function processFile(file, elementId = null) {
-        if (!elementId) {
-            elementId = 'file-' + Date.now() + Math.random().toString(36).substr(2, 9);
-            addFileToPreviewList(file, elementId);
-        }
-
-        $('#' + elementId).data('fileObject', file);
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-
-        updateFileStatus(elementId, "در حال آماده سازی...", false, null, true);
-
-        // فراخوانی تابع برای بارگذاری تنظیمات
-        //loadFileExtensions();
-        window.chatApp.callAlloewExtentions();
-
-
-        if (ALLOWED_IMAGES.includes(fileExtension)) {
-            try {
-                updateFileStatus(elementId, 'در حال فشرده‌سازی...', false, null, true);
-                const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
-                const compressedFile = await imageCompression(file, options);
-                uploadFile(compressedFile, elementId, file.name);
-            } catch (error) {
-                updateFileStatus(elementId, 'خطا در فشرده‌سازی', true);
-            }
-        } else if (ALLOWED_DOCS.includes(fileExtension)) {
-            uploadFile(file, elementId, file.name);
-        } else if (ALLOWED_AUDIO.includes(fileExtension)) {
-            uploadFile(file, elementId, file.name);
-        }
-        else {
-            updateFileStatus(elementId, 'نوع فایل مجاز نیست!', true);
-        }
-    }
-
-    function uploadFile(file, elementId, originalFileName) {
-        const formData = new FormData();
-        formData.append('file', file, originalFileName);
-        updateFileStatus(elementId, 'در حال بارگذاری...', false, null, true);
-        $.ajax({
-            url: '/Home/UploadFiles',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function (response) {
-                if (response.success) {
-                    updateFileStatus(elementId, 'موفق', false, response.fileId);
-                    console.log('موفق' + response.fileId);
-                    addFileIdToHiddenInput(response.fileId, '#uploadedFileIds');
-                } else {
-                    updateFileStatus(elementId, response.message || 'خطا در سرور', true);
-                }
-            },
-            error: function (jqXHR) {
-                const errorMessage = jqXHR.responseJSON?.message || 'خطا در ارتباط';
-                updateFileStatus(elementId, errorMessage, true);
-            }
-        });
-    }
-
-    function addFileToPreviewList(file, elementId) {
-        let previewElement;
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-
-        // قالب‌ بندی حجم فایل
-        const formattedSize = formatFileSize(file.size);
-
-        if (ALLOWED_IMAGES.includes(fileExtension)) {
-            const imageURL = URL.createObjectURL(file);
-            previewElement = `<img src="${imageURL}" class="file-thumbnail" alt="پیش‌نمایش">`;
-        } else {
-
-            let icon = `<i class="iconsax" data-icon="document-text-1" aria-hidden="true"></i>`
-            previewElement = `<div class="file-icon">${icon}</div>`;
-        }
-
-        const previewHtml = `
-            <div class="file-preview-item" id="${elementId}">
-                <div class="file-info">
-                    ${previewElement}
-                    <div>
-                        <div class="file-name" title="${file.name}">${file.name}</div>
-                        <div class="file-details">
-                            <span class="file-size">${formattedSize}</span>
-                            <div class="status-text">
-                                <div class="spinner"></div>
-                                <span class="status-message">در انتظار...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="status-icon">
-                    <span class="action-btn remove-file-btn" data-server-id="" title="حذف فایل">🗑️</span>
-                    <span class="action-btn retry-upload-btn" title="تلاش مجدد">🔄</span>
-                     <span class="action-btn cancel-upload-btn" title="لغو ارسال">❌</span>
-                </div>
-            </div>`;
-        $('#filePreviewContainer').append(previewHtml);
-    }
-
-    function updateFileStatus(elementId, statusText, isError = false, serverFileId = null, inProgress = false) {
-        const item = $('#' + elementId);
-        item.find('.status-message').text(statusText);
-
-        item.find('.spinner').toggle(inProgress);
-        item.find('.retry-upload-btn').toggle(isError);
-        item.find('.cancel-upload-btn').toggle(isError);
-
-        const removeButton = item.find('.remove-file-btn');
-        if (serverFileId) {
-            removeButton.attr('data-server-id', serverFileId);
-            removeButton.show();
-        } else {
-            removeButton.hide();
-        }
-    }
-
-    // تلاش مجدد برای بارگذاری فایل بارگذاری نشده
-    $(document).off('click', '.retry-upload-btn').on('click', '.retry-upload-btn', function () {
-        const item = $(this).closest('.file-preview-item');
-        const fileObject = item.data('fileObject');
-        if (fileObject) {
-            processFile(fileObject, item.attr('id'));
-        }
-    });
-
-    //  رویداد دکمه حذف فایل بارگذاری شده
-    $(document).off('click', '.remove-file-btn').on('click', '.remove-file-btn', function () {
-        const item = $(this).closest('.file-preview-item');
-        const serverIdToRemove = $(this).data('server-id').toString();
-        const img = item.find('img.file-thumbnail');
-
-        if (img.length) {
-            URL.revokeObjectURL(img.attr('src'));
-        }
-
-        // اگر در حالت ویرایش بود، فقط از اینپوت مخفی حذف میشود
-        // به این دلیل که ممکن است کاربر از حذف منصرف شود
-        const actionType = $('#message-action-type').val();
-        if (actionType === 'edit') {
-            removeFileIdFromHiddenInput(serverIdToRemove);
-            item.addClass('removing');
-            setTimeout(() => {
-                item.remove();
-            }, 400);
-
-        } else {
-            $.ajax({
-                url: '/Home/DeleteFile',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ fileId: serverIdToRemove }),
-                success: function (response) {
-                    if (response.success) {
-                        removeFileIdFromHiddenInput(serverIdToRemove);
-                        item.addClass('removing');
-                        setTimeout(() => {
-                            item.remove();
-                        }, 400);
-                    } else {
-                        alert('خطا در حذف فایل: ' + response.message);
-                    }
-                },
-                error: function () {
-                    alert('خطای ارتباطی هنگام حذف فایل.');
-                }
-            });
-        }
-
-
-    });
-
-    // رویداد کلیک برای دکمه لغو برای فایل بارگذاری نشده
-    $(document).off('click', '.cancel-upload-btn').on('click', '.cancel-upload-btn', function () {
-        const item = $(this).closest('.file-preview-item');
-        const img = item.find('img.file-thumbnail');
-
-        if (img.length) {
-            URL.revokeObjectURL(img.attr('src'));
-        }
-
-        item.addClass('removing');
-        setTimeout(() => {
-            item.remove();
-        }, 400);
-    });
-
-    // ایدی فایل آپلود شده را در اینپوت مخفی نگهداری میکند و بین انها یک کاما میگذارد
-    function addFileIdToHiddenInput(serverFileId, containerSelector) {
-        const hiddenInput = $(containerSelector);
-        let currentIds = hiddenInput.val() ? hiddenInput.val().split(',') : [];
-        if (!currentIds.includes(serverFileId)) {
-            currentIds.push(serverFileId);
-            hiddenInput.val(currentIds.join(','));
-        }
-    }
-
-    // حذف فایل بارگذاری شده - اگه در حالت ویرایش پیام بود ایدی حذف شده را در اینپوت مرتبط نگهداری میکنیم جهت حذف از سرور
-    // به این دلیل که ممکن است کاربر از حذف منصرف شود
-    function removeFileIdFromHiddenInput(serverFileId) {
-        const hiddenInput = $('#uploadedFileIds');
-        let currentIds = hiddenInput.val().split(',');
-        const newIds = currentIds.filter(id => id !== serverFileId);
-        hiddenInput.val(newIds.join(','));
-
-        // اگر در حالت ویرایش بود ایدی حذف شده در deletUploadedFileIds نگهداری بشه
-        const actionType = $('#message-action-type').val();
-        if (actionType === 'edit') {
-            addFileIdToHiddenInput(serverFileId, '#deletUploadedFileIds');
-        }
-    }
 
 
     // ریسایز شدن صفحه و فراخوانی لیسنر برای مشاهده پیامها- جهت مریدیت خوانده نشده ها
