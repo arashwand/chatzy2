@@ -117,23 +117,7 @@
                     {
                         var isSelf = message.SenderUserId == selfUserId;
                         var hasRecorderFile = message.MessageFiles?.Any(f => f.FileExtension.Extension == ".webm") ?? false;
-                        // var messageDetailsJson = JsonConvert.SerializeObject(new 
-                        //     { 
-                        //         messageText = message.MessageText?.MessageTxt,
-                        //         replyToMessageId = message.ReplyMessageId,
-                        //         replyMessage = message.ReplyMessageId != null ? new { senderUserName = message.ReplyMessage?.SenderUser.NameFamily,
-                        //             messageText = message.ReplyMessage?.MessageText?.MessageTxt } : null,
-                        //             messageFiles = message.MessageFiles?.Select(f => new 
-                        //                 { 
-                        //                     messageFileId = f.MessageFileId,
-                        //                     fileName = f.FileName,
-                        //                     fileThumbPath = f.FileThumbPath,
-                        //                     originalFileName = f.OriginalFileName,
-                        //                     FileSizeConverter = f.FileSize
-                        //                 }
-                        //             )
-                        //     }
-                        // );
+                        
                         object messageDetailsForEdit = new
                         {
                             messageText = message.MessageText?.MessageTxt,
