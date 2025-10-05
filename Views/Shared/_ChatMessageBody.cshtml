@@ -116,6 +116,7 @@
                     @foreach (var message in group)
                     {
                         var isSelf = message.SenderUserId == selfUserId;
+                        var hasRecorderFile = message.MessageFiles?.Any(f => f.FileExtension.Extension == ".webm") ?? false;
                         // var messageDetailsJson = JsonConvert.SerializeObject(new 
                         //     { 
                         //         messageText = message.MessageText?.MessageTxt,
@@ -168,10 +169,14 @@
                                 <div class="dropdown-menu">
                                     @if (isSelf)
                                     {
-                                        <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="@message.MessageId" href="#">
-                                            <img src="~/chatzy/assets/iconsax/edit.svg" alt="ویرایش" />&nbsp;
-                                            <span>ویرایش</span>
-                                        </a>
+                                        // اگر فایل ضبظ شده نبود میتونه ویرایش کنه
+                                        if (!@hasRecorderFile)
+                                        {
+                                            <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="@message.MessageId" href="#">
+                                                <img src="~/chatzy/assets/iconsax/edit.svg" alt="ویرایش" class="svgInvertColor" />&nbsp;
+                                                <span>ویرایش</span>
+                                            </a>
+                                        }                                      
                                         
 
                                         <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="@message.MessageId" href="#">
@@ -272,6 +277,17 @@
 
 <!--  message input section starts -->
 <div class="messages-panel">
+    <div id="cancel-edit-container" class="force-hide">
+        <a href="#" id="cancel-edit-button">
+            انصراف
+        </a>
+        <div class="edit-indicator">
+           
+            <span class="edit-text">در حال ویرایش</span>
+            <div class="edit-bar"></div>
+        </div>
+       
+    </div>
     <form onsubmit="return false;">
         <div id="text-input-area" class="message-inputarea">
             <a href="#" onclick="$('#fileInput').click(); return false;">

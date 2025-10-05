@@ -279,7 +279,7 @@ window.chatApp = (function ($) {
         }
 
         return `
-            <li class="${liClass}" id="${elementId}" data-message-id="${messageId}" data-client-id="${message.clientMessageId || ''}" data-sender-id="${message.senderUserId}" data-sender-username="${message.senderUserName}" data-message-details='${messageDetailsJson}'>
+            <li class="message ${liClass}" id="${elementId}" data-message-id="${messageId}" data-client-id="${message.clientMessageId || ''}" data-sender-id="${message.senderUserId}" data-sender-username="${message.senderUserName}" data-message-details='${messageDetailsJson}'>
                 ${dropdownHtml}
                 <div class="message-box ${message.isReadByAnyRecipient ? "read" : ""}">
                     ${personImageHtml}
@@ -1023,23 +1023,35 @@ window.chatApp = (function ($) {
             return;
         }
 
+        const timingElement = messageElement.find('.timing');
         if (newStatus === 'sent') {
+            // ۲. اگر ارسال موفق بود، تمام اطلاعات را با داده‌های نهایی سرور آپدیت کن
 
-            // پاک کردن ویژگی data-message-details
-            messageElement.removeAttr('data-message-details');
+            // تغییر ID اصلی المان به شناسه واقعی سرور
+            messageElement.attr('id', `message-${savedMessage.messageId}`);
+
+            // به‌روزرسانی data attribute ها برای استفاده در آینده (مثل ویرایش و پاسخ)
+            messageElement.attr('data-message-id', savedMessage.messageId);
+
+            console.log('**********************************Start for update json details  ********************************** ');
+            // ایجاد آبجکت جهت بروز رسانی
+
             messageElement.attr('data-message-details', jsonObject);
             // messageElement.attr('data-message-details', messageDetailsJson);
 
             console.log('**********************************End for update json details  ********************************** ');
 
 
-            // تغییر آیکون وضعیت از "ساعت" به "تیک"
-            // فرض می‌شود شما یک المان با این کلاس برای نمایش وضعیت دارید
-            const statusTicksElement = messageElement.find('.message-status-ticks');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('✓'); // تیک برای "ارسال شد"
-                statusTicksElement.attr('title', 'ارسال شد');
+            // تغییر آیکون وضعیت از "ساعت" به "تیک"  
+            if (timingElement.length) {
+                timingElement.html(`
+                    <img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: inline;">
+                    <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: none;">
+                `);
+            } else {
+                console.log('timingElement not found!');
             }
+
 
             //  بروزرسانی نام فرستنده
             const messageSenderElement = messageElement.find('.message-sender-name').last();
@@ -1083,18 +1095,17 @@ window.chatApp = (function ($) {
                 });
             }
 
-
+            // شناسه تمام لینک‌های عملیات داخل منوی کشویی را نیز آپدیت کن
+            messageElement.find('.dropdown-menu a').each(function () {
+                $(this).attr('data-messageid', savedMessage.messageId);
+            });
 
         }
         else if (newStatus === 'failed') {
             // ۳. اگر ارسال ناموفق بود، یک استایل خطا به آن بده
-            messageElement.addClass('failed-to-send');
-
-            const statusTicksElement = messageElement.find('.message-status-ticks mb-1');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('❗'); // علامت برای "خطا"
-                statusTicksElement.attr('title', 'ارسال ناموفق');
-            }
+            const timingElement = messageElement.find('.timing');
+            timingElement.html('<span class="text-danger">❗</span>');
+            alert('خطا در ویرایش پیام : ' + newStatus);
         }
     }
 
@@ -1180,7 +1191,7 @@ window.chatApp = (function ($) {
             signalRConnection.on("EditMessageSentFailed", function (messageId) {
                 console.log("Edit Message Has Failed in messageId:", messageId);
                 // فراخوانی تابعی که پیام موقت را با اطلاعات نهایی سرور آپدیت می‌کند
-                //updateMessageStatus(messageId, null, 'failed');
+                updateEditMessageStatus(messageId, null, 'failed');
             });
 
             signalRConnection.on("UserTyping", handleUserTyping);
@@ -2283,8 +2294,8 @@ $(document).ready(function () {
         //document.querySelector('#message-input').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 
-    // رویداد کلیک برای دکمه جدید انصراف از ویرایش
-    $(document).off('click', '#cancel-edit-button').on('click', '#cancel-edit-button', function () {
+    // رویداد کلیک برای دکمه انصراف از ویرایش
+    $(document).on('click', '#cancel-edit-button', function () {
         resetInputState();
     });
 

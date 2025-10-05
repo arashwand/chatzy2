@@ -432,9 +432,9 @@ namespace Messenger.WebApp.ServiceHelper
             });
 
 
-            // به ارسال کننده پیام اطلاع میدهد که پیام ارسالی با خطا مواجه شده است
+            // به ویرایش کننده پیام اطلاع میدهد که پیام ارسالی با خطا مواجه شده است
             // در ویرایش پیام هم همین متد فراخوانی میشه
-            _hubConnection.On<long, long>("EditMessageSentFailed", async (userId, messageId) =>
+            _hubConnection.On<long, long,string>("EditMessageSentFailed", async (userId, messageId, errorMessage) =>
             {
                 _logger.LogInformation($"Bridge received 'SendMessageError' for client message {messageId}");
 
@@ -443,7 +443,7 @@ namespace Messenger.WebApp.ServiceHelper
 
                 // پیام تایید را فقط به همان کاربر خاص در WebAppChatHub ارسال کنید
                 await _webAppHubContext.Clients.User(userId.ToString())
-                    .SendAsync("MessageSentFailed", messageId);
+                    .SendAsync("EditMessageSentFailed", messageId);
             });
 
 
