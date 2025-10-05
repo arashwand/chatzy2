@@ -17,15 +17,20 @@
 
         /* استایل‌های کانتینر پیش‌نمایش فایل */
         #filePreviewContainer {
-            display: flex;
+            display: none; /* مخفی به صورت پیش‌فرض */
             flex-wrap: wrap;
             gap: 10px;
             padding: 10px;
             background-color: #f0f2f5;
             border-bottom: 1px solid #e0e0e0;
-            max-height: 250px; /* حداکثر ارتفاع با اسکرول */
-            overflow-y: auto; /* فعال کردن اسکرول عمودی */
+            max-height: 250px;
+            overflow-y: auto;
             overflow-x: hidden;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        #filePreviewContainer.visible {
+            display: flex; /* نمایش با اضافه شدن کلاس */
         }
 
         .file-preview-item {

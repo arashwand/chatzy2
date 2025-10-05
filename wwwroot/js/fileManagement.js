@@ -4,17 +4,26 @@
     //                          File Upload Management
     // =========================================================================
 
-    // Event listener for the file input. Using delegation to ensure it works even if the element is loaded dynamically.
+    // A helper function to manage the visibility of the preview container
+    function checkPreviewContainerVisibility() {
+        const container = $('#filePreviewContainer');
+        if (container.children().length > 0) {
+            if (!container.hasClass('visible')) {
+                container.addClass('visible');
+            }
+        } else {
+            container.removeClass('visible');
+        }
+    }
+
+    // Event listener for the file input.
     $(document).on('change', '#fileInput', function (event) {
         const files = event.target.files;
         if (!files.length) return;
 
-        // Process each selected file
         for (const file of files) {
             processFile(file);
         }
-
-        // Clear the input to allow selecting the same file again
         $(this).val('');
     });
 
@@ -34,10 +43,8 @@
 
         $('#' + elementId).data('fileObject', file);
         const fileExtension = file.name.split('.').pop().toLowerCase();
-
         updateFileStatus(elementId, "Preparing...", false, null, true);
 
-        // Ensure extensions are loaded from chatApp before validation
         if (!window.chatApp || window.chatApp.ALLOWED_IMAGES.length === 0) {
             await window.chatApp.callAlloewExtentions();
         }
@@ -49,7 +56,6 @@
                 const compressedFile = await imageCompression(file, options);
                 uploadFile(compressedFile, elementId, file.name);
             } catch (error) {
-                console.error("Compression Error:", error);
                 updateFileStatus(elementId, 'Compression failed!', true);
             }
         } else if (window.chatApp.ALLOWED_DOCS.includes(fileExtension) || window.chatApp.ALLOWED_AUDIO.includes(fileExtension)) {
@@ -119,7 +125,10 @@
                     <span class="action-btn cancel-upload-btn" title="Cancel">❌</span>
                 </div>
             </div>`;
+
         $('#filePreviewContainer').append(previewHtml);
+        checkPreviewContainerVisibility(); // Check visibility after adding
+
         if (typeof init_iconsax === 'function') {
             init_iconsax();
         }
@@ -144,7 +153,7 @@
             retryButton.show();
             cancelButton.show();
         } else if(inProgress) {
-            cancelButton.show(); // Allow cancellation during upload/compression
+            cancelButton.show();
         }
     }
 
@@ -156,52 +165,53 @@
         }
     });
 
-    $(document).on('click', '.remove-file-btn', function () {
-        const item = $(this).closest('.file-preview-item');
-        const serverIdToRemove = $(this).data('server-id').toString();
+    function handleRemoveFile(button) {
+        const item = $(button).closest('.file-preview-item');
+        const serverIdToRemove = $(button).data('server-id').toString();
         const img = item.find('img.file-thumbnail');
 
         if (img.length) {
             URL.revokeObjectURL(img.attr('src'));
         }
 
-        const actionType = $('#message-action-type').val();
-        if (actionType === 'edit') {
-            removeFileIdFromHiddenInput(serverIdToRemove, '#previousFileIds');
-            addFileIdToHiddenInput(serverIdToRemove, '#deletUploadedFileIds');
-            item.addClass('removing');
-            setTimeout(() => item.remove(), 400);
-        } else {
-            $.ajax({
-                url: '/Home/DeleteFile',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ fileId: serverIdToRemove }),
-                success: function (response) {
-                    if (response.success) {
-                        removeFileIdFromHiddenInput(serverIdToRemove, '#uploadedFileIds');
-                        item.addClass('removing');
-                        setTimeout(() => item.remove(), 400);
-                    } else {
-                        alert('Error deleting file: ' + response.message);
+        item.addClass('removing');
+        setTimeout(() => {
+            item.remove();
+            checkPreviewContainerVisibility(); // Check visibility after removing
+        }, 400);
+
+        if (serverIdToRemove) {
+            const actionType = $('#message-action-type').val();
+            if (actionType === 'edit') {
+                removeFileIdFromHiddenInput(serverIdToRemove, '#previousFileIds');
+                addFileIdToHiddenInput(serverIdToRemove, '#deletUploadedFileIds');
+            } else {
+                 $.ajax({
+                    url: '/Home/DeleteFile',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ fileId: serverIdToRemove }),
+                    success: function (response) {
+                        if (response.success) {
+                            removeFileIdFromHiddenInput(serverIdToRemove, '#uploadedFileIds');
+                        } else {
+                            alert('Error deleting file: ' + response.message);
+                        }
+                    },
+                    error: function () {
+                        alert('Connection error while deleting file.');
                     }
-                },
-                error: function () {
-                    alert('Connection error while deleting file.');
-                }
-            });
+                });
+            }
         }
+    }
+
+    $(document).on('click', '.remove-file-btn', function () {
+        handleRemoveFile(this);
     });
 
     $(document).on('click', '.cancel-upload-btn', function () {
-        const item = $(this).closest('.file-preview-item');
-        const img = item.find('img.file-thumbnail');
-        // Here you might want to add logic to cancel an ongoing AJAX request if needed
-        if (img.length) {
-            URL.revokeObjectURL(img.attr('src'));
-        }
-        item.addClass('removing');
-        setTimeout(() => item.remove(), 400);
+        handleRemoveFile(this);
     });
 
     function addFileIdToHiddenInput(serverFileId, containerSelector) {
