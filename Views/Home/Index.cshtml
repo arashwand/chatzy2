@@ -8,30 +8,50 @@
 @section Styles {
     <style>
         /*
-                    #bcf6d1 بک گراند پیام ارسالی کاربر 
-                    #f6f5f3 بک گراند صفحه چت
-                    #ffffff بکگراند پیام دیگران
-                    075E54 هدر چت
-        */  
+                            #bcf6d1 بک گراند پیام ارسالی کاربر
+                            #f6f5f3 بک گراند صفحه چت
+                            #ffffff بکگراند پیام دیگران
+                            075E54 هدر چت
+                */
         /*دیزاین قسمت ویرایش*/
 
         /* استایل‌های کانتینر پیش‌نمایش فایل */
         #filePreviewContainer {
+            position: fixed;
+            bottom: 89px; /* همیشه 100px بالاتر از پایین صفحه */
+            left: 0;
+            right: 0;
             display: none; /* مخفی به صورت پیش‌فرض */
             flex-wrap: wrap;
             gap: 10px;
             padding: 10px;
             background-color: #f0f2f5;
+            border-top: 1px solid #e0e0e0;
             border-bottom: 1px solid #e0e0e0;
-            max-height: 250px;
+            max-height: 30vh; /* تا حداکثر 30٪ ارتفاع صفحه */
             overflow-y: auto;
             overflow-x: hidden;
+            box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
             animation: slideDown 0.3s ease-out;
+            z-index: 999; /* بالاتر از سایر المان‌ها */
         }
 
-        #filePreviewContainer.visible {
-            display: flex; /* نمایش با اضافه شدن کلاس */
+            #filePreviewContainer.visible {
+                display: flex;
+            }
+
+        @@keyframes slideDown {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
+
 
         .file-preview-item {
             position: relative;
@@ -45,10 +65,10 @@
             transition: opacity 0.4s ease, transform 0.4s ease;
         }
 
-        .file-preview-item.removing {
-            opacity: 0;
-            transform: scale(0.9);
-        }
+            .file-preview-item.removing {
+                opacity: 0;
+                transform: scale(0.9);
+            }
 
         .file-info {
             display: flex;
@@ -101,9 +121,17 @@
             display: none; /* همه دکمه‌ها در حالت عادی مخفی هستند */
         }
 
-        .remove-file-btn { color: #dc3545; }
-        .retry-upload-btn { color: #007bff; }
-        .cancel-upload-btn { color: #ffc107; }
+        .remove-file-btn {
+            color: #dc3545;
+        }
+
+        .retry-upload-btn {
+            color: #007bff;
+        }
+
+        .cancel-upload-btn {
+            color: #ffc107;
+        }
 
 
         .status-text {
@@ -124,11 +152,13 @@
         }
 
         @@keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
 
-        /*ایکون هایی که رنگ روشن دارند را با فیلتر رنگ مشکلی دادم*/
+        /*ایکون هایی که رنگ روشن دارند را با فیلتر، رنگ مشکلی دادم*/
         .svgInvertColor {
             filter: invert(100%) sepia(90%) saturate(500%) hue-rotate(0deg);
         }
@@ -237,15 +267,15 @@
 
     <style>
         /* * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        } */
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                } */
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-           /*  background: #E5DDD5;
-            direction: rtl; */
+            /*  background: #E5DDD5;
+                    direction: rtl; */
         }
 
         /* Messages Panel Container */
@@ -388,18 +418,15 @@
 
         /* Animation */
         @@keyframes slideDown {
-            from
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
 
-        {
-            transform: translateY(-100%);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         /* Voice Input Area (Hidden by default) */
@@ -444,16 +471,13 @@
 
         /* Responsive */
         @@media (max-width: 768px) {
-            .message-inputarea
+            .message-inputarea {
+                margin: 8px 12px;
+            }
 
-        {
-            margin: 8px 12px;
-        }
-
-        #cancel-edit-container {
-            padding: 8px 12px;
-        }
-
+            #cancel-edit-container {
+                padding: 8px 12px;
+            }
         }
     </style>
 }
