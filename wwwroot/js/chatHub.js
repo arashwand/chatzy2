@@ -539,7 +539,7 @@ window.chatApp = (function ($) {
 
             if (!messageList.length) {
                 const persianDate = new Date(message.messageDateTime).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
-                const newDayHtml = `<h6 class="fw-normal text-center heading pt-4">${persianDate}</h6>
+                const newDayHtml = `<h6 class="fw-normal text-center heading chatInDateLabelClass">${persianDate}</h6>
                                     <ul class="message-box-list" id="chatMessages-${dateStr}"></ul>`;
                 $('#Message_Days').append(newDayHtml);
                 messageList = $(`#chatMessages-${dateStr}`);
@@ -2303,48 +2303,79 @@ $(document).ready(function () {
     });
 
 
-    // actionReplyMessage 
+    // actionReplyMessage
     $(document).off('click', '.actionReplyMessage').on('click', '.actionReplyMessage', function (e) {
         e.preventDefault();
+        resetInputState();
 
-        resetInputState(); // این خط هر وضعیت قبلی (مثل ویرایش) را پاک می‌کند
+        // همیشه تمام کانتینرهای پیش‌نمایش را قبل از استفاده پاک می‌کنیم
+        $('#reply-thumbnail-container').empty();
+        $('#reply-icon-container').empty();
 
-        // پیدا کردن نزدیک‌ترین بلاک پیام
-        var messageBlock = $(this).closest('.message');
+        const messageBlock = $(this).closest('.message');
+        const messageId = $(this).data('messageid');
+        const senderName = messageBlock.data('sender-username');
+        const messageDetailsStr = messageBlock.attr('data-message-details');
 
-        // استخراج اطلاعات
-        var messageId = $(this).data('messageid');
-        var messageText = messageBlock.find('.message-content').text().trim();
-        var senderName = messageBlock.data('sender-username');
+        let previewText = 'پیام'; // متن پیش‌فرض
 
-        // اگر متن پیام خالی بود
-        if (!messageText || messageText == '...') {
-            var messageDetailsStr = messageBlock.attr('data-message-details');
+        if (messageDetailsStr) {
             try {
-                var messageDetails = JSON.parse(messageDetailsStr);
+                const messageDetails = JSON.parse(messageDetailsStr);
+                const hasText = messageDetails.messageText && messageDetails.messageText.trim() !== '';
+                const hasFiles = messageDetails.messageFiles && messageDetails.messageFiles.length > 0;
 
-                if (messageDetails && Array.isArray(messageDetails.messageFiles) && messageDetails.messageFiles.length > 0) {
-                    var firstFile = messageDetails.messageFiles[0];
-                    messageText = firstFile.originalFileName || firstFile.fileName || 'فایل پیوست‌شده';
-                } else {
-                    messageText = 'فایل پیوست‌شده';
+                // اگر پیام متن داشت، همیشه متن در اولویت است
+                if (hasText) {
+                    previewText = messageDetails.messageText;
+                }
+                // اگر متن نداشت ولی فایل داشت، نوع فایل را تشخیص می‌دهیم
+                else if (hasFiles) {
+                    const firstFile = messageDetails.messageFiles[0];
+                    const fileName = firstFile.originalFileName || firstFile.fileName || '';
+                    const fileExtension = fileName.split('.').pop().toLowerCase();
+
+                    // 1. بررسی برای فایل صوتی (راه حل پایدار)
+                    // ما 'webm' را مستقیماً چک می‌کنیم و همچنین لیست برنامه را هم در نظر می‌گیریم
+                    if (fileExtension === 'webm' || (window.chatApp.ALLOWED_AUDIO && window.chatApp.ALLOWED_AUDIO.includes(fileExtension))) {
+                        $('#reply-icon-container').html(' <img src="/chatzy/assets/iconsax/music-filter.svg" />');
+                        previewText = 'فایل صوتی';
+                    }
+                    // 2. بررسی برای فایل تصویر
+                    else if (window.chatApp.ALLOWED_IMAGES && window.chatApp.ALLOWED_IMAGES.includes(fileExtension)) {
+                        const baseUrl = $('#baseUrl').val() || '';
+                        const imageUrl = baseUrl + (firstFile.fileThumbPath || firstFile.filePath);
+                        $('#reply-thumbnail-container').html(`<img src="${imageUrl}" class="reply-preview-thumbnail" alt="پیش‌نمایش">`);
+                        previewText = 'عکس';
+                    }
+                    // 3. سایر فایل‌ها (داکیومنت و...)
+                    else {
+                        $('#reply-icon-container').html(' <img src="/chatzy/assets/iconsax/paperclip-2.svg" />');
+                        previewText = fileName || 'فایل پیوست‌شده';
+                    }
                 }
             } catch (err) {
-                console.warn('خطا در خواندن data-message-details:', err);
-                messageText = 'فایل پیوست‌شده';
+                console.error("خطا در خواندن data-message-details:", err);
+                previewText = messageBlock.find('.message-box-details h5').text().trim() || 'پیام';
             }
+        } else {
+            previewText = messageBlock.find('.message-box-details h5').text().trim() || 'پیام';
         }
 
-        // تنظیم اطلاعات در کانتینر پاسخ
+        // تنظیم اطلاعات و نمایش پنل
         $('#reply-to-user').text('پاسخ به: ' + senderName);
-        $('#reply-to-text').text(messageText);
+        $('#reply-to-text').text(previewText);
         $('#reply-to-container').show();
 
-        // تنظیم حالت پاسخ
+        // رندر کردن آیکون جدید (اگر از کتابخانه iconsax استفاده می‌کنید)
+        if (typeof init_iconsax === 'function') {
+            init_iconsax();
+        }
+
+        // تنظیم حالت پاسخ برای فرم
         $('#message-context-id').val(messageId);
         $('#message-action-type').val('reply');
 
-        // پاک کردن ورودی اصلی و فوکوس روی آن
         $('#message-input').val('').focus();
     });
 

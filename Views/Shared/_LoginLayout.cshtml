@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -10,7 +10,7 @@
     <meta name="author" content="Chatzy">
     <link rel="manifest" href="~/chatzy/manifest.json">
     <link rel="icon" href="~/chatzy/assets/images/logo/favicon.png" type="image/x-icon">
-    <title>@ViewData["Title"] - Messenger.WebApp</title>
+    <title>@ViewData["Title"] - مسنجر اختصاصی آموزشگاه زبان ایران - اروپا</title>
     <link rel="apple-touch-icon" href="~/chatzy/assets/images/logo/favicon.png">
     <meta name="theme-color" content="#01AA85">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -33,6 +33,7 @@
 
     <!-- template css -->
     <link rel="stylesheet" id="change-link" type="text/css" href="~/chatzy/assets/css/style.css">
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 
 <body>
