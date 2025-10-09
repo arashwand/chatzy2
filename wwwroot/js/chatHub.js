@@ -2233,7 +2233,7 @@ $(document).ready(function () {
     });
 
     // actionEditMessage
-    $(document).off('click', '.actionEditMessage').on('click', '.actionEditMessage', function (e) {
+    $(document).off('click', '.actionEditMessage').on('click', '.actionEditMessage', async function (e) { // <-- Make the handler async
         e.preventDefault();
 
         // ۱. پاک‌سازی کامل فرم از هر حالت قبلی (مهم)
@@ -2245,13 +2245,11 @@ $(document).ready(function () {
 
         var details;
         try {
-            var details = JSON.parse(messageBlock.attr('data-message-details'));
+            details = JSON.parse(messageBlock.attr('data-message-details'));
         } catch (err) {
             console.error("خطا در خواندن اطلاعات پیام برای ویرایش.", err);
             return;
         }
-
-
 
         // ۴. تنظیم حالت ویرایش
         $('#message-action-type').val('edit');
@@ -2282,6 +2280,11 @@ $(document).ready(function () {
         // اگر پیام فایل ضمیمه داشته، پیش‌نمایش آنها را بساز       
         $('#filePreviewContainer').empty(); // ابتدا کانتینر پیش‌نمایش را خالی کنید
         if (details.messageFiles && details.messageFiles.length > 0) {
+
+            // Wait for allowed extensions to be loaded if they haven't been already
+            if (window.chatApp.ALLOWED_IMAGES.length === 0) {
+                await window.chatApp.callAlloewExtentions();
+            }
 
             previousFileIds = details.messageFiles.map(f => f.messageFileId);
 
