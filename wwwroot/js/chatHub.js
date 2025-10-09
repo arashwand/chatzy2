@@ -1859,6 +1859,16 @@ $(document).ready(function () {
     }
 
 
+    function addFileIdToHiddenInput(serverFileId, containerSelector) {
+        const hiddenInput = $(containerSelector);
+        let currentIds = hiddenInput.val() ? hiddenInput.val().split(',') : [];
+        if (!currentIds.includes(serverFileId)) {
+            currentIds.push(serverFileId);
+            hiddenInput.val(currentIds.join(','));
+        }
+    }
+
+
     // --- مدیریت رویدادها با Event Delegation ---
 
     // کلیک روی دکمه میکروفون/توقف

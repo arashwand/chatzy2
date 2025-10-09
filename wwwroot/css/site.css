@@ -1,54 +1,540 @@
-﻿/*
-            #bcf6d1 بک گراند پیام ارسالی کاربر
-            #f6f5f3 بک گراند صفحه چت
-            #ffffff بکگراند پیام دیگران
-            075E54 هدر چت
-        */
+﻿/* ========================================================= */
+/*      START OF MERGED CSS FROM ALL THREE FILES           */
+/* ========================================================= */
+
+/* General Body Styles */
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    /*  background: #E5DDD5;
-            direction: rtl; */
+}
+
+/* --- General Chat Area Styling --- */
+#chat_content {
+    background-image: url(/assets/media/avatar/new-pattern-6.png);
+    background-color: #f6f5f3;
+    position: relative;
+    background-position: top left;
+    background-size: 30%;
+}
+
+/* --- Message Bubbles & Layout --- */
+/* Self Messages (Sent) */
+.message.self {
+    justify-content: flex-end;
+}
+
+    .message.self .message-wrapper {
+        background-color: #dcf8c6; /* WhatsApp light green */
+        border-radius: 8px 0 8px 8px;
+        position: relative;
+        padding: 8px;
+        max-width: 75%;
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+    }
+
+        /* Message Bubble "Tail" */
+        .message.self .message-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -10px;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 0 10px 10px;
+            border-color: transparent transparent transparent #dcf8c6;
+        }
+
+    /* Hide Avatar for Self Messages */
+    .message.self .message-options .avatar,
+    .message.self .message-options span[class="message-date"]:first-child {
+        display: none;
+    }
+
+.message-content {
+    padding-bottom: 20px;
+    position: relative;
+}
+
+/* --- Message List Layout (from site.css, takes precedence) --- */
+.message-box-list > li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+    position: relative;
+}
+
+.message-box-list li .message-box {
+    order: 1;
+}
+
+.message-box-list li .message-options {
+    order: 2;
+    margin: 0 8px;
+}
+
+/* Layout for Sent (Self) Messages */
+.message-box-list li.personal {
+    flex-direction: row-reverse;
+    justify-content: end;
+}
+
+/* Layout for Received (New) Messages */
+.message-box-list li.new {
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+/* --- Message Options (Three Dots Menu) --- */
+.message-options .btn {
+    background-color: rgba(240, 242, 245, 0.9);
+    border: none;
+    box-shadow: none;
+    padding: 2px;
+    border-radius: 20%;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+    .message-options .btn i {
+        font-size: 20px;
+        display: block;
+        transform: rotate(90deg);
+        color: #54656f;
+    }
+
+.message-box-list > li:hover .message-options .btn {
+    background-color: #01aa85;
+}
+
+.message-options .btn[aria-expanded="true"] {
+    background-color: #e9edef;
+}
+
+/* Dropdown Menu Style */
+.message-options .dropdown-menu {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: none;
+    border-radius: 8px;
+    z-index: 1050;
+    text-align: right;
+}
+
+.dropdown-menu .dropdown-item {
+    text-align: right;
+    direction: rtl;
 }
 
 
-/*دیزاین قسمت ویرایش*/
-/* استایل‌های کانتینر پیش‌نمایش فایل */
-#filePreviewContainer {
-    position: fixed;
-    bottom: 89px; /* همیشه 100px بالاتر از پایین صفحه */
+/* ========================================================= */
+/*      Voice Recording & Preview UI (Merged & Refined)      */
+/* ========================================================= */
+
+#voice-input-area {
+    padding: 16px;
+    background: white;
+    flex-grow: 1;
+}
+
+/* Main container for voice UI */
+.voice-ui-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 73px;
+    padding: 12px 16px; /* from voiceStyle.css */
+    background: #f8f9fa; /* from voiceStyle.css */
+    border-radius: 12px; /* from voiceStyle.css */
+    margin: 8px 0; /* from voiceStyle.css */
+    border: 1px solid #e9ecef; /* from voiceStyle.css */
+    box-sizing: border-box;
+    color: #b0b8c0;
+}
+
+/* --- Recording State --- */
+.voice-recording-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    width: 100%;
+}
+
+.recording-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #dc3545; /* from voiceStyle.css, overrides #e74c3c */
+    animation: blink-animation 1.5s infinite;
+}
+
+.recording-dot {
+    width: 12px;
+    height: 12px;
+    background: #dc3545;
+    border-radius: 50%;
+}
+
+.recording-text {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.recording-timer {
+    font-family: monospace, sans-serif;
+    font-size: 16px;
+    direction: ltr;
+}
+
+/* --- Processing State --- */
+.voice-processing-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.spinner-container {
+    width: 24px;
+    height: 24px;
+}
+
+.processing-text {
+    color: #007bff;
+    font-weight: 500;
+}
+
+/* --- Preview State --- */
+.voice-preview-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.voice-action-btn {
+    font-size: 18px; /* from imported-chat-styles.css */
+    background: none; /* from voiceStyle.css */
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #b0b8c0; /* from imported-chat-styles.css */
+    transition: background-color 0.2s, color 0.2s;
+}
+
+    .voice-action-btn:hover {
+        background-color: #e9ecef; /* from voiceStyle.css */
+        color: #ffffff; /* from imported-chat-styles.css */
+    }
+
+.delete-btn {
+    color: #e74c3c;
+}
+
+.voice-player-container {
+    flex: 1; /* from voiceStyle.css, more specific */
+    min-width: 0;
+    margin: 0 15px; /* from imported-chat-styles.css */
+}
+
+.voice-timeline {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: #ddd;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+    .voice-timeline::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #007bff;
+        cursor: pointer;
+    }
+
+.voice-duration {
+    font-family: monospace, sans-serif;
+    font-size: 12px;
+    color: #6c757d;
+    min-width: 35px;
+    flex-shrink: 0;
+    text-align: left;
+}
+
+
+/* ========================================================= */
+/*      Audio Message Display (in chat)                      */
+/* ========================================================= */
+
+.audio-player-container {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 18px;
+    max-width: 280px;
+    min-width: 250px;
+    background-color: #f0f0f0;
+    direction: ltr;
+}
+
+.message.self .audio-player-container {
+    background-color: #e7ffdb;
+}
+
+.voice-playback-btn {
+    cursor: pointer;
+    font-size: 18px;
+    color: #555;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+    .voice-playback-btn .fa-play {
+        margin-left: 2px;
+    }
+
+.voice-timeline-container {
+    flex-grow: 1;
+    margin: 0 10px;
+    position: relative;
+    height: 10px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.voice-timeline-bg {
+    width: 100%;
+    height: 4px;
+    background-color: #ccc;
+    border-radius: 2px;
+    position: absolute;
+}
+
+.voice-timeline-progress {
+    height: 4px;
+    background-color: #5c85d6;
+    border-radius: 2px;
+    width: 0%;
+    position: absolute;
+    left: 0;
+}
+
+.voice-timeline-handle {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #5c85d6;
+    position: absolute;
+    left: 0%;
+    transform: translateX(-7px);
+    display: none;
+}
+
+.voice-timeline-container:hover .voice-timeline-handle {
+    display: block;
+}
+
+.voice-duration-display {
+    font-size: 12px;
+    color: #666;
+    min-width: 40px;
+    text-align: center;
+    font-family: monospace, sans-serif;
+}
+
+.voice-download-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    color: white;
+    cursor: pointer;
+    border: none;
+    font-size: 18px;
+    transition: background-color 0.2s;
+}
+
+    .voice-download-btn:hover {
+        background-color: #888;
+    }
+
+    .voice-download-btn .fa-spinner {
+        display: none;
+    }
+
+    .voice-download-btn.loading .fa-download {
+        display: none;
+    }
+
+    .voice-download-btn.loading .fa-spinner {
+        display: inline-block;
+        animation: fa-spin 1s infinite linear;
+    }
+
+
+/* ========================================================= */
+/*      Footer & Message Input Area Structure                */
+/* ========================================================= */
+
+.messages-panel {
+    position: fixed; /* پنل را در پایین صفحه ثابت نگه می‌دارد */
+    bottom: 0;
     left: 0;
     right: 0;
-    display: none; /* مخفی به صورت پیش‌فرض */
+    z-index: 1000; /* اطمینان از قرارگیری روی محتوای دیگر */
+    display: flex;
+    flex-direction: column; /* فرزندان را به صورت ستونی مرتب می‌کند */
+    background-color: #f0f2f5;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
+    max-height: 70vh; /* تعیین یک ارتفاع حداکثری برای جلوگیری از پوشاندن کل صفحه */
+}
+
+.action-banners-container {
+    order: 1; /* اولین آیتم در ترتیب نمایش */
+    width: 100%;
+    flex-shrink: 0; /* جلوگیری از فشرده شدن این بخش */
+}
+
+
+
+.message-form-container {
+    order: 3; /* سومین آیتم در ترتیب نمایش */
+    background-color: #f0f2f5;
+    padding: 8px 10px;
+    display: flex; /* این را اضافه کنید تا فرزندانش را مدیریت کند */
+    flex-direction: column; /* این را اضافه کنید */
+    overflow-y: auto; /* اگر محتوا زیاد شد، اسکرول داخلی ایجاد می‌کند */
+}
+
+.message-inputarea {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 30px;
+    margin: 12px 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+#message-input, .message-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    padding: 10px 12px;
+    background: transparent;
+    color: #303030;
+    resize: none;
+    min-height: 40px; /* حداقل ارتفاع */
+    max-height: 150px; /* حداکثر ارتفاع قبل از فعال شدن اسکرول داخلی */
+    overflow-y: auto; /* اسکرول در صورت نیاز */
+    line-height: 24px;
+    box-sizing: border-box;
+}
+
+    #message-input::placeholder, .message-input::placeholder {
+        color: #8696a0;
+    }
+
+    #message-input::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    #message-input::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+    }
+
+    #message-input::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+.message-inputarea a, .message-inputarea button {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+    .message-inputarea a:hover {
+        background: #f0f0f0;
+    }
+
+.message-inputarea svg {
+    width: 24px;
+    height: 24px;
+}
+
+.message-send-btn {
+    background: #25D366 !important;
+    width: 44px;
+    height: 44px;
+}
+
+    .message-send-btn:hover {
+        background: #20BA5A !important;
+    }
+
+    .message-send-btn svg {
+        filter: brightness(0) invert(1);
+    }
+
+.btn-record-voice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- File Preview Container --- */
+#filePreviewContainer {
+    order: 2; /* دومین آیتم در ترتیب نمایش */
+    flex-shrink: 0; /* جلوگیری از فشرده شدن این بخش */
+    display: none;
     flex-wrap: wrap;
     gap: 10px;
     padding: 10px;
     background-color: #f0f2f5;
     border-top: 1px solid #e0e0e0;
     border-bottom: 1px solid #e0e0e0;
-    max-height: 30vh; /* تا حداکثر 30٪ ارتفاع صفحه */
+    max-height: 30vh;
     overflow-y: auto;
-    overflow-x: hidden;
     box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
     animation: slideDown 0.3s ease-out;
-    z-index: 999; /* بالاتر از سایر المان‌ها */
+    z-index: 999;
 }
 
     #filePreviewContainer.visible {
         display: flex;
     }
-
-@keyframes slideDown {
-    from {
-        transform: translateY(20px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
 
 .file-preview-item {
     position: relative;
@@ -58,7 +544,7 @@ body {
     border-radius: 8px;
     padding: 8px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    width: calc(50% - 5px); /* دو آیتم در هر ردیف با فاصله */
+    width: calc(50% - 5px);
     transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
@@ -115,7 +601,7 @@ body {
 .action-btn {
     cursor: pointer;
     font-size: 18px;
-    display: none; /* همه دکمه‌ها در حالت عادی مخفی هستند */
+    display: none;
 }
 
 .remove-file-btn {
@@ -130,7 +616,6 @@ body {
     color: #ffc107;
 }
 
-
 .status-text {
     display: flex;
     align-items: center;
@@ -138,145 +623,20 @@ body {
     font-size: 0.75rem;
 }
 
+/* Spinner (from site.css, takes highest precedence) */
 .spinner {
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(0, 0, 0, 0.1);
-    border-left-color: #09f;
+    width: 14px; /* from site.css */
+    height: 14px; /* from site.css */
+    border: 2px solid rgba(0, 0, 0, 0.1); /* from site.css */
+    border-left-color: #09f; /* from site.css */
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    display: none; /* در حالت عادی مخفی */
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+    display: none;
 }
 
 
-/*ایکون هایی که رنگ روشن دارند را با فیلتر، رنگ مشکلی دادم*/
-.svgInvertColor {
-    filter: invert(100%) sepia(90%) saturate(500%) hue-rotate(0deg);
-}
-
-/*استایل برای نمایش ایکون چت ها*/
-.groupIcons {
-    padding: 10px;
-    background-color: #01aa85;
-    border-radius: 50%;
-}
-
-.message-box-list > li {
-    display: flex;
-    align-items: center;
-    margin-bottom: 2px;
-    position: relative;
-}
-
-/* کانتینر اصلی بدنه پیام */
-.message-box-list li .message-box {
-    order: 1;
-}
-
-/* کانتینر اصلی منوی سه نقطه */
-.message-box-list li .message-options {
-    order: 2;
-    margin: 0 8px;
-}
-
-/* چیدمان پیام‌های ارسالی (شخصی) */
-.message-box-list li.personal {
-    flex-direction: row-reverse; /* ترتیب عناصر را معکوس می‌کند (منو، پیام) */
-    justify-content: end; /* <<< این خط اضافه شده و مشکل را حل می‌کند >>> */
-}
-
-/* چیدمان پیام‌های دریافتی (جدید) */
-.message-box-list li.new {
-    flex-direction: row;
-    justify-content: flex-start; /* برای اطمینان از چیدمان صحیح از چپ */
-}
-
-
-/* استایل  برای دکمه و آیکون سه نقطه*/
-/* استایل دکمه سه نقطه */
-.message-options .btn {
-    background-color: rgba(240, 242, 245, 0.9);
-    border: none;
-    box-shadow: none;
-    padding: 2px;
-    border-radius: 20%;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
-}
-
-    /* استایل آیکون سه نقطه (عمودی شده) */
-    .message-options .btn i {
-        font-size: 20px;
-        display: block;
-        transform: rotate(90deg);
-        color: #54656f;
-    }
-
-/* افکت هاور: وقتی موس روی کل ردیف پیام قرار می‌گیرد */
-.message-box-list > li:hover .message-options .btn {
-    background-color: #01aa85;
-}
-
-/* پررنگ ماندن پس‌زمینه وقتی منو باز است */
-.message-options .btn[aria-expanded="true"] {
-    background-color: #e9edef;
-}
-
-
-/* استایل منوی باز شونده (Dropdown)*/
-.message-options .dropdown-menu {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    border: none;
-    border-radius: 8px;
-    z-index: 1050;
-    text-align: right;
-}
-
-.dropdown-menu .dropdown-item {
-    text-align: right;
-    direction: rtl;
-}
-
-/*برای تاریخ چسبان هر روز*/
-.chatInDateLabelClass {
-    position: -webkit-sticky; /* برای سازگاری با مرورگرهای قدیمی سافاری */
-    position: sticky;
-    top: 5px; /* در بالاترین نقطه کانتینر والد می‌چسبد */
-    z-index: 9; /* برای اینکه روی محتوای دیگر قرار بگیرد */
-    background-color: #00bf95; /* رنگ پس‌زمینه برای پوشاندن متن زیرین (رنگ را به دلخواه تغییر دهید) */
-    padding-top: 5px;
-    padding-bottom: 5px;
-    width: 30%;
-    margin: 0 auto;
-    border-radius: 15px;
-}
-
-.messages-panel {
-    z-index: 10 !important;
-}
-
-
-
-/* Messages Panel Container */
-.messages-panel {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #F0F0F0;
-    border-top: 1px solid #D1D1D1;
-    z-index: 1000;
-}
-
-/* Edit Banner Styles */
+/* --- Action Banners (Edit & Reply) --- */
 #cancel-edit-container {
-    margin-top: -50px;
     background: #25D366;
     padding: 10px 16px;
     display: flex;
@@ -328,176 +688,52 @@ body {
         transform: scale(1.02);
     }
 
-/* Message Input Area */
-.message-inputarea {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    padding: 12px 16px;
-    background: white;
-    border-radius: 30px;
-    margin: 12px 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-    .message-inputarea a {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        transition: all 0.2s ease;
-        cursor: pointer;
-        text-decoration: none;
-    }
-
-        .message-inputarea a:hover {
-            background: #F0F0F0;
-        }
-
-    .message-inputarea svg {
-        width: 24px;
-        height: 24px;
-    }
-
-.message-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 15px;
-    padding: 10px 12px;
-    background: transparent;
-    color: #303030;
-}
-
-    .message-input::placeholder {
-        color: #8696A0;
-    }
-
-.message-send-btn {
-    background: #25D366 !important;
-    border-radius: 50%;
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-    .message-send-btn:hover {
-        background: #20BA5A !important;
-        /* transform: scale(1.05); */
-    }
-
-    .message-send-btn svg {
-        filter: brightness(0) invert(1);
-    }
-
-.btn-record-voice {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Animation */
-@keyframes slideDown {
-    from {
-        transform: translateY(-100%);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Voice Input Area (Hidden by default) */
-#voice-input-area {
-    padding: 16px;
-    background: white;
-}
-
-/* Demo Content */
-.demo-content {
-    padding: 60px 20px 120px;
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.demo-message {
-    background: white;
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    max-width: 70%;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-    .demo-message.sent {
-        background: #D9FDD3;
-        margin-right: auto;
-        margin-left: 30%;
-    }
-
-.demo-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: #075E54;
-    color: white;
-    padding: 16px;
-    text-align: center;
-    z-index: 999;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .message-inputarea {
-        margin: 8px 12px;
-    }
-
-    #cancel-edit-container {
-        padding: 8px 12px;
-    }
-}
-
-
-/*
-=================================================
-            Reply Banner Styles
-=================================================
-*/
 #reply-to-container {
-    background: #f0f2f5; /* یک رنگ متفاوت برای تمایز از حالت ویرایش */
+    background: #f0f2f5;
     padding: 10px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     animation: slideDown 0.2s ease-out;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    direction: rtl; /* برای چیدمان صحیح راست-به-چپ */
+    direction: rtl;
 }
 
 .reply-indicator {
     display: flex;
-    align-items: stretch; /* برای هم‌قد شدن خط عمودی با محتوا */
+    align-items: stretch;
     gap: 12px;
-    color: #333; /* رنگ متن تیره‌تر برای خوانایی روی پس‌زمینه روشن */
-    flex-grow: 1; /* برای گرفتن فضای باقی‌مانده */
-    overflow: hidden; /* جلوگیری از بیرون زدن محتوا */
+    color: #333;
+    flex-grow: 1;
+    overflow: hidden;
 }
 
 .reply-bar {
     width: 4px;
-    background: #007bff; /* رنگ آبی برای تمایز بصری */
+    background: #007bff;
     border-radius: 2px;
 }
 
 .reply-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+#reply-thumbnail-container {
+    flex-shrink: 0;
+}
+
+.reply-preview-thumbnail {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 6px;
+    background-color: #e9ecef;
+}
+
+.reply-text-content {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -514,10 +750,21 @@ body {
     font-size: 14px;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* نمایش سه‌نقطه برای متن‌های طولانی */
+    text-overflow: ellipsis;
     color: #555;
-    max-width: 95%; /* برای اطمینان از اینکه متن از کادر بیرون نمی‌زند */
+    max-width: 95%;
 }
+
+#reply-icon-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+}
+
+    #reply-icon-container .iconsax {
+        font-size: 20px;
+    }
 
 #cancel-reply {
     background: transparent;
@@ -530,7 +777,7 @@ body {
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s ease;
-    margin-left: 10px; /* ایجاد فاصله از محتوای پاسخ */
+    margin-left: 10px;
 }
 
     #cancel-reply svg {
@@ -543,74 +790,231 @@ body {
     }
 
 
-    /*--------------اصلاح بدنه ورودی پیام--------------*/
-.messages-panel {
-    display: flex;
-    flex-direction: column; /* چیدمان فرزندان به صورت عمودی */
+/* --- Utility & Miscellaneous Styles --- */
+.chatInDateLabelClass {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 5px;
+    z-index: 9;
+    background-color: #00bf95;
+    padding: 5px 0;
+    width: 30%;
+    margin: 0 auto;
+    border-radius: 15px;
 }
 
-.message-form-container {
-    /* این کلاس باعث می‌شود فرم همیشه در پایین‌ترین بخش باشد */
-    order: 3;
+.svgInvertColor {
+    filter: invert(100%) sepia(90%) saturate(500%) hue-rotate(0deg);
+}
+
+.groupIcons {
+    padding: 10px;
+    background-color: #01aa85;
+    border-radius: 50%;
+}
+
+
+/* --- Animations --- */
+@keyframes blink-animation {
+    0%, 50% {
+        opacity: 1;
+    }
+
+    51%, 100% {
+        opacity: 0.3;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fa-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    .message-inputarea {
+        margin: 8px 12px;
+    }
+
+    #cancel-edit-container, #reply-to-container {
+        padding: 8px 12px;
+    }
+
+    /* Voice UI Mobile Optimizations */
+    .voice-preview-content {
+        gap: 8px;
+    }
+
+    .voice-action-btn {
+        padding: 6px;
+    }
+
+        .voice-action-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+    .voice-duration {
+        min-width: 30px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Voice UI for very small screens */
+    .voice-preview-content {
+        gap: 6px;
+    }
+
+    .voice-action-btn {
+        padding: 4px;
+    }
+
+        .voice-action-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+    .voice-duration {
+        min-width: 25px;
+        font-size: 10px;
+    }
+}
+
+/* ========================================================= */
+/*      END OF MERGED CSS                                  */
+/* ========================================================= */
+
+/* ========================================================= */
+/*      Override for .message-inputarea Conflicting Styles   */
+/* ========================================================= */
+/*
+   این کد استایل‌های ناخواسته از فایل دیگر را که باعث خروج
+   .message-inputarea از والد خود می‌شوند، خنثی می‌کند.
+*/
+.message-inputarea {
+    /* بازنشانی کامل استایل‌های موقعیت‌یابی */
+    position: relative !important; /* از fixed به relative تغییر می‌کند تا در جریان عادی صفحه باقی بماند */
+    bottom: unset !important; /* حذف موقعیت از پایین */
+    left: unset !important; /* حذف موقعیت از چپ */
+    transform: none !important; /* حذف هرگونه جابجایی */
+    /* بازنشانی استایل‌های ابعاد و حاشیه */
+    width: 100% !important; /* عرض به حالت خودکار برمی‌گردد تا والد آن را کنترل کند */
+    /* حاشیه (margin) از قبل به درستی در کد شما تنظیم شده است (margin: 12px 16px) */
+    /* حذف افکت بلور پس‌زمینه که دیگر کاربردی ندارد */
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    margin:unset;
+}
+
+/* ========================================================= */
+/*      Footer & Message Input Area Structure (FINAL FIX)    */
+/* ========================================================= */
+
+.messages-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    /* 
+      این کلید حل مشکل است!
+      محتوا را به انتهای (پایین) کانتینر می‌چسباند.
+    */
+    justify-content: flex-end;
+    background-color: #f0f2f5;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
+    /* یک ارتفاع حداکثری تعیین می‌کنیم تا از پوشاندن کل صفحه جلوگیری شود */
+    max-height: 80vh;
+    /* اسکرول را به خود پنل اصلی منتقل می‌کنیم */
+    overflow-y: auto;
+    height:auto;
 }
 
 .action-banners-container {
     order: 1;
-    position: fixed;
-    margin-top: -70px;
-    right: 0;
+    width: 100%;
+    flex-shrink: 0; /* از فشرده شدن این بخش جلوگیری می‌کند */
 }
 
 #filePreviewContainer {
     order: 2;
-    /* برای اینکه این کانتینر همیشه بالای فرم باشد، موقعیت آن را کمی تغییر می‌دهیم */
-    position: relative;
-    bottom: 86px;
-    width: 100%;
+    flex-shrink: 0; /* از فشرده شدن این بخش جلوگیری می‌کند */
 }
 
-/*
-=================================================
-    استایل‌های پیشرفته برای پیش‌نمایش پاسخ
-=================================================
-*/
-
-/* چیدمان افقی برای تصویر و متن */
-.reply-content {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px; /* فاصله بین تصویر و متن */
-}
-
-/* استایل کانتینر و خود تصویر پیش‌نمایش */
-#reply-thumbnail-container {
-    flex-shrink: 0; /* جلوگیری از کوچک شدن تصویر */
-}
-
-.reply-preview-thumbnail {
-    width: 40px;
-    height: 40px;
-    object-fit: cover; /* تصویر را بدون تغییر نسبت ابعاد، کادر را پر می‌کند */
-    border-radius: 6px;
-    background-color: #e9ecef; /* رنگ پس‌زمینه تا زمان بارگذاری تصویر */
-}
-
-/* کانتینر برای بخش متنی */
-.reply-text-content {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    overflow: hidden; /* برای کارکرد صحیح text-overflow */
-}
-
-#reply-icon-container {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #555; /* رنگ آیکون */
-}
-
-    #reply-icon-container .iconsax {
-        font-size: 20px; /* اندازه آیکون */
+    /* اطمینان حاصل کنید این کلاس برای نمایش استفاده می‌شود */
+    #filePreviewContainer.visible {
+        display: flex;
     }
+
+.message-form-container {
+    order: 3;
+    background-color: #f0f2f5;
+    padding: 8px 10px;
+    flex-shrink: 0; /* از فشرده شدن این بخش جلوگیری می‌کند */
+    /* overflow-y: auto از اینجا حذف شد چون به والد منتقل شد */
+}
+
+/* 
+   این بخش override که قبلاً اضافه کردید، همچنان لازم و صحیح است
+   و باید در فایل شما باقی بماند.
+*/
+.message-inputarea {
+    position: relative !important;
+    bottom: unset !important;
+    left: unset !important;
+    transform: none !important;
+    width: 100% !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    /* استایل‌های اصلی خود عنصر را حفظ می‌کنیم */
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 30px;
+    margin: 12px 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    max-height: 120px !important;
+    overflow: hidden;
+    border-radius: 5px;
+    padding : 2px 2px;
+}
+
+/* بقیه استایل‌ها برای textarea و ... بدون تغییر باقی می‌مانند */
+#message-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    padding: 10px 12px;
+    background: transparent;
+    resize: none;
+    min-height: 40px;
+    max-height: 150px; /* پس از این ارتفاع، اسکرول داخلی فعال می‌شود */
+    overflow-y: auto;
+    box-shadow : none;
+}

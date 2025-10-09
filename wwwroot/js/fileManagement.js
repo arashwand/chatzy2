@@ -171,7 +171,9 @@
                     </div>
                 </div>
                 <div class="status-icon">
-                    <span class="action-btn remove-file-btn" data-server-id="" title="Remove File">🗑️</span>
+                    <span class="action-btn remove-file-btn" data-server-id="" title="Remove File">
+                    <img src="/chatzy/assets/iconsax/trash.svg" alt="t">
+                    </span>
                     <span class="action-btn retry-upload-btn" title="Retry">🔄</span>
                     <span class="action-btn cancel-upload-btn" title="Cancel">❌</span>
                 </div>
