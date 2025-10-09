@@ -167,7 +167,7 @@
 
     function handleRemoveFile(button) {
         const item = $(button).closest('.file-preview-item');
-        const serverIdToRemove = $(button).data('server-id').toString();
+        const serverIdToRemove = $(button).data('server-id'); // Get ID without toString() to avoid error if undefined
         const img = item.find('img.file-thumbnail');
 
         if (img.length) {
@@ -180,20 +180,22 @@
             checkPreviewContainerVisibility(); // Check visibility after removing
         }, 400);
 
+        // Only proceed if serverIdToRemove has a value (it won't for failed/cancelled uploads)
         if (serverIdToRemove) {
+            const serverIdStr = serverIdToRemove.toString();
             const actionType = $('#message-action-type').val();
             if (actionType === 'edit') {
-                removeFileIdFromHiddenInput(serverIdToRemove, '#previousFileIds');
-                addFileIdToHiddenInput(serverIdToRemove, '#deletUploadedFileIds');
+                removeFileIdFromHiddenInput(serverIdStr, '#previousFileIds');
+                addFileIdToHiddenInput(serverIdStr, '#deletUploadedFileIds');
             } else {
-                 $.ajax({
+                $.ajax({
                     url: '/Home/DeleteFile',
                     type: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({ fileId: serverIdToRemove }),
+                    data: JSON.stringify({ fileId: serverIdStr }),
                     success: function (response) {
                         if (response.success) {
-                            removeFileIdFromHiddenInput(serverIdToRemove, '#uploadedFileIds');
+                            removeFileIdFromHiddenInput(serverIdStr, '#uploadedFileIds');
                         } else {
                             alert('Error deleting file: ' + response.message);
                         }

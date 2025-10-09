@@ -2476,30 +2476,51 @@ $(document).ready(function () {
 
     }
 
-    // تابع کمکی برای ساخت پیش‌نمایش فایل‌های از قبل آپلود شده
+    // تابع کمکی برای ساخت پیش‌نمایش فایل‌های از قبل آپلود شده (با ظاهری یکسان با آپلود جدید)
     function addExistingFileToPreview(fileData) {
-        console.log('**********************************' + fileData.fileName);
         const elementId = 'file-' + fileData.messageFileId;
         let previewElement;
-        const fileExtension = fileData.fileName.split('.').pop().toLowerCase();
-        const baseUrl = $('#baseUrl').val();
-        if (ALLOWED_IMAGES.includes(fileExtension)) {
+        const displayFileName = fileData.originalFileName || fileData.fileName;
+        const fileExtension = (fileData.fileName || '').split('.').pop().toLowerCase();
+        const formattedSize = formatFileSize(fileData.FileSizeConverter || 0);
+        const baseUrl = $('#baseUrl').val() || '';
+
+        // بررسی اینکه آیا فایل از نوع تصویر است یا خیر
+        if (window.chatApp.ALLOWED_IMAGES.includes('.' + fileExtension)) {
             const imageURL = baseUrl + fileData.fileThumbPath;
-            previewElement = `<img src="${imageURL}" class="file-thumbnail" alt="پیش‌نمایش">`;
+            previewElement = `<img src="${imageURL}" class="file-thumbnail" alt="Preview">`;
         } else {
-            // ... (منطق آیکون برای سایر فایل‌ها)
-            previewElement = `<div class="file-icon">📄</div>`;
+            let icon = `<i class="iconsax" data-icon="document-text-1" aria-hidden="true"></i>`;
+            previewElement = `<div class="file-icon">${icon}</div>`;
         }
 
         const previewHtml = `
-        <div class="file-preview-item" id="${elementId}">
-            <div class="file-info">${previewElement}<div><div class="file-name">${fileData.originalFileName}</div></div></div>
-            <div class="status-icon"><span class="action-btn remove-file-btn" data-server-id="${fileData.messageFileId}" title="حذف فایل">🗑️</span></div>
-        </div>`;
+            <div class="file-preview-item" id="${elementId}">
+                <div class="file-info">
+                    ${previewElement}
+                    <div>
+                        <div class="file-name" title="${displayFileName}">${displayFileName}</div>
+                        <div class="file-details">
+                            <span class="file-size">${formattedSize}</span>
+                            <div class="status-text">
+                                <span class="status-message"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="status-icon">
+                    <span class="action-btn remove-file-btn" data-server-id="${fileData.messageFileId}" title="Remove File">🗑️</span>
+                </div>
+            </div>`;
+
         $('#filePreviewContainer').append(previewHtml);
+        // اطمینان از نمایش دکمه حذف
         $('#' + elementId).find('.remove-file-btn').show();
-        //addFileIdToHiddenInput(fileData.messageFileId.toString());
-        //OriginalFileName
+
+        // رندر مجدد آیکون‌ها در صورت استفاده از کتابخانه‌ای مانند iconsax
+        if (typeof init_iconsax === 'function') {
+            init_iconsax();
+        }
     }
 
     // رویداد کلیک روی اعلان پیام جدید و رفتن به جدید ترین پیام
