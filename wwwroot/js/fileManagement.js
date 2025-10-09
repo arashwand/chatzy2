@@ -16,6 +16,53 @@
         }
     }
 
+    // تابع کمکی برای ساخت پیش‌نمایش فایل‌های از قبل آپلود شده (با ظاهری یکسان با آپلود جدید)
+    function addExistingFileToPreview(fileData) {
+        const elementId = 'file-' + fileData.messageFileId;
+        let previewElement;
+        const displayFileName = fileData.originalFileName || fileData.fileName;
+        const fileExtension = (fileData.fileName || '').split('.').pop().toLowerCase();
+        const formattedSize = formatFileSize(fileData.FileSizeConverter || 0);
+        const baseUrl = $('#baseUrl').val() || '';
+
+        // بررسی اینکه آیا فایل از نوع تصویر است یا خیر
+        if (window.chatApp.ALLOWED_IMAGES.includes('.' + fileExtension)) {
+            const imageURL = baseUrl + fileData.fileThumbPath;
+            previewElement = `<img src="${imageURL}" class="file-thumbnail" alt="Preview">`;
+        } else {
+            let icon = `<i class="iconsax" data-icon="document-text-1" aria-hidden="true"></i>`;
+            previewElement = `<div class="file-icon">${icon}</div>`;
+        }
+
+        const previewHtml = `
+            <div class="file-preview-item" id="${elementId}">
+                <div class="file-info">
+                    ${previewElement}
+                    <div>
+                        <div class="file-name" title="${displayFileName}">${displayFileName}</div>
+                        <div class="file-details">
+                            <span class="file-size">${formattedSize}</span>
+                            <div class="status-text">
+                                <span class="status-message"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="status-icon">
+                    <span class="action-btn remove-file-btn" data-server-id="${fileData.messageFileId}" title="Remove File">🗑️</span>
+                </div>
+            </div>`;
+
+        $('#filePreviewContainer').append(previewHtml);
+        // اطمینان از نمایش دکمه حذف
+        $('#' + elementId).find('.remove-file-btn').show();
+
+        // رندر مجدد آیکون‌ها در صورت استفاده از کتابخانه‌ای مانند iconsax
+        if (typeof init_iconsax === 'function') {
+            init_iconsax();
+        }
+    }
+
     // Event listener for the file input.
     $(document).on('change', '#fileInput', function (event) {
         const files = event.target.files;
@@ -230,6 +277,99 @@
         let currentIds = hiddenInput.val() ? hiddenInput.val().split(',') : [];
         const newIds = currentIds.filter(id => id !== serverFileId);
         hiddenInput.val(newIds.join(','));
+    }
+
+    // actionEditMessage
+    $(document).off('click', '.actionEditMessage').on('click', '.actionEditMessage', function (e) {
+        e.preventDefault();
+
+        // ۱. پاک‌سازی کامل فرم از هر حالت قبلی (مهم)
+        resetInputState();
+
+        // ۲. استخراج اطلاعات
+        var messageBlock = $(this).closest('.message');
+        var messageId = messageBlock.data('message-id');
+
+        var details;
+        try {
+            var details = JSON.parse(messageBlock.attr('data-message-details'));
+        } catch (err) {
+            console.error("خطا در خواندن اطلاعات پیام برای ویرایش.", err);
+            return;
+        }
+
+
+
+        // ۴. تنظیم حالت ویرایش
+        $('#message-action-type').val('edit');
+        $('#message-context-id').val(messageId);
+        $('#cancel-edit-container').removeClass('force-hide'); // نمایش دکمه "انصراف"
+
+        // ۵. پر کردن فرم با داده‌های پیام
+        // پر کردن متن پیام
+
+        const textarea = $('#message-input');
+        const text = (details.messageText || '').replace(/<br\s*\/?>/g, '\n');
+        textarea.val(text)
+
+        // محاسبه تعداد خطوط
+        const lines = text.split('\n').length;
+
+        // تنظیم rows تا حداکثر 5
+        textarea.attr('rows', Math.min(lines, 5));
+        textarea.focus();
+
+        // اگر پیام در پاسخ بوده، نمایش اطلاعات پاسخ
+        if (details.replyToMessageId && details.replyMessage) { // اطمینان از وجود replyToMessageId و replyMessage
+            $('#reply-to-user').text('پاسخ به: ' + (details.replyMessage.senderUserName || ''));
+            $('#reply-to-text').text(details.replyMessage.messageText || '');
+            $('#reply-to-container').show();
+        }
+
+        // اگر پیام فایل ضمیمه داشته، پیش‌نمایش آنها را بساز       
+        $('#filePreviewContainer').empty(); // ابتدا کانتینر پیش‌نمایش را خالی کنید
+        if (details.messageFiles && details.messageFiles.length > 0) {
+
+            previousFileIds = details.messageFiles.map(f => f.messageFileId);
+
+            details.messageFiles.forEach(file => {
+                addExistingFileToPreview(file);
+                // همچنین، شناسه‌های فایل‌های موجود را به hidden input اضافه کنید تا هنگام ویرایش و ارسال مجدد حفظ شوند
+                addFileIdToHiddenInput(file.messageFileId.toString(), '#previousFileIds');
+            });
+        }
+
+
+        // اسکرول به پایین صفحه برای دیدن فرم ورودی
+        //document.querySelector('#message-input').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    // رویداد کلیک برای دکمه لغو پاسخ
+    $(document).off('click', '#cancel-reply').on('click', '#cancel-reply', function () {
+        resetInputState();
+    });
+
+    // تابع برای ریست کردن حالت ورودی
+    function resetInputState() {
+        console.log('resetInputState');
+
+        // مخفی کردن کانتینر پاسخ و کانتینر انصراف از ویرایش
+        $('#reply-to-container').hide();
+        $('#cancel-edit-container').addClass('force-hide');
+        // خالی کردن فیلدهای مخفی وضعیت
+        $('#message-context-id').val('');
+        $('#message-action-type').val('');
+
+        // خالی کردن ورودی متن
+        $('#message-input').val('');
+        $('#message-input').attr('rows', 1);
+
+        // پاک کردن کامل پیش‌نمایش فایل‌ها و شناسه‌های آنها
+        $('#filePreviewContainer').empty();
+        $('#uploadedFileIds').val('');
+        $('#previousFileIds').val('');
+        $('#deletUploadedFileIds').val('');
+
     }
 
     // =========================================================================
