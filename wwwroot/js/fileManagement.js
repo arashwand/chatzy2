@@ -20,44 +20,48 @@
     function addExistingFileToPreview(fileData) {
         const elementId = 'file-' + fileData.messageFileId;
         let previewElement;
-        const displayFileName = fileData.originalFileName || fileData.fileName;
-        const fileExtension = (fileData.fileName || '').split('.').pop().toLowerCase();
-        const formattedSize = formatFileSize(fileData.FileSizeConverter || 0);
-        const baseUrl = $('#baseUrl').val() || '';
+        const fileExtension = (fileData.originalFileName || fileData.fileName).split('.').pop().toLowerCase();
 
-        // بررسی اینکه آیا فایل از نوع تصویر است یا خیر
-        if (window.chatApp.ALLOWED_IMAGES.includes('.' + fileExtension)) {
-            const imageURL = baseUrl + fileData.fileThumbPath;
-            previewElement = `<img src="${imageURL}" class="file-thumbnail" alt="Preview">`;
+        // بررسی اینکه فایل تصویر است یا خیر
+        if (window.chatApp.ALLOWED_IMAGES.includes(fileExtension)) {
+            const baseUrl = $('#baseUrl').val() || '';
+            const imageURL = baseUrl + (fileData.fileThumbPath || fileData.filePath);
+            previewElement = `<img src="${imageURL}" class="file-thumbnail" alt="پیش‌نمایش">`;
         } else {
+            // آیکون برای سایر فایل‌ها
             let icon = `<i class="iconsax" data-icon="document-text-1" aria-hidden="true"></i>`;
             previewElement = `<div class="file-icon">${icon}</div>`;
         }
 
+        // ساخت HTML نهایی برای پیش‌نمایش
+        // **نکته کلیدی**: ما یک data-attribute به نام data-is-existing="true" اضافه می‌کنیم
+        // تا بعداً در هنگام حذف، بتوانیم بین فایل قدیمی و جدید تمایز قائل شویم.
         const previewHtml = `
-            <div class="file-preview-item" id="${elementId}">
-                <div class="file-info">
-                    ${previewElement}
-                    <div>
-                        <div class="file-name" title="${displayFileName}">${displayFileName}</div>
-                        <div class="file-details">
-                            <span class="file-size">${formattedSize}</span>
-                            <div class="status-text">
-                                <span class="status-message"></span>
-                            </div>
-                        </div>
+        <div class="file-preview-item" id="${elementId}">
+            <div class="file-info">
+                ${previewElement}
+                <div>
+                    <div class="file-name" title="${fileData.originalFileName || fileData.fileName}">${fileData.originalFileName || fileData.fileName}</div>
+                    <div class="file-details">
+                        <span class="file-size">${formatFileSize(fileData.fileSize || 0)}</span>
                     </div>
                 </div>
-                <div class="status-icon">
-                    <span class="action-btn remove-file-btn" data-server-id="${fileData.messageFileId}" title="Remove File">🗑️</span>
-                </div>
-            </div>`;
+            </div>
+            <div class="status-icon">
+                <span class="action-btn remove-file-btn" 
+                      data-server-id="${fileData.messageFileId}" 
+                      data-is-existing="true" 
+                      title="حذف فایل" 
+                      style="display: inline-block;">
+                      <img src="/chatzy/assets/iconsax/trash.svg" alt="t" />
+
+                </span>
+            </div>
+        </div>`;
 
         $('#filePreviewContainer').append(previewHtml);
-        // اطمینان از نمایش دکمه حذف
-        $('#' + elementId).find('.remove-file-btn').show();
+        checkPreviewContainerVisibility(); // بررسی نمایش کانتینر
 
-        // رندر مجدد آیکون‌ها در صورت استفاده از کتابخانه‌ای مانند iconsax
         if (typeof init_iconsax === 'function') {
             init_iconsax();
         }
@@ -213,42 +217,50 @@
     });
 
     function handleRemoveFile(button) {
-        const item = $(button).closest('.file-preview-item');
-        const serverIdToRemove = $(button).data('server-id'); // Get ID without toString() to avoid error if undefined
-        const img = item.find('img.file-thumbnail');
+        const $button = $(button);
+        const item = $button.closest('.file-preview-item');
+        const serverIdToRemove = $button.data('server-id').toString();
+        const isExistingFile = $button.data('is-existing') === true; // تشخیص فایل قدیمی
 
-        if (img.length) {
+        // پاک کردن پیش‌نمایش از DOM
+        const img = item.find('img.file-thumbnail');
+        if (img.length && img.attr('src').startsWith('blob:')) {
             URL.revokeObjectURL(img.attr('src'));
         }
 
         item.addClass('removing');
         setTimeout(() => {
             item.remove();
-            checkPreviewContainerVisibility(); // Check visibility after removing
+            checkPreviewContainerVisibility();
         }, 400);
 
-        // Only proceed if serverIdToRemove has a value (it won't for failed/cancelled uploads)
+        // اگر فایلی برای حذف وجود داشت
         if (serverIdToRemove) {
-            const serverIdStr = serverIdToRemove.toString();
-            const actionType = $('#message-action-type').val();
-            if (actionType === 'edit') {
-                removeFileIdFromHiddenInput(serverIdStr, '#previousFileIds');
-                addFileIdToHiddenInput(serverIdStr, '#deletUploadedFileIds');
-            } else {
+            // اگر این یک فایل قدیمی از حالت ویرایش بود
+            if (isExistingFile) {
+                // شناسه آن را به لیست حذفی‌ها اضافه کن
+                addFileIdToHiddenInput(serverIdToRemove, '#deletUploadedFileIds');
+            }
+            // اگر یک فایل جدید بود که در همین session آپلود شده
+            else {
+                // شناسه آن را از لیست آپلود شده‌ها حذف کن
+                removeFileIdFromHiddenInput(serverIdToRemove, '#uploadedFileIds');
+
+                // و درخواست حذف آن را به سرور بفرست
                 $.ajax({
                     url: '/Home/DeleteFile',
                     type: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({ fileId: serverIdStr }),
+                    data: JSON.stringify({ fileId: serverIdToRemove }),
                     success: function (response) {
                         if (response.success) {
-                            removeFileIdFromHiddenInput(serverIdStr, '#uploadedFileIds');
+                            console.log('File successfully deleted from server.');
                         } else {
-                            alert('Error deleting file: ' + response.message);
+                            alert('Error deleting file from server: ' + response.message);
                         }
                     },
                     error: function () {
-                        alert('Connection error while deleting file.');
+                        alert('Connection error while deleting file from server.');
                     }
                 });
             }
@@ -283,65 +295,63 @@
     $(document).off('click', '.actionEditMessage').on('click', '.actionEditMessage', function (e) {
         e.preventDefault();
 
-        // ۱. پاک‌سازی کامل فرم از هر حالت قبلی (مهم)
-        resetInputState();
+        const messageBlock = $(this).closest('.message');
+        const messageId = messageBlock.data('message-id');
+        const messageDetailsStr = messageBlock.attr('data-message-details');
 
-        // ۲. استخراج اطلاعات
-        var messageBlock = $(this).closest('.message');
-        var messageId = messageBlock.data('message-id');
-
-        var details;
-        try {
-            var details = JSON.parse(messageBlock.attr('data-message-details'));
-        } catch (err) {
-            console.error("خطا در خواندن اطلاعات پیام برای ویرایش.", err);
+        if (!messageDetailsStr) {
+            alert('اطلاعات این پیام برای ویرایش یافت نشد.');
             return;
         }
 
+        try {
+            const messageDetails = JSON.parse(messageDetailsStr);
+            const hasText = messageDetails.messageText && messageDetails.messageText.trim() !== '';
+            const hasFiles = messageDetails.messageFiles && messageDetails.messageFiles.length > 0;
 
+            // جلوگیری از ویرایش پیام صوتی ضبط شده
+            if (!hasText && hasFiles) {
+                if (messageDetails.messageFiles.some(f => (f.fileName || '').toLowerCase().endsWith('.webm'))) {
+                    alert('امکان ویرایش پیام‌های صوتی ضبط شده وجود ندارد.');
+                    return;
+                }
+            }
 
-        // ۴. تنظیم حالت ویرایش
-        $('#message-action-type').val('edit');
-        $('#message-context-id').val(messageId);
-        $('#cancel-edit-container').removeClass('force-hide'); // نمایش دکمه "انصراف"
+            resetInputState(); // پاک‌سازی فرم
 
-        // ۵. پر کردن فرم با داده‌های پیام
-        // پر کردن متن پیام
+            // تنظیم حالت ویرایش
+            $('#message-action-type').val('edit');
+            $('#message-context-id').val(messageId);
+            $('#cancel-edit-container').removeClass('force-hide');
 
-        const textarea = $('#message-input');
-        const text = (details.messageText || '').replace(/<br\s*\/?>/g, '\n');
-        textarea.val(text)
+            // پر کردن متن پیام
+            const textarea = $('#message-input');
+            const text = (messageDetails.messageText || '').replace(/<br\s*\/?>/gi, '\n');
+            textarea.val(text).trigger('input');
+            textarea.focus();
 
-        // محاسبه تعداد خطوط
-        const lines = text.split('\n').length;
+            // **استفاده از توابع جدید برای نمایش فایل‌ها**
+            if (hasFiles) {
+                const previousFileIds = messageDetails.messageFiles.map(f => f.messageFileId);
 
-        // تنظیم rows تا حداکثر 5
-        textarea.attr('rows', Math.min(lines, 5));
-        textarea.focus();
+                // برای هر فایل، از تابع جدید در fileManagement.js استفاده کن
+                messageDetails.messageFiles.forEach(file => {
+                    // **این تابع باید در scope گلوبال در دسترس باشد**
+                    if (typeof addExistingFileToPreview === 'function') {
+                        addExistingFileToPreview(file);
+                    } else {
+                        console.error('Function addExistingFileToPreview not found!');
+                    }
+                });
 
-        // اگر پیام در پاسخ بوده، نمایش اطلاعات پاسخ
-        if (details.replyToMessageId && details.replyMessage) { // اطمینان از وجود replyToMessageId و replyMessage
-            $('#reply-to-user').text('پاسخ به: ' + (details.replyMessage.senderUserName || ''));
-            $('#reply-to-text').text(details.replyMessage.messageText || '');
-            $('#reply-to-container').show();
+                // ذخیره شناسه‌ها در فیلد مخفی
+                $('#previousFileIds').val(previousFileIds.join(','));
+            }
+
+        } catch (err) {
+            console.error("خطا در خواندن اطلاعات پیام برای ویرایش.", err);
+            alert('خطا در پردازش اطلاعات پیام.');
         }
-
-        // اگر پیام فایل ضمیمه داشته، پیش‌نمایش آنها را بساز       
-        $('#filePreviewContainer').empty(); // ابتدا کانتینر پیش‌نمایش را خالی کنید
-        if (details.messageFiles && details.messageFiles.length > 0) {
-
-            previousFileIds = details.messageFiles.map(f => f.messageFileId);
-
-            details.messageFiles.forEach(file => {
-                addExistingFileToPreview(file);
-                // همچنین، شناسه‌های فایل‌های موجود را به hidden input اضافه کنید تا هنگام ویرایش و ارسال مجدد حفظ شوند
-                addFileIdToHiddenInput(file.messageFileId.toString(), '#previousFileIds');
-            });
-        }
-
-
-        // اسکرول به پایین صفحه برای دیدن فرم ورودی
-        //document.querySelector('#message-input').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 
     // رویداد کلیک برای دکمه لغو پاسخ
