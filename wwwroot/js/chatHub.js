@@ -2472,6 +2472,7 @@ $(document).ready(function () {
         $('#message-input').attr('rows', 1);
 
         // پاک کردن کامل پیش‌نمایش فایل‌ها و شناسه‌های آنها
+        $('#filePreviewContainer').removeClass('visible');
         $('#filePreviewContainer').empty();
         $('#uploadedFileIds').val('');
         $('#previousFileIds').val('');
