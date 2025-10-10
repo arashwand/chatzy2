@@ -4,7 +4,8 @@
 
 /* General Body Styles */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Vazir', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* --- General Chat Area Styling --- */
@@ -284,8 +285,8 @@ body {
     align-items: center;
     padding: 8px;
     border-radius: 18px;
-    max-width: 280px;
-    min-width: 250px;
+    max-width: 210px;
+    min-width: 200px;
     background-color: #f0f0f0;
     direction: ltr;
 }
@@ -360,7 +361,7 @@ body {
     color: #666;
     min-width: 40px;
     text-align: center;
-    font-family: monospace, sans-serif;
+    font-family: 'Vazir',monospace, sans-serif;
 }
 
 .voice-download-btn {
@@ -479,34 +480,54 @@ body {
     justify-content: center;
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 8px;
     transition: all 0.2s ease;
     cursor: pointer;
     text-decoration: none;
+    /*filter: invert(43%) sepia(99%) saturate(1967%) hue-rotate(90deg) brightness(96%) contrast(102%);*/
+    /*filter: invert(59%) sepia(77%) saturate(484%) hue-rotate(93deg) brightness(96%) contrast(91%);*/
 }
 
     .message-inputarea a:hover {
-        background: #f0f0f0;
+        background: #e7e7e7;
     }
 
 .message-inputarea svg {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
 }
 
-.message-send-btn {
-    background: #25D366 !important;
-    width: 44px;
+/*.message-send-btn {*/
+    /*background: #25D366 !important;*//*#e5f6f3*/
+    /*width: 44px;
     height: 44px;
-}
+}*/
 
     .message-send-btn:hover {
-        background: #20BA5A !important;
+        background: #e7e7e7 !important;
     }
 
     .message-send-btn svg {
         filter: brightness(0) invert(1);
     }
+
+
+ .message-inputarea svg path {
+    stroke: #5c5c5c !important; /* سبز واتساپ */
+}
+.chat-list-image svg path {
+    stroke: #e9ecef !important; /* سبز واتساپ */
+}
+
+.chat-list-image svg {
+    background-color: #01aa85;
+    padding: 12px;
+    border-radius: 50%;
+}
+
+.chat-list li:hover {
+    background-color: #f0f8ff;
+}
 
 .btn-record-voice {
     display: flex;

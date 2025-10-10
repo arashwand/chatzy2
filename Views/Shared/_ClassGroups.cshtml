@@ -10,7 +10,7 @@
 <li>
     <a class="chat-list-box" onclick="GetSavedMessages()" style="cursor: pointer;">
         <div class="chat-list-image">
-            <img src="~/chatzy/assets/iconsax/star.svg" alt="Save Messages" class="groupIcons" />
+            <i class="iconsax icon-btn" data-icon="save-2"> </i>
         </div>
         <div class="chat-details">
             <div class="d-flex align-items-center justify-content-between">
@@ -32,7 +32,7 @@
         <li id="@(ConstChat.ClassGroup + item.ClassId)">
             <a class="chat-list-box" onclick="GetSelectedChatMessages(@item.ClassId, '@ConstChat.ClassGroupType')" style="cursor: pointer;">
                 <div class="chat-list-image">
-                    <img src="/chatzy/assets/iconsax/group.svg" alt="Group" class="groupIcons" />
+                    <i class="iconsax icon-btn" data-icon="group-icon"> </i>
                 </div>
                 <div class="chat-details">
                     <div class="d-flex align-items-center justify-content-between">
@@ -64,7 +64,7 @@
         <li id="@(ConstChat.ChannelGroup + item.ChannelId)">
             <a class="chat-list-box" onclick="GetSelectedChatMessages(@item.ChannelId, '@ConstChat.ChannelGroupType')" style="cursor: pointer;">
                 <div class="chat-list-image">
-                    <img src="/chatzy/assets/iconsax/radio.svg" alt="Channels" class="groupIcons" />
+                    <i class="iconsax icon-btn" data-icon="channel-icon"> </i>
                 </div>
                 <div class="chat-details">
                     <div class="d-flex align-items-center justify-content-between">

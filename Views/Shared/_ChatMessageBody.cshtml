@@ -274,7 +274,8 @@
 
         <div id="reply-to-container" style="display: none;">
             <a href="#" id="cancel-reply">
-                <img src="~/chatzy/assets/iconsax/reply.svg alt="t" />
+                 <img src="~/chatzy/assets/iconsax/reply.svg" alt="reply" />
+               
             </a>
             <div class="reply-indicator">
                 <div class="reply-content">
@@ -305,14 +306,15 @@
     <form onsubmit="return false;" class="message-form-container">
         <div id="text-input-area" class="message-inputarea">
             <a href="#" onclick="$('#fileInput').click(); return false;">
-                <img src="~/chatzy/assets/iconsax/picture-add.svg" />
+                <i class="iconsax icon-btn" data-icon="picture-add"> </i>
             </a>
             <a class="btn-record-voice">
-                <img src="~/chatzy/assets/iconsax/mic-2.svg" alt="ضبط صدا" />
+                @* <img src="~/chatzy/assets/iconsax/mic-2.svg" alt="ضبط صدا" />*@
+                <i class="iconsax icon-btn" data-icon="mic-2"> </i>               
             </a>
-            <textarea type="text" class="message-input" id="message-input" placeholder="Type here..." rows="2"></textarea>
-            <a href="#" class="message-send-btn" id="send-message-button">
-                <img src="~/chatzy/assets/iconsax/send-2.svg" alt="Alternate Text" />
+            <textarea type="text" class="message-input" id="message-input" placeholder="Type here..." rows="1"></textarea>
+            <a href="#" class="" id="send-message-button">              
+                <i class="iconsax icon-btn" data-icon="send-btn1"> </i>
             </a>
         </div>
         <div id="voice-input-area" style="display: none;"></div>

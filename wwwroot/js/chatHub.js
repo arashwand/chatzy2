@@ -1627,18 +1627,16 @@ $(document).ready(function () {
             
             <span class="voice-duration">${data.durationFormatted || '0:00'}</span>
             
-            <button class="voice-action-btn delete-btn" type="button" title="حذف">
+            <a class="voice-action-btn delete-btn" title="حذف">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3 6H5H21" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-            </button>
+            </a>
             
-            <button class="voice-action-btn send-btn" type="button" title="ارسال">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M7.39999 6.32003L15.89 3.49003C19.7 2.22003 21.77 4.30003 20.51 8.11003L17.68 16.6C15.78 22.31 12.66 22.31 10.76 16.6L9.91999 14.08L7.39999 13.24C1.68999 11.34 1.68999 8.23003 7.39999 6.32003Z" stroke="#28a745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
+            <a class="voice-action-btn send-btn" title="ارسال">
+               <img src="/chatzy/assets/iconsax/send-btn1.svg" alt="send" />
+            </a>
         </div>
     </div>`;
                 break;
@@ -1968,7 +1966,7 @@ $(document).ready(function () {
 
 
     //  رویداد کلیک برای دکمه ارسال پیام
-    $(document).off('click', '#send-message-button').on('click', '#send-message-button', function () {
+    $(document).off('click', '#send-message-button, .send-btn').on('click', '#send-message-button, .send-btn', function () {
         const groupId = parseInt($('#current-group-id-hidden-input').val());
         const groupType = $('#current-group-type-hidden-input').val();
 
@@ -2583,10 +2581,11 @@ $(document).ready(function () {
         console.log('Line count:', lineCount, 'New rows:', newRows);
     }
 
-    // رویداد keydown برای message-input
+    // مدیریت فشردن دکمه کنترل  و اینتر
     $(document).off('keydown', '#message-input').on('keydown', '#message-input', function (event) {
         console.log('Keydown event fired. Key:', event.key, 'Ctrl:', event.ctrlKey, 'Value before:', $(this).val());
         if (event.key === 'Enter') {
+            // اگر کنترل با اینتر بود
             if (event.ctrlKey) {
                 console.log('Ctrl + Enter: Adding new line');
                 const $textarea = $(this);
@@ -2598,7 +2597,7 @@ $(document).ready(function () {
                 console.log('Value after:', $textarea.val());
                 adjustTextareaRows($textarea); // تنظیم rows بعد از افزودن خط جدید
                 return;
-            } else {
+            } else { // اگر فقط اینتر بود
                 console.log('Enter: Submitting');
                 event.preventDefault();
                 event.stopPropagation();
