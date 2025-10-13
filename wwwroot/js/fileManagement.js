@@ -387,7 +387,7 @@
     // =========================================================================
     //                          File Download Management
     // =========================================================================
-    $(document).on('click', '.download-icon', async function (e) {
+    $(document).on('click', '.btn-download-file', async function (e) {
         e.stopPropagation();
         const $icon = $(this);
         const $button = $icon.closest('.btn-download-file');
@@ -441,4 +441,7 @@
             $icon.show();
         }
     });
+
+
+
 });

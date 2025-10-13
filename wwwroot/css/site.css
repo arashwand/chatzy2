@@ -1039,3 +1039,67 @@ body {
     overflow-y: auto;
     box-shadow : none;
 }
+
+
+/* ========================================================= */
+/* تغییر استایل کانتینر Reply برای تطابق کامل با Edit   */
+/* ========================================================= */
+
+/* 1. کانتینر اصلی: تطابق با #cancel-edit-container */
+#reply-to-container {
+    /* رنگ پس‌زمینه سبز از #cancel-edit-container */
+    background: #25D366;
+}
+
+/* 2. نشانگر اصلی محتوا: تطابق با .edit-indicator */
+.reply-indicator {
+    /* رنگ متن سفید از .edit-indicator */
+    color: white;
+    /* هم‌ترازی عمودی در مرکز */
+    align-items: center;
+}
+
+/* 3. نوار رنگی کناری: تطابق با .edit-bar */
+.reply-bar {
+    /* رنگ سفید از .edit-bar */
+    background: white;
+    /* ارتفاع ثابت از .edit-bar */
+    height: 32px;
+}
+
+/* 4. دکمه انصراف: تطابق با #cancel-edit-button */
+#cancel-reply {
+    /* پس‌زمینه شفاف با کمی سفیدی از #cancel-edit-button */
+    background: rgba(255, 255, 255, 0.2);
+    /* رنگ متن سفید از #cancel-edit-button */
+    color: white;
+    /* پدینگ مستطیلی از #cancel-edit-button */
+    padding: 8px 16px;
+    /* گوشه‌های گردتر از #cancel-edit-button */
+    border-radius: 20px;
+    /* نمایش به صورت اینلاین بلاک از #cancel-edit-button */
+    display: inline-block;
+    /* حذف حاشیه اضافی و تنظیم مجدد ابعاد برای استفاده از پدینگ */
+    margin-left: 0;
+    width: auto;
+    height: auto;
+}
+
+    /* حالت هاور دکمه انصراف: تطابق با #cancel-edit-button:hover */
+    #cancel-reply:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.02);
+    }
+
+/* 5. تنظیم رنگ متن داخلی Reply برای خوانایی روی پس‌زمینه سبز */
+/* نام کاربری */
+#reply-to-user {
+    /* رنگ سفید برای نام کاربری (Bold) */
+    color: white;
+}
+
+/* متن پیام اصلی */
+#reply-to-text {
+    /* رنگ سفید کم‌رنگ‌تر برای متن (Subtle) */
+    color: rgba(255, 255, 255, 0.85);
+}
