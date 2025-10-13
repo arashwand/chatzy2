@@ -14,8 +14,9 @@ body {
     background-color: #f6f5f3;
     position: relative;
     background-position: top left;
-    background-size: 30%;
+    background-size: 44%;
 }
+
 
 /* --- Message Bubbles & Layout --- */
 /* Self Messages (Sent) */
@@ -1103,3 +1104,49 @@ body {
     /* رنگ سفید کم‌رنگ‌تر برای متن (Subtle) */
     color: rgba(255, 255, 255, 0.85);
 }
+
+/*******************modal****************************/
+
+.btn-outline-light {
+    stroke: #e9ecef !important;
+    background-color: #01aa85;
+    padding: 12px;
+    transition: transform 0.45s all,
+}
+
+    .btn-outline-light:hover {
+        stroke: #e9ecef !important;
+        background-color: #008165;
+    }
+
+.lightbox-image {
+    max-height: 80vh;
+    max-width: 90%;
+    opacity: 0;
+    transform: translateX(0);
+    transition: transform 0.45s ease, opacity 0.45s ease;
+    pointer-events: none;
+}
+
+.lightbox-image.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.lightbox-image.slide-in-left {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+.lightbox-image.slide-in-right {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.lightbox-image.slide-center {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+
+/***********************************************/

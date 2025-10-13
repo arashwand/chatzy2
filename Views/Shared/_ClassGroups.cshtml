@@ -16,7 +16,7 @@
             <div class="d-flex align-items-center justify-content-between">
                 <h5 class="name">پیامهای ذخیره شده</h5>
             </div>
-            <div class="content">
+            <div dir="rtl" class="content">
                 <p>پیام های ذخیره شده شما</p>
             </div>
         </div>
@@ -41,7 +41,7 @@
                     </div>
                     <div class="content">
                         <div class="d-flex align-items-center justify-content-between gap-2">
-                            <p class="text-truncate" id="chatText_@(ConstChat.ClassGroup + item.ClassId)">
+                            <p dir="rtl" class="text-truncate is-rtl" id="chatText_@(ConstChat.ClassGroup + item.ClassId)">
                                 <span>@item.LastMessage?.SenderName:</span> @item.LastMessage?.Text
                             </p>
                             <div class="badge badge-rounded badge-primary ml-1 @(item.UnreadCount == 0 ? "d-none" : "")" id="unreadCountBadge_@(ConstChat.ClassGroup + item.ClassId)">
@@ -68,7 +68,7 @@
                 </div>
                 <div class="chat-details">
                     <div class="d-flex align-items-center justify-content-between">
-                        <h5 class="name">@item.ChannelName</h5>
+                        <h5 dir="rtl" class="name">@item.ChannelName</h5>
                         <h6 id="chatTime_@(ConstChat.ChannelGroup + item.ChannelId)">
                             @if (item.LastMessage != null)
                             {

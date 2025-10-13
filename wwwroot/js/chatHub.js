@@ -250,7 +250,7 @@ window.chatApp = (function ($) {
 
         let filesHtml = '';
         if (message.messageFiles && message.messageFiles.length > 0) {
-            filesHtml += '<div class="form-row mt-1 overflow-hidden">';
+            filesHtml += '<div class="row mt-1 overflow-hidden">';
             message.messageFiles.forEach(file => { filesHtml += createDisplayFileBody(file, isSelf); });
             filesHtml += '</div>';
         }
@@ -359,7 +359,7 @@ window.chatApp = (function ($) {
                     <span style="min-width:75px;" class="btn-download-file" data-file-id="${file.messageFileId}" data-file-originalName="${file.originalFileName}">
                         
                         <small class="d-block text-muted">${cleanFileSizeText}</small>
-                        <img src="/chatzy/assets/iconsax/arrow-down-2.svg" class="download-icon" style="cursor:pointer; margin-top: 5px; width: 24px; height: 24px;" alt="download">
+                        <img src="/chatzy/assets/iconsax/download.svg" class="download-icon" style="cursor:pointer; margin-top: 5px; width: 24px; height: 24px;" alt="download">
                         <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
                     </span>
             </div>`;

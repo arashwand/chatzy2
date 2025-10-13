@@ -199,7 +199,7 @@
 
                                     @if (message.MessageFiles != null)
                                     {
-                                        <div class="form-row mt-1 overflow-hidden">
+                                        <div class="row mt-1 overflow-hidden image-group">
                                             @foreach (var file in message.MessageFiles)
                                             {
                                                 string fileTumbPath = System.IO.Path.Combine(_baseUrl, file.FileThumbPath);
@@ -207,9 +207,16 @@
                                                 <div class="col file-attachment-item" data-file-id="@file.MessageFileId" style="display: flex; flex-direction: column;">
                                                     @if (AllowedImages.Contains(file.FileExtension.Extension, StringComparer.OrdinalIgnoreCase))
                                                     {
-                                                        <a class="popup-media overflow-hidden" href="@fileTumbPath" target="_blank">
-                                                            <img class="img-fluid rounded" width="100" src="@fileTumbPath" data-oroginal-fileName="@file.OriginalFileName" alt="@file.FileName" style="max-height:150px">
-                                                        </a>
+                                                        // <a class="popup-media overflow-hidden" href="@fileTumbPath" target="_blank">
+                                                        //     <img class="img-fluid rounded chat-image" width="100" src="@fileTumbPath" data-oroginal-fileName="@file.OriginalFileName" alt="@file.FileName" style="max-height:150px">
+                                                        // </a>
+
+                                                        <img class="img-thumbnail chat-thumbnail"
+                                                             src="@fileTumbPath"
+                                                             data-original-filename="@file.OriginalFileName"
+                                                             alt="@file.FileName"
+                                                             style="max-height:150px; cursor:pointer;">
+
                                                     }
                                                     else if (file.FileExtension.Extension == ".webm")
                                                     {

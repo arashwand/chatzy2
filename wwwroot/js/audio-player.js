@@ -141,14 +141,13 @@ $(document).ready(function () {
         if ($btn.hasClass('loading')) return;
 
         $btn.addClass('loading');
-        $downloadIcon.hide(); // **خط ۹۵: پنهان کردن آیکون دانلود SVG**
-        $spinnerIcon.show(); // **خط ۹۶: نمایش اسپینر SVG**
+        $downloadIcon.hide(); // ** پنهان کردن آیکون دانلود SVG**
+        $spinnerIcon.show(); // ** نمایش اسپینر SVG**
 
 
         try {
             const fileData = await downloader.downloadFile(fileId);
 
-            // **خطوط ۱۰۳-۱۱۱: ساختار جدید HTML با استفاده از SVG_PLAY**
             const playerHtml = `
             <button class="voice-playback-btn">${SVG_PLAY}</button> 
             <div class="voice-timeline-container">

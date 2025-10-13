@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -36,10 +36,10 @@
     <link rel="stylesheet" id="rtl-link" type="text/css" href="~/chatzy/assets/css/vendors/bootstrap.css">
     <!-- template css -->
     <link rel="stylesheet" id="change-link" type="text/css" href="~/chatzy/assets/css/style.css">
-  @* <link rel="stylesheet" href="~/css/imported-chat-styles.css" asp-append-version="true" /> *@
-  <link rel="stylesheet" href="~/css/sliding-panel.css" asp-append-version="true" />
-  @* <link rel="stylesheet" href="~/css/voiceStyle.css" asp-append-version="true" /> *@
-  <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @* <link rel="stylesheet" href="~/css/imported-chat-styles.css" asp-append-version="true" /> *@
+    <link rel="stylesheet" href="~/css/sliding-panel.css" asp-append-version="true" />
+    @* <link rel="stylesheet" href="~/css/voiceStyle.css" asp-append-version="true" /> *@
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
 
@@ -74,7 +74,7 @@
                                     New Group
                                 </a>
                             </li>
-                          
+
                             <li>
                                 <a href="starred-message.html" class="dropdown-item">
                                     <i class="iconsax icon" data-icon="star"></i>
@@ -111,7 +111,7 @@
                         <h3>Chats</h3>
                     </a>
                 </li>
-               @*  <li>
+                @*  <li>
                     <a href="new-group-contact.html" class="pages">
                         <i class="iconsax sidebar-icon" data-icon="group"> </i>
                         <h3>New Group</h3>
@@ -205,7 +205,6 @@
         </div>
     </div>
     <!-- sidebar end -->
-
     @RenderBody()
 
     <!-- Sliding Chat Details Panel -->
@@ -455,7 +454,6 @@
         </div>
     </div>
     <!-- friend story modal end -->
-
     <!-- Chat Members Modal -->
     <div class="modal fade" id="chat-members-modal" tabindex="-1" aria-labelledby="chatMembersModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -470,6 +468,45 @@
             </div>
         </div>
     </div>
+
+    <!--light box modal-->
+    <!-- Modal برای نمایش لایت‌باکس -->
+    <div class="modal fade" id="imageLightboxModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content bg-dark text-white position-relative overflow-hidden">
+                <div class="modal-header border-0">
+                    <h6 class="modal-title" id="imageFileName"></h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body position-relative overflow-hidden" style="min-height:70vh;">
+                    <div id="imageLoader" class="spinner-border text-light position-absolute top-50 start-50 translate-middle" style="display:none;"></div>
+
+                    <!-- دو تصویر برای اسلاید -->
+                    <img id="imageA" class="lightbox-image position-absolute top-50 start-50 translate-middle" src="" alt="">
+                    <img id="imageB" class="lightbox-image position-absolute top-50 start-50 translate-middle" src="" alt="">
+                </div>
+
+                <div class="modal-footer justify-content-between border-0">
+                    <div>
+                        <button class="btn btn-outline-light" id="prevImage">
+                            <i class="iconsax icon-btn" data-icon="chevron-left"></i>
+                        </button>
+                        <button class="btn btn-outline-light" id="nextImage">
+
+                            <i class="iconsax icon-btn" data-icon="chevron-right"> </i>
+                        </button>
+                    </div>
+                    <button class="btn btn-success btn-download-file ">
+                       
+                        <i class="iconsax icon-btn" data-icon="download"> </i>
+                        <span class="spinner-border spinner-border-sm spinner-icon" style="display:none;"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- iconsax js -->
     <script src="~/chatzy/assets/js/iconsax.js"></script>
