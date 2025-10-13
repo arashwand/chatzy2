@@ -333,7 +333,7 @@ window.chatApp = (function ($) {
                  <div class="col file-attachment-item audio-attachment" data-file-id="${file.messageFileId}">
                      <div class="audio-player-container">
                           <button class="voice-download-btn" data-file-id="${file.messageFileId}">
-                             <i class="iconsax" data-icon="arrow-down-2"></i>
+                             <i class="iconsax" data-icon="download"></i>
                              <i class="fa fa-spinner fa-spin" style="display: none;"></i> <!-- اسپینر پنهان -->
                          </button>
                          <div class="file-meta text-light mx-1 text-dark">${fileSize}</div>
@@ -2158,8 +2158,8 @@ $(document).ready(function () {
 
             // تشخیص نوع فایل بر اساس پسوند
             const fileExtension = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
-            const isImage = ALLOWED_IMAGES.includes(fileExtension);
-            const fileType = isImage ? 'image' : 'non-image';
+            const isImage = window.chatApp.ALLOWED_IMAGES.includes(fileExtension);
+            const fileType = isImage ? 'image' : 'non-image'; // میخواهیم چک کنیم اگه تصویر بود بر اون اساس تصمیم به ساخت بدنه بگیریم
             console.log("File Extension:", fileExtension, "File Type:", fileType);
 
             // ایجاد شیء FileExtension
