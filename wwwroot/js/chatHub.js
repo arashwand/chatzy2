@@ -1791,8 +1791,12 @@ $(document).ready(function () {
             return;
         }
 
+        // برای جلوگیری از خطای "The format of value is invalid" در سمت سرور،
+        // قطعه صدا را با یک نوع MIME ساده‌شده (`audio/webm`) بسته‌بندی می‌کنیم.
+        const simplifiedBlob = new Blob([audioBlob], { type: 'audio/webm' });
+
         const formData = new FormData();
-        formData.append('file', audioBlob, `chunk.webm`);
+        formData.append('file', simplifiedBlob, `chunk.webm`);
         formData.append('recordingId', recordingId);
         formData.append('chunkIndex', chunkIndex);
         formData.append('isLastChunk', isLastChunk);
