@@ -1537,7 +1537,10 @@ $(document).ready(function () {
     let isProcessing = false;
     let mediaRecorder;
     let audioChunks = [];
-    let recordingTimerInterval = null;
+    let recordingTimerInterval = null; // For UI timer
+    let recordingChunkerInterval = null; // For sending chunks
+    let recordingId = null;
+    let chunkIndex = 0;
     let pendingVoiceFileId = null;
     let pendingVoiceUrl = null; // برای پخش پیش‌نمایش
     let pendingVoiceAudioElement = null; // برای کنترل پخش
@@ -1651,26 +1654,26 @@ $(document).ready(function () {
     function startRecording() {
         if (isRecording || isProcessing) return;
 
-        // 1. بررسی پشتیبانی مرورگر از فرمت‌های مختلف
+        // 1. بررسی پشتیبانی مرورگر
         if (MediaRecorder.isTypeSupported('audio/ogg')) {
             currentMimeType = 'audio/ogg';
         } else if (MediaRecorder.isTypeSupported('audio/webm')) {
             currentMimeType = 'audio/webm';
-        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-            currentMimeType = 'audio/mp4';
         } else {
             alert('متاسفانه مرورگر شما از ضبط صدا پشتیبانی نمی‌کند.');
-            console.error('No supported audio formats for MediaRecorder found.');
             return;
         }
 
         // 2. درخواست دسترسی به میکروفون
         navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
             isRecording = true;
-            //$('.btn-record-voice i').removeClass('fa-microphone').addClass('fa-stop');
             changeIcon($('.btn-record-voice'), 'stop');
-
             updateChatInputUI('recording');
+
+            // ریست کردن متغیرها برای ضبط جدید
+            audioChunks = [];
+            recordingId = crypto.randomUUID();
+            chunkIndex = 0;
 
             let seconds = 0;
             const timerSpan = $('.recording-timer');
@@ -1678,132 +1681,154 @@ $(document).ready(function () {
                 seconds++;
                 const min = Math.floor(seconds / 60);
                 const sec = seconds % 60;
-                if (timerSpan.length) {
-                    timerSpan.text(`${min}:${sec.toString().padStart(2, '0')}`);
-                }
+                timerSpan.text(`${min}:${sec.toString().padStart(2, '0')}`);
             }, 1000);
 
-            audioChunks = [];
-
-            // 3. ایجاد MediaRecorder با استفاده از فرمت پشتیبانی شده
             try {
                 mediaRecorder = new MediaRecorder(stream, { mimeType: currentMimeType });
-                mediaRecorder.start();
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+                // داده‌های صوتی را جمع‌آوری کن
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                // وقتی ضبط متوقف شد، آخرین قطعه را پردازش و ارسال کن
                 mediaRecorder.onstop = () => {
                     stream.getTracks().forEach(track => track.stop());
-                    uploadVoiceFile();
+                    processAndSendFinalChunk();
                 };
+
+                mediaRecorder.start(); // شروع ضبط
+
+                // هر 1 ثانیه، قطعات جمع‌آوری شده را ارسال کن
+                recordingChunkerInterval = setInterval(processAndSendIntermediateChunks, 1000);
+
             } catch (err) {
                 console.error("خطا در ایجاد MediaRecorder:", err);
                 alert("خطا در راه‌اندازی ضبط صدا.");
-                isRecording = false; // اطمینان از ریست شدن حالت ضبط
-                stream.getTracks().forEach(track => track.stop());
-                updateChatInputUI('default');
                 cleanupVoiceState();
             }
 
         }).catch(err => {
             console.error("خطا در دسترسی به میکروفون:", err);
             alert(`خطا در دسترسی به میکروفون: ${err.name} - ${err.message}`);
-            isRecording = false;
-            updateChatInputUI('default');
+            cleanupVoiceState();
         });
     }
 
-    // تابع stopRecording
     function stopRecording() {
         if (!isRecording) return;
         isRecording = false;
-        isProcessing = true;
+        isProcessing = true; // وارد حالت پردازش شو
+
         clearInterval(recordingTimerInterval);
-        //$('.btn-record-voice i').removeClass('fa-stop').addClass('fa-microphone');
+        clearInterval(recordingChunkerInterval); // تایمر ارسال قطعات را متوقف کن
+
         changeIcon($('.btn-record-voice'), 'microphone');
         updateChatInputUI('processing');
-        // بررسی وجود mediaRecorder قبل از فراخوانی stop
+
         if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
+            mediaRecorder.stop(); // این کار رویداد onstop را فعال می‌کند
         } else {
             console.warn('MediaRecorder در حالت ضبط نبود. در حال ریست وضعیت.');
             cleanupVoiceState();
         }
     }
 
-    //بارگذاری فایل صدای ضبط شده
-    function uploadVoiceFile() {
-        if (audioChunks.length === 0) {
-            console.warn('هیچ داده صوتی برای آپلود وجود ندارد.');
+    // قطعات میانی را پردازش و ارسال می‌کند
+    function processAndSendIntermediateChunks() {
+        if (audioChunks.length === 0) return;
+
+        // یک Blob از تمام قطعات موجود بساز
+        const chunkBlob = new Blob(audioChunks, { type: currentMimeType });
+        audioChunks = []; // آرایه را برای قطعات بعدی خالی کن
+
+        sendAudioChunk(chunkBlob, false); // ارسال به عنوان قطعه میانی
+    }
+
+    // آخرین قطعه را پردازش و ارسال می‌کند
+    function processAndSendFinalChunk() {
+        const finalBlob = new Blob(audioChunks, { type: currentMimeType });
+        audioChunks = [];
+
+        if (finalBlob.size > 0) {
+            sendAudioChunk(finalBlob, true); // ارسال به عنوان آخرین قطعه
+        } else {
+            console.warn("آخرین قطعه صدا خالی بود. چیزی برای ارسال وجود ندارد.");
             cleanupVoiceState();
+        }
+    }
+
+    // تابع اصلی برای ارسال هر قطعه به سرور
+    function sendAudioChunk(audioBlob, isLastChunk) {
+        if (!recordingId) {
+            console.error("شناسه ضبط وجود ندارد. ارسال قطعه لغو شد.");
+            if (isLastChunk) cleanupVoiceState();
             return;
         }
 
-        const voiceBlob = new Blob(audioChunks, { type: currentMimeType });
-        pendingVoiceUrl = URL.createObjectURL(voiceBlob); // Create blob URL immediately for local use
+        const fileExtension = currentMimeType.split('/')[1];
+        const formData = new FormData();
+        formData.append('file', audioBlob, `chunk-${chunkIndex}.${fileExtension}`);
+        formData.append('recordingId', recordingId);
+        formData.append('chunkIndex', chunkIndex);
+        formData.append('isLastChunk', isLastChunk);
 
-        // Promise for decoding audio duration
-        const decodePromise = new Promise((resolve, reject) => {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const fileReader = new FileReader();
-            fileReader.onload = () => {
-                audioContext.decodeAudioData(fileReader.result)
-                    .then(buffer => {
-                        const duration = buffer.duration;
-                        const min = Math.floor(duration / 60);
-                        const sec = Math.floor(duration % 60);
-                        const durationFormatted = `${min}:${sec.toString().padStart(2, '0')}`;
-                        resolve({ duration, durationFormatted });
-                    })
-                    .catch(err => reject(err));
-            };
-            fileReader.onerror = () => reject('FileReader error');
-            fileReader.readAsArrayBuffer(voiceBlob);
-        }); 
-
-        // Promise for uploading the file
-        const uploadPromise = new Promise((resolve, reject) => {
-            const fileExtension = currentMimeType.split('/')[1];
-            const formData = new FormData();
-            formData.append('file', new File([voiceBlob], `voice-${Date.now()}.${fileExtension}`));
-
+        // اگر آخرین قطعه باشد، انتظار پاسخ JSON داریم
+        if (isLastChunk) {
             $.ajax({
-                url: '/Home/UploadFiles',
+                url: '/api/Chat/UploadAudioChunk', // آدرس API جدید
                 type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
                 success: function (response) {
                     if (response && response.success) {
-                        resolve({ fileId: response.fileId });
+                        console.log("آخرین قطعه با موفقیت پردازش شد:", response);
+
+                        // سرور فایل را مونتاژ کرده و اطلاعات آن را برگردانده است
+                        // اکنون می‌توانیم UI پیش‌نمایش را بسازیم
+                        pendingVoiceFileId = response.fileId;
+                        pendingVoiceUrl = URL.createObjectURL(audioBlob); // از آخرین بلاب برای پیش‌نمایش استفاده می‌کنیم
+                        pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
+                        addFileIdToHiddenInput(response.fileId, '#uploadedFileIds');
+
+                        isProcessing = false; // پایان حالت پردازش
+                        updateChatInputUI('preview', {
+                            duration: response.duration, // سرور باید این را محاسبه و ارسال کند
+                            durationFormatted: response.durationFormatted // و این را
+                        });
                     } else {
-                        reject(response ? response.message : 'پاسخ نامعتبر از سرور');
+                        console.error('سرور در پردازش آخرین قطعه صدا ناموفق بود:', response.message);
+                        alert('خطا در پردازش فایل صوتی: ' + (response.message || 'خطای نامشخص'));
+                        cleanupVoiceState();
                     }
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
-                    reject(`خطای ارتباطی: ${textStatus}`);
+                    console.error('خطای ارتباطی در ارسال آخرین قطعه:', textStatus, errorThrown);
+                    alert('خطای ارتباط با سرور هنگام ارسال فایل صوتی.');
+                    cleanupVoiceState();
                 }
             });
-        });
-
-        // Wait for both operations to complete
-        Promise.all([decodePromise, uploadPromise])
-            .then(([audioData, uploadData]) => {
-                console.log(`موفق: زمان محاسبه شد (${audioData.durationFormatted}), فایل آپلود شد (ID: ${uploadData.fileId})`);
-
-                pendingVoiceFileId = uploadData.fileId;
-                pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
-                addFileIdToHiddenInput(uploadData.fileId, '#uploadedFileIds');
-
-                isProcessing = false;
-                updateChatInputUI('preview', {
-                    duration: audioData.duration,
-                    durationFormatted: audioData.durationFormatted
+        } else {
+            // برای قطعات میانی، از navigator.sendBeacon برای ارسال غیرهمزمان و بدون انتظار پاسخ استفاده می‌کنیم
+            // این کار باعث می‌شود UI هنگ نکند
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon('/api/Chat/UploadAudioChunk', formData);
+            } else {
+                 // Fallback for older browsers
+                 $.ajax({
+                    url: '/api/Chat/UploadAudioChunk',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    async: true // fire and forget
                 });
-            })
-            .catch(error => {
-                console.error("خطا در پردازش فایل صوتی:", error);
-                alert(`خطا در پردازش فایل صوتی: ${error}`);
-                cleanupVoiceState(true, false); // Clean up, including potential server file
-            });
+            }
+        }
+
+        chunkIndex++; // شماره قطعه را برای ارسال بعدی افزایش بده
     }
 
 
@@ -1812,6 +1837,13 @@ $(document).ready(function () {
      * @param {any} deleteFromServer : این متغیر مشخص میکند ایا فایل هم حذف شود یا خیر
      */
     function cleanupVoiceState(deleteFromServer = false, voiceWasSent = false) {
+        // Stop any running timers
+        if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+        if (recordingChunkerInterval) clearInterval(recordingChunkerInterval);
+        recordingTimerInterval = null;
+        recordingChunkerInterval = null;
+
+
         if (deleteFromServer && pendingVoiceFileId) {
             // ارسال درخواست حذف به سرور با فرمت JSON
             $.ajax({
@@ -1838,23 +1870,19 @@ $(document).ready(function () {
         // ریست متغیرها
         isProcessing = false;
         isRecording = false;
-        isAudioProcessing = false;
-        isAjaxProcessing = false;
-        if (recordingTimerInterval) clearInterval(recordingTimerInterval);
-
-        // Revoke the URL ONLY if the voice was NOT sent.
-        // If it was sent, the blob URL is now in the chat UI.
         if (pendingVoiceUrl && !voiceWasSent) {
             URL.revokeObjectURL(pendingVoiceUrl);
         }
-
         pendingVoiceFileId = null;
         pendingVoiceUrl = null;
         pendingVoiceAudioElement = null;
+        audioChunks = [];
+        recordingId = null;
+        chunkIndex = 0;
+
 
         // بازگشت به حالت پیش‌فرض
         updateChatInputUI('default');
-        //$('.btn-record-voice i').removeClass('fa-stop').addClass('fa-microphone');
         changeIcon($('.btn-record-voice'), 'microphone');
     }
 
