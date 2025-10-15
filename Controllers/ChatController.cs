@@ -11,7 +11,6 @@ using Newtonsoft.Json;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Text.Json;
-using NAudio.Wave;
 
 namespace Messenger.WebApp.Controllers
 {
@@ -194,130 +193,55 @@ namespace Messenger.WebApp.Controllers
             return 0;
         }
 
-        /// <summary>
-        /// قطعات فایل صوتی ضبط شده را دریافت، ذخیره موقت و در نهایت ترکیب می‌کند.
-        /// </summary>
-        /// <param name="file">قطعه فایل صوتی ارسالی</param>
-        /// <param name="recordingId">شناسه یکتای عملیات ضبط برای گروه‌بندی قطعات</param>
-        /// <param name="chunkIndex">شماره ترتیب این قطعه</param>
-        /// <param name="isLastChunk">آیا این آخرین قطعه است یا خیر</p
-        /// <returns>در صورت موفقیت در آخرین قطعه، اطلاعات فایل نهایی را برمی‌گرداند</returns>
         [HttpPost("UploadAudioChunk")]
-        [RequestSizeLimit(10 * 1024 * 1024)] // تعیین یک محدودیت معقول برای حجم هر قطعه (مثلاً 10 مگابایت)
+        [RequestSizeLimit(10 * 1024 * 1024)]
         public async Task<IActionResult> UploadAudioChunk([FromForm] IFormFile file, [FromForm] string recordingId, [FromForm] int chunkIndex, [FromForm] bool isLastChunk)
         {
-            // --- 1. اعتبارسنجی ورودی ---
             if (file == null || file.Length == 0)
-                return BadRequest("فایل قطعه ارسال نشده است.");
+                return BadRequest("File chunk is required.");
 
-            if (string.IsNullOrEmpty(recordingId) || !Guid.TryParse(recordingId, out _))
-                return BadRequest("شناسه ضبط نامعتبر است.");
+            // 1. Get the JWT token from the incoming request's cookies
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+                return Unauthorized("Auth token not found.");
 
             try
             {
-                // --- 2. مدیریت ذخیره‌سازی موقت ---
-                // یک مسیر امن و موقت برای ذخیره قطعات این ضبط خاص ایجاد می‌کنیم
-                var tempDirectory = Path.Combine(Path.GetTempPath(), "AudioChunks", recordingId);
-                Directory.CreateDirectory(tempDirectory); // اگر پوشه وجود نداشته باشد، آن را ایجاد کن
+                // 2. Create the multipart form data content to forward
+                using var multipartFormContent = new MultipartFormDataContent();
 
-                // نام فایل قطعه را بر اساس شماره ترتیب آن تعیین می‌کنیم تا قابل مرتب‌سازی باشد
-                var chunkFilePath = Path.Combine(tempDirectory, $"{chunkIndex:D5}.tmp"); // D5 برای پدینگ با صفر است (00001, 00002, ...)
+                // Add file stream
+                using var fileStreamContent = new StreamContent(file.OpenReadStream());
+                fileStreamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+                multipartFormContent.Add(fileStreamContent, name: "file", fileName: file.FileName);
 
-                // قطعه فعلی را در مسیر موقت ذخیره کن
-                await using (var stream = new FileStream(chunkFilePath, FileMode.Create))
+                // Add other form data fields
+                multipartFormContent.Add(new StringContent(recordingId), name: "recordingId");
+                multipartFormContent.Add(new StringContent(chunkIndex.ToString()), name: "chunkIndex");
+                multipartFormContent.Add(new StringContent(isLastChunk.ToString().ToLower()), name: "isLastChunk");
+
+                // 3. Create the HTTP request to the external web service
+                var url = $"{_baseUrl}/api/FileManagement/UploadAudioChunk"; // Corrected URL
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, url);
+                requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                requestMessage.Content = multipartFormContent;
+
+                // 4. Forward the request and get the response
+                using var response = await _httpClient.SendAsync(requestMessage);
+
+                // 5. Return the response from the external service directly to the client
+                var responseBody = await response.Content.ReadAsStringAsync();
+                return new ContentResult
                 {
-                    await file.CopyToAsync(stream);
-                }
-
-                // --- 3. بررسی اینکه آیا آخرین قطعه است یا خیر ---
-                if (!isLastChunk)
-                {
-                    // اگر قطعه میانی بود، فقط یک پاسخ موفقیت‌آمیز برگردان. کلاینت منتظر پاسخ نیست.
-                    return Ok();
-                }
-                else
-                {
-                    // --- 4. پردازش آخرین قطعه و ترکیب فایل نهایی ---
-                    _logger.LogInformation($"درحال پردازش آخرین قطعه برای ضبط با شناسه: {recordingId}");
-
-                    // تمام فایل‌های موقت مربوط به این ضبط را پیدا کرده و بر اساس نام (که همان شماره ترتیب است) مرتب کن
-                    var chunkFiles = Directory.GetFiles(tempDirectory, "*.tmp").OrderBy(f => f).ToList();
-
-                    // یک MemoryStream برای نگهداری فایل نهایی ایجاد کن
-                    await using var finalFileStream = new MemoryStream();
-
-                    foreach (var chunkFile in chunkFiles)
-                    {
-                        await using (var chunkStream = new FileStream(chunkFile, FileMode.OpenRead))
-                        {
-                            await chunkStream.CopyToAsync(finalFileStream);
-                        }
-                    }
-                    finalFileStream.Position = 0; // پوینتر استریم را به ابتدا برگردان
-
-                    // --- 5. ذخیره فایل نهایی با استفاده از سرویس فایل ---
-                    var userId = GetCurrentUserId(); // متد کمکی برای گرفتن شناسه کاربر از توکن
-                    var originalFileName = $"{recordingId}.webm"; // یک نام پیش‌فرض برای فایل
-
-                    // فراخوانی سرویس برای آپلود فایل نهایی. فرض می‌شود متد UploadFileAsync در سرویس شما وجود دارد
-                    // و یک DTO شامل شناسه فایل و سایر اطلاعات را برمی‌گرداند.
-                    var uploadedFileDto = await _fileService.UploadFileAsync(finalFileStream, originalFileName, file.ContentType, userId);
-                    if (uploadedFileDto == null || uploadedFileDto.MessageFileId <= 0)
-                    {
-                        // اگر آپلود ناموفق بود، پوشه موقت را پاک کرده و خطا برگردان
-                        Directory.Delete(tempDirectory, true);
-                        return StatusCode(500, "خطا در ذخیره فایل نهایی در سرویس فایل.");
-                    }
-
-                    // --- 6. محاسبه مدت زمان صدا ---
-                    finalFileStream.Position = 0; // استریم را برای خواندن توسط NAudio به ابتدا برگردان
-                    double durationInSeconds = 0;
-                    string durationFormatted = "0:00";
-
-                    try
-                    {
-                        using (var waveFileReader = new WaveFileReader(finalFileStream))
-                        {
-                            durationInSeconds = waveFileReader.TotalTime.TotalSeconds;
-                            durationFormatted = $"{(int)waveFileReader.TotalTime.TotalMinutes}:{waveFileReader.TotalTime.Seconds:D2}";
-                        }
-                    }
-                    catch (Exception waveEx)
-                    {
-                        _logger.LogWarning(waveEx, "NAudio could not read the audio file stream. Defaulting duration to 0.");
-                        // در صورت بروز خطا، از مقادیر پیش‌فرض استفاده می‌شود تا برنامه متوقف نشود
-                    }
-
-
-                    // --- 7. پاک‌سازی ---
-                    // پس از موفقیت، پوشه و فایل‌های موقت را حذف کن
-                    Directory.Delete(tempDirectory, true);
-
-                    _logger.LogInformation($"فایل صوتی با شناسه {uploadedFileDto.MessageFileId} با موفقیت از قطعات ایجاد شد.");
-
-                    // --- 8. ارسال پاسخ موفقیت‌آمیز به کلاینت ---
-                    // کلاینت منتظر این پاسخ است تا UI پیش‌نمایش را نمایش دهد
-                    return Ok(new
-                    {
-                        Success = true,
-                        FileId = uploadedFileDto.MessageFileId,
-                        Duration = durationInSeconds, // مدت زمان به ثانیه
-                        DurationFormatted = durationFormatted // مدت زمان فرمت شده
-                    });
-                }
+                    Content = responseBody,
+                    ContentType = response.Content.Headers.ContentType?.ToString(),
+                    StatusCode = (int)response.StatusCode
+                };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"خطا در پردازش قطعه صوتی برای ضبط با شناسه: {recordingId}");
-
-                // در صورت بروز خطا، بهتر است فایل‌های موقت پاک شوند
-                var tempDirectory = Path.Combine(Path.GetTempPath(), "AudioChunks", recordingId);
-                if(Directory.Exists(tempDirectory))
-                {
-                    Directory.Delete(tempDirectory, true);
-                }
-
-                return StatusCode(500, "خطای داخلی سرور در پردازش قطعه فایل.");
+                _logger.LogError(ex, "Error forwarding audio chunk for recordingId {RecordingId}", recordingId);
+                return StatusCode(500, "Internal server error while forwarding the audio chunk.");
             }
         }
     }

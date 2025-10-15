@@ -1199,6 +1199,35 @@ window.chatApp = (function ($) {
             signalRConnection.on("UserDeleteMessage", handleDeleteMessage);
             signalRConnection.on("UserSaveMessage", handleUserSaveMessage);
 
+            signalRConnection.on("ReceiveVoiceMessageResult", function(data) {
+                console.log("ReceiveVoiceMessageResult received:", data);
+
+                if (data.success && data.recordingId === recordingId) {
+
+                    if (window.voiceUploadTimeout) {
+                        clearTimeout(window.voiceUploadTimeout);
+                        window.voiceUploadTimeout = null;
+                    }
+
+                    pendingVoiceFileId = data.fileId;
+
+                    if (window.lastRecordedBlob) {
+                        pendingVoiceUrl = URL.createObjectURL(window.lastRecordedBlob);
+                        pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
+                        addFileIdToHiddenInput(data.fileId, '#uploadedFileIds');
+
+                        isProcessing = false;
+                        updateChatInputUI('preview', {
+                            duration: data.duration,
+                            durationFormatted: data.durationFormatted
+                        });
+                    } else {
+                        console.error("Last recorded blob was not found for creating a preview.");
+                        cleanupVoiceState();
+                    }
+                }
+            });
+
             // مدیریت خطا در ارسال پیام
             signalRConnection.on("SendMessageError", function (errorMessage) {
                 console.error("Server returned an error for sending message:", errorMessage);
@@ -1541,6 +1570,8 @@ $(document).ready(function () {
     let recordingChunkerInterval = null; // For sending chunks
     let recordingId = null;
     let chunkIndex = 0;
+    window.lastRecordedBlob = null; // To hold the final blob for preview
+    window.voiceUploadTimeout = null; // To handle SignalR timeout
     let pendingVoiceFileId = null;
     let pendingVoiceUrl = null; // برای پخش پیش‌نمایش
     let pendingVoiceAudioElement = null; // برای کنترل پخش
@@ -1752,6 +1783,8 @@ $(document).ready(function () {
         audioChunks = [];
 
         if (finalBlob.size > 0) {
+            // آخرین قطعه را برای استفاده در پیش‌نمایش پس از دریافت پاسخ SignalR ذخیره کن
+            window.lastRecordedBlob = finalBlob;
             sendAudioChunk(finalBlob, true); // ارسال به عنوان آخرین قطعه
         } else {
             console.warn("آخرین قطعه صدا خالی بود. چیزی برای ارسال وجود ندارد.");
@@ -1767,68 +1800,52 @@ $(document).ready(function () {
             return;
         }
 
-        const fileExtension = currentMimeType.split('/')[1];
         const formData = new FormData();
-        formData.append('file', audioBlob, `chunk-${chunkIndex}.${fileExtension}`);
+        formData.append('file', audioBlob, `chunk.webm`);
         formData.append('recordingId', recordingId);
         formData.append('chunkIndex', chunkIndex);
         formData.append('isLastChunk', isLastChunk);
 
-        // اگر آخرین قطعه باشد، انتظار پاسخ JSON داریم
         if (isLastChunk) {
             $.ajax({
-                url: '/api/Chat/UploadAudioChunk', // آدرس API جدید
+                url: '/api/Chat/UploadAudioChunk',
                 type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
                 success: function (response) {
-                    if (response && response.success) {
-                        console.log("آخرین قطعه با موفقیت پردازش شد:", response);
+                    // پاسخ HTTP فقط یک تاییدیه است. داده‌های اصلی از طریق SignalR می‌آید.
+                    console.log("آخرین قطعه با موفقیت ارسال شد. منتظر پاسخ SignalR...");
 
-                        // سرور فایل را مونتاژ کرده و اطلاعات آن را برگردانده است
-                        // اکنون می‌توانیم UI پیش‌نمایش را بسازیم
-                        pendingVoiceFileId = response.fileId;
-                        pendingVoiceUrl = URL.createObjectURL(audioBlob); // از آخرین بلاب برای پیش‌نمایش استفاده می‌کنیم
-                        pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
-                        addFileIdToHiddenInput(response.fileId, '#uploadedFileIds');
-
-                        isProcessing = false; // پایان حالت پردازش
-                        updateChatInputUI('preview', {
-                            duration: response.duration, // سرور باید این را محاسبه و ارسال کند
-                            durationFormatted: response.durationFormatted // و این را
-                        });
-                    } else {
-                        console.error('سرور در پردازش آخرین قطعه صدا ناموفق بود:', response.message);
-                        alert('خطا در پردازش فایل صوتی: ' + (response.message || 'خطای نامشخص'));
+                    // یک تایم‌اوت تنظیم کن تا اگر پاسخ SignalR نرسید، خطا نمایش داده شود
+                    window.voiceUploadTimeout = setTimeout(() => {
+                        alert("پاسخی از سرور برای پردازش فایل صوتی دریافت نشد. لطفاً دوباره تلاش کنید.");
                         cleanupVoiceState();
-                    }
+                    }, 20000); // 20 ثانیه
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                     console.error('خطای ارتباطی در ارسال آخرین قطعه:', textStatus, errorThrown);
-                    alert('خطای ارتباط با سرور هنگام ارسال فایل صوتی.');
+                    alert('خطای ارتباط با سرور هنگام ارسال آخرین قطعه صوتی.');
                     cleanupVoiceState();
                 }
             });
         } else {
-            // برای قطعات میانی، از navigator.sendBeacon برای ارسال غیرهمزمان و بدون انتظار پاسخ استفاده می‌کنیم
-            // این کار باعث می‌شود UI هنگ نکند
+            // برای قطعات میانی از sendBeacon استفاده کن
             if (navigator.sendBeacon) {
                 navigator.sendBeacon('/api/Chat/UploadAudioChunk', formData);
             } else {
-                 // Fallback for older browsers
                  $.ajax({
                     url: '/api/Chat/UploadAudioChunk',
                     type: 'POST',
                     data: formData,
                     processData: false,
                     contentType: false,
-                    async: true // fire and forget
+                    async: true
                 });
             }
         }
 
-        chunkIndex++; // شماره قطعه را برای ارسال بعدی افزایش بده
+        chunkIndex++;
     }
 
 
@@ -1840,8 +1857,13 @@ $(document).ready(function () {
         // Stop any running timers
         if (recordingTimerInterval) clearInterval(recordingTimerInterval);
         if (recordingChunkerInterval) clearInterval(recordingChunkerInterval);
+        if (window.voiceUploadTimeout) {
+            clearTimeout(window.voiceUploadTimeout);
+            window.voiceUploadTimeout = null;
+        }
         recordingTimerInterval = null;
         recordingChunkerInterval = null;
+        window.lastRecordedBlob = null;
 
 
         if (deleteFromServer && pendingVoiceFileId) {
