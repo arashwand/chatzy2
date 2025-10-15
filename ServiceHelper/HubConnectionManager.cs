@@ -28,6 +28,7 @@ namespace Messenger.WebApp.ServiceHelper
         private readonly IConfiguration _configuration;
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
 
+        public string ClientConnectionId => _hubConnection?.ConnectionId;
         // IsConnected همچنان برای بررسی وضعیت استفاده می‌شود
         public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
@@ -188,7 +189,7 @@ namespace Messenger.WebApp.ServiceHelper
             => InvokeHubMethodAsync("MarkAllMessagesAsRead", userId, groupId, groupType);
 
 
-        #region Private Methods from old service
+        #region Private Methods 
 
         private void RegisterHubEventHandlers()
         {
@@ -321,7 +322,7 @@ namespace Messenger.WebApp.ServiceHelper
                             MessageFileId = mf.MessageFileId
                         }).ToList();
                     }
-                    
+
                     //ایجاد ابجکت جی سان
                     var messageDetailsJson = CreateJsonMessageDetails(messageDto);
 
@@ -373,6 +374,12 @@ namespace Messenger.WebApp.ServiceHelper
             _hubConnection.On<long, string, int>("UserTyping", async (userId, userName, groupId) =>
             {
                 await _webAppHubContext.Clients.All.SendAsync("UserTyping", userId, userName, groupId);
+            });
+
+            //اطلاع نتیجه به کاربر ضبط کننده صدا
+            _hubConnection.On<string, bool, long, double, string, string>("ReceiveVoiceMessageResult", async (userId, success, fileId, duration, durationFormated, recordingId) =>
+            {
+                await _webAppHubContext.Clients.User(userId).SendAsync("ReceiveVoiceMessageResult", success, fileId, duration, durationFormated, recordingId);
             });
 
             // رویداد دریافت تعداد پیام خوانده نشده در چت
@@ -434,7 +441,7 @@ namespace Messenger.WebApp.ServiceHelper
 
             // به ویرایش کننده پیام اطلاع میدهد که پیام ارسالی با خطا مواجه شده است
             // در ویرایش پیام هم همین متد فراخوانی میشه
-            _hubConnection.On<long, long,string>("EditMessageSentFailed", async (userId, messageId, errorMessage) =>
+            _hubConnection.On<long, long, string>("EditMessageSentFailed", async (userId, messageId, errorMessage) =>
             {
                 _logger.LogInformation($"Bridge received 'SendMessageError' for client message {messageId}");
 

@@ -194,7 +194,7 @@ namespace Messenger.WebApp.Controllers
         }
 
         [HttpPost("UploadAudioChunk")]
-        [RequestSizeLimit(10 * 1024 * 1024)]
+        [RequestSizeLimit(1024 * 1024 * 1024)]
         public async Task<IActionResult> UploadAudioChunk([FromForm] IFormFile file, [FromForm] string recordingId, [FromForm] int chunkIndex, [FromForm] bool isLastChunk)
         {
             if (file == null || file.Length == 0)
@@ -204,6 +204,11 @@ namespace Messenger.WebApp.Controllers
             var token = Request.Cookies["AuthToken"];
             if (string.IsNullOrEmpty(token))
                 return Unauthorized("Auth token not found.");
+
+            // کانشکشن هاب کلاینت با هاب وبسرویس
+            var connectionId = _hubBridgeService.ClientConnectionId;
+            if (connectionId == null) 
+                return Unauthorized("connectinId not found!. client hub disconnected from api hub");
 
             try
             {
@@ -219,6 +224,8 @@ namespace Messenger.WebApp.Controllers
                 multipartFormContent.Add(new StringContent(recordingId), name: "recordingId");
                 multipartFormContent.Add(new StringContent(chunkIndex.ToString()), name: "chunkIndex");
                 multipartFormContent.Add(new StringContent(isLastChunk.ToString().ToLower()), name: "isLastChunk");
+
+              //  multipartFormContent.Add(new StringContent(connectionId), name: "connectionId");
 
                 // 3. Create the HTTP request to the external web service
                 var url = $"{_baseUrl}/api/FileManagement/UploadAudioChunk"; // Corrected URL
