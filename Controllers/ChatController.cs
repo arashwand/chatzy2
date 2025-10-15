@@ -246,3 +246,198 @@ namespace Messenger.WebApp.Controllers
         }
     }
 }
+
+/*
+======================================================================================================================
+// SECTION 1: CODE FOR EXTERNAL WEB SERVICE - FileManagementService.cs
+======================================================================================================================
+
+// 1. Add this method declaration to your IFileManagementService.cs interface:
+/*
+using Messenger.DTOs;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
+
+public interface IFileManagementService
+{
+    // ... your other methods
+    Task<MessageFileDto?> ProcessAudioChunkAsync(IFormFile file, string recordingId, int chunkIndex, bool isLastChunk, long uploaderUserId);
+}
+*/
+
+// 2. Add this full method implementation to your FileManagementService.cs class.
+//    Make sure you have the 'NAudio' NuGet package installed in this project.
+//    Make sure you add 'using NAudio.Wave;' at the top of the file.
+/*
+public async Task<MessageFileDto?> ProcessAudioChunkAsync(IFormFile file, string recordingId, int chunkIndex, bool isLastChunk, long uploaderUserId)
+{
+    // Create a temporary directory for this specific recording session
+    var tempDirectory = Path.Combine(Path.GetTempPath(), "AudioChunks", recordingId);
+    Directory.CreateDirectory(tempDirectory);
+
+    // Define the path for the current chunk, padded with zeros for correct ordering
+    var chunkFilePath = Path.Combine(tempDirectory, $"{chunkIndex:D5}.tmp");
+
+    // Save the current chunk to the temporary path
+    await using (var stream = new FileStream(chunkFilePath, FileMode.Create))
+    {
+        await file.CopyToAsync(stream);
+    }
+
+    // If this is an intermediate chunk, we're done for now.
+    if (!isLastChunk)
+    {
+        return null;
+    }
+
+    // --- Logic for the LAST chunk ---
+    _logger.LogInformation($"Processing final chunk for recordingId: {recordingId}");
+
+    // Get all temporary chunk files, order them by name (which is the chunk index)
+    var chunkFiles = Directory.GetFiles(tempDirectory, "*.tmp").OrderBy(f => f).ToList();
+
+    // Create a MemoryStream to hold the final, combined file
+    await using var finalFileStream = new MemoryStream();
+
+    // Combine all chunks into the final stream
+    foreach (var chunkFile in chunkFiles)
+    {
+        await using (var chunkStream = new FileStream(chunkFile, FileMode.OpenRead))
+        {
+            await chunkStream.CopyToAsync(finalFileStream);
+        }
+    }
+    finalFileStream.Position = 0; // Reset the stream position to the beginning
+
+    // To use your existing service logic, create an IFormFile from the final MemoryStream
+    var finalFormFile = new FormFile(finalFileStream, 0, finalFileStream.Length, "voice.webm", $"{recordingId}.webm")
+    {
+        Headers = new HeaderDictionary(),
+        ContentType = "audio/webm" // You can also pass this from the client if needed
+    };
+
+    // Use your existing 'UploadFileAsync' method to save the final file and create a DB record
+    var fileIdentifier = await UploadFileAsync(finalFormFile, uploaderUserId);
+
+    if (fileIdentifier == null || fileIdentifier.FileId <= 0)
+    {
+        Directory.Delete(tempDirectory, true); // Clean up temp files on failure
+        _logger.LogError($"Failed to save the final assembled audio file for recordingId: {recordingId}");
+        return null;
+    }
+
+    // --- Calculate Audio Duration using NAudio ---
+    finalFileStream.Position = 0; // Reset stream again for reading
+    double durationInSeconds = 0;
+    string durationFormatted = "0:00";
+    try
+    {
+        using (var waveFileReader = new WaveFileReader(finalFileStream))
+        {
+            durationInSeconds = waveFileReader.TotalTime.TotalSeconds;
+            durationFormatted = $"{(int)waveFileReader.TotalTime.TotalMinutes}:{waveFileReader.TotalTime.Seconds:D2}";
+        }
+    }
+    catch (Exception waveEx)
+    {
+        _logger.LogWarning(waveEx, $"NAudio could not read the final audio stream for {recordingId}. Defaulting duration.");
+    }
+
+    // Clean up the temporary directory
+    Directory.Delete(tempDirectory, true);
+
+    // Return a DTO with the necessary information for the SignalR message
+    return new MessageFileDto
+    {
+        MessageFileId = fileIdentifier.FileId,
+        Duration = durationInSeconds,
+        DurationFormatted = durationFormatted
+    };
+}
+*/
+
+
+/*
+======================================================================================================================
+// SECTION 2: CODE FOR EXTERNAL WEB SERVICE - FileManagementController.cs
+======================================================================================================================
+
+// Add this action method to your FileManagementController.cs class.
+// Make sure you have injected `IHubContext<YourChatHub>` in your controller's constructor.
+// Replace `YourChatHub` with the actual name of your SignalR hub class.
+
+/*
+// Example constructor dependency injection:
+private readonly IFileManagementService _fileManagementService;
+private readonly IHubContext<YourChatHub> _hubContext;
+private readonly ILogger<FileManagementController> _logger;
+
+public FileManagementController(
+    IFileManagementService fileManagementService,
+    IHubContext<YourChatHub> hubContext,
+    ILogger<FileManagementController> logger)
+{
+    _fileManagementService = fileManagementService;
+    _hubContext = hubContext;
+    _logger = logger;
+}
+*/
+
+/*
+[HttpPost("UploadAudioChunk")]
+[Authorize] // Ensure only authenticated users can access this endpoint
+[RequestSizeLimit(10 * 1024 * 1024)] // Set a reasonable size limit for each chunk
+public async Task<IActionResult> UploadAudioChunk([FromForm] IFormFile file, [FromForm] string recordingId, [FromForm] int chunkIndex, [FromForm] bool isLastChunk)
+{
+    if (file == null || string.IsNullOrEmpty(recordingId))
+        return BadRequest("File, recordingId, and chunkIndex are required.");
+
+    try
+    {
+        // Get the authenticated user's ID from the JWT claims
+        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!long.TryParse(userIdString, out var userId))
+        {
+            return Unauthorized("Invalid user identifier in token.");
+        }
+
+        // Call the service method to process the chunk
+        var resultDto = await _fileManagementService.ProcessAudioChunkAsync(file, recordingId, chunkIndex, isLastChunk, userId);
+
+        // If it was the last chunk, the service method will return a DTO.
+        if (isLastChunk)
+        {
+            if (resultDto == null)
+            {
+                // If processing the final chunk failed in the service
+                return StatusCode(500, new { success = false, message = "Failed to process the final audio file." });
+            }
+
+            // **** IMPORTANT: Send notification via SignalR ****
+            // The result is sent back to the specific user who initiated the upload.
+            // "ReceiveVoiceMessageResult" is the custom event name the client is listening for.
+            await _hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveVoiceMessageResult", new
+            {
+                Success = true,
+                FileId = resultDto.MessageFileId,
+                Duration = resultDto.Duration,
+                DurationFormatted = resultDto.DurationFormatted,
+                RecordingId = recordingId // Include the original recordingId for the client to match the response
+            });
+
+            // Return a simple Ok. The client is not expecting file data in this HTTP response.
+            return Ok(new { success = true, message = "Final chunk received and processed. Result sent via SignalR." });
+        }
+        else
+        {
+            // For intermediate chunks, just acknowledge receipt.
+            return Ok(new { success = true, message = "Chunk received." });
+        }
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error processing audio chunk for recordingId {RecordingId}", recordingId);
+        return StatusCode(500, new { success = false, message = "An internal server error occurred while processing the audio chunk." });
+    }
+}
+*/
