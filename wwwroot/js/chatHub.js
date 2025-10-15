@@ -1718,9 +1718,14 @@ $(document).ready(function () {
             try {
                 mediaRecorder = new MediaRecorder(stream, { mimeType: currentMimeType });
 
-                // داده‌های صوتی را جمع‌آوری کن
+                // داده‌های صوتی را جمع‌آوری کرده و هر قطعه را فوراً ارسال کنید
                 mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
+                    if (e.data.size > 0) {
+                        // هم برای ساخت پیش‌نمایش نهایی و هم برای ارسال، داده‌ها را نگه می‌داریم
+                        audioChunks.push(e.data);
+                        // قطعه را فوراً به عنوان یک قطعه میانی ارسال می‌کنیم
+                        sendAudioChunk(e.data, false);
+                    }
                 };
 
                 // وقتی ضبط متوقف شد، آخرین قطعه را پردازش و ارسال کن
@@ -1729,10 +1734,7 @@ $(document).ready(function () {
                     processAndSendFinalChunk();
                 };
 
-                mediaRecorder.start(); // شروع ضبط
-
-                // هر 1 ثانیه، قطعات جمع‌آوری شده را ارسال کن
-                recordingChunkerInterval = setInterval(processAndSendIntermediateChunks, 1000);
+                mediaRecorder.start(1000); // شروع ضبط
 
             } catch (err) {
                 console.error("خطا در ایجاد MediaRecorder:", err);
@@ -1753,7 +1755,6 @@ $(document).ready(function () {
         isProcessing = true; // وارد حالت پردازش شو
 
         clearInterval(recordingTimerInterval);
-        clearInterval(recordingChunkerInterval); // تایمر ارسال قطعات را متوقف کن
 
         changeIcon($('.btn-record-voice'), 'microphone');
         updateChatInputUI('processing');
@@ -1766,16 +1767,6 @@ $(document).ready(function () {
         }
     }
 
-    // قطعات میانی را پردازش و ارسال می‌کند
-    function processAndSendIntermediateChunks() {
-        if (audioChunks.length === 0) return;
-
-        // یک Blob از تمام قطعات موجود بساز
-        const chunkBlob = new Blob(audioChunks, { type: currentMimeType });
-        audioChunks = []; // آرایه را برای قطعات بعدی خالی کن
-
-        sendAudioChunk(chunkBlob, false); // ارسال به عنوان قطعه میانی
-    }
 
     // آخرین قطعه را پردازش و ارسال می‌کند
     function processAndSendFinalChunk() {
@@ -1856,13 +1847,11 @@ $(document).ready(function () {
     function cleanupVoiceState(deleteFromServer = false, voiceWasSent = false) {
         // Stop any running timers
         if (recordingTimerInterval) clearInterval(recordingTimerInterval);
-        if (recordingChunkerInterval) clearInterval(recordingChunkerInterval);
         if (window.voiceUploadTimeout) {
             clearTimeout(window.voiceUploadTimeout);
             window.voiceUploadTimeout = null;
         }
         recordingTimerInterval = null;
-        recordingChunkerInterval = null;
         window.lastRecordedBlob = null;
 
 
