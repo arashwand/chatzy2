@@ -1199,35 +1199,6 @@ window.chatApp = (function ($) {
             signalRConnection.on("UserDeleteMessage", handleDeleteMessage);
             signalRConnection.on("UserSaveMessage", handleUserSaveMessage);
 
-            signalRConnection.on("ReceiveVoiceMessageResult", function(data) {
-                console.log("ReceiveVoiceMessageResult received:", data);
-
-                if (data.success && data.recordingId === recordingId) {
-
-                    if (window.voiceUploadTimeout) {
-                        clearTimeout(window.voiceUploadTimeout);
-                        window.voiceUploadTimeout = null;
-                    }
-
-                    pendingVoiceFileId = data.fileId;
-
-                    if (window.lastRecordedBlob) {
-                        pendingVoiceUrl = URL.createObjectURL(window.lastRecordedBlob);
-                        pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
-                        addFileIdToHiddenInput(data.fileId, '#uploadedFileIds');
-
-                        isProcessing = false;
-                        updateChatInputUI('preview', {
-                            duration: data.duration,
-                            durationFormatted: data.durationFormatted
-                        });
-                    } else {
-                        console.error("Last recorded blob was not found for creating a preview.");
-                        cleanupVoiceState();
-                    }
-                }
-            });
-
             // مدیریت خطا در ارسال پیام
             signalRConnection.on("SendMessageError", function (errorMessage) {
                 console.error("Server returned an error for sending message:", errorMessage);
@@ -1808,15 +1779,31 @@ $(document).ready(function () {
                 data: formData,
                 processData: false,
                 contentType: false,
-                success: function (response) {
-                    // پاسخ HTTP فقط یک تاییدیه است. داده‌های اصلی از طریق SignalR می‌آید.
-                    console.log("آخرین قطعه با موفقیت ارسال شد. منتظر پاسخ SignalR...");
+                success: function (data) {
+                    console.log("پاسخ پردازش فایل صوتی با موفقیت از طریق HTTP دریافت شد:", data);
 
-                    // یک تایم‌اوت تنظیم کن تا اگر پاسخ SignalR نرسید، خطا نمایش داده شود
-                    window.voiceUploadTimeout = setTimeout(() => {
-                        alert("پاسخی از سرور برای پردازش فایل صوتی دریافت نشد. لطفاً دوباره تلاش کنید.");
+                    // بررسی موفقیت و تطابق شناسه ضبط
+                    if (data.success && data.recordingId === recordingId) {
+                        pendingVoiceFileId = data.fileId;
+
+                        if (window.lastRecordedBlob) {
+                            pendingVoiceUrl = URL.createObjectURL(window.lastRecordedBlob);
+                            pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
+                            addFileIdToHiddenInput(data.fileId, '#uploadedFileIds');
+
+                            isProcessing = false;
+                            updateChatInputUI('preview', {
+                                duration: data.duration,
+                                durationFormatted: data.durationFormatted
+                            });
+                        } else {
+                            console.error("آخرین قطعه ضبط شده برای ایجاد پیش‌نمایش یافت نشد.");
+                            cleanupVoiceState();
+                        }
+                    } else {
+                        alert("خطایی در پردازش فایل صوتی در سرور رخ داد.");
                         cleanupVoiceState();
-                    }, 20000); // 20 ثانیه
+                    }
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                     console.error('خطای ارتباطی در ارسال آخرین قطعه:', textStatus, errorThrown);
