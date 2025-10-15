@@ -147,6 +147,7 @@
                             data-sender-username="@message.SenderUser.NameFamily"
                             data-message-details='@Html.Raw(messageDetailsJson)'>
 
+                            <!--message option menu-->
                             <div class="dropdown message-options">
                                 <a class="btn" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <img src="~/chatzy/assets/iconsax/menu-meatballs.svg" alt="menu" />
@@ -177,9 +178,23 @@
                                         <img src="~/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
                                         <span>ذخیره</span>
                                     </a>
-                                    
+
+                                    @if (message.MessageFiles != null)
+                                    {
+                                        if (message.MessageFiles.Any(a => a.FileExtension.Extension == ".webm"))
+                                        {
+                                            var file = message.MessageFiles.First(a => a.FileExtension.Extension == ".webm");
+                                            <a class="dropdown-item d-flex align-items-center btn-download-file" data-file-id="@file.MessageFileId" data-messageid="@message.MessageId" href="#">
+                                                <img src="~/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
+                                                <span>دانلود فایل</span>
+                                            </a>
+                                        }
+                                    }
+
                                 </div>
                             </div>
+                            <!--/end message option menu-->
+
 
                             <div class="message-box @(message.IsReadByAnyRecipient ? "read" : "")">
                                 @if (!isSelf)
@@ -207,10 +222,6 @@
                                                 <div class="col file-attachment-item" data-file-id="@file.MessageFileId" style="display: flex; flex-direction: column;">
                                                     @if (AllowedImages.Contains(file.FileExtension.Extension, StringComparer.OrdinalIgnoreCase))
                                                     {
-                                                        // <a class="popup-media overflow-hidden" href="@fileTumbPath" target="_blank">
-                                                        //     <img class="img-fluid rounded chat-image" width="100" src="@fileTumbPath" data-oroginal-fileName="@file.OriginalFileName" alt="@file.FileName" style="max-height:150px">
-                                                        // </a>
-
                                                         <img class="img-thumbnail chat-thumbnail"
                                                              src="@fileTumbPath"
                                                              data-original-filename="@file.OriginalFileName"
@@ -226,8 +237,10 @@
                                                                 <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
 
                                                             </button>
+                                                            
                                                             <div class="file-meta text-light mx-1 text-dark">@FileSizeConverter.ConvertToReadableSize(file.FileSize)</div>
                                                             <div class="voice-duration-display mx-1" style="margin-right: 15px;">صدای ضبط شده</div>
+                                                            
                                                         </div>
                                                     }
                                                     else
@@ -239,7 +252,7 @@
                                                         <span style="max-width:35px;" class="btn-download-file btn btn-sm btn-light p-0" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
 
                                                             <img src="/chatzy/assets/iconsax/download.svg" class="download-icon" style="cursor:pointer; width: 24px; height: 24px;" alt="download">
-                                                            <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
+
                                                         </span>
                                                     }
                                                 </div>
@@ -318,7 +331,6 @@
                 <i class="iconsax icon-btn" data-icon="picture-add"> </i>
             </a>
             <a class="btn-record-voice">
-                @* <img src="~/chatzy/assets/iconsax/mic-2.svg" alt="ضبط صدا" />*@
                 <i class="iconsax icon-btn" data-icon="mic-2"> </i>               
             </a>
             <textarea type="text" class="message-input" id="message-input" placeholder="Type here..." rows="1"></textarea>

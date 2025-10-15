@@ -121,7 +121,7 @@ $(document).ready(function () {
     const SVG_SPINNER = `<img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">`;
 
 
-    const downloader = new FileDownloader('/api/chat/downloadFileById');
+    const downloader = new FileDownloader('/api/chat/downloadBlobFileById');
 
     $(document).on('click', '.voice-download-btn', async function (e) {
         e.stopPropagation();

@@ -1,4 +1,5 @@
-﻿using Messenger.DTOs;
+﻿using Azure;
+using Messenger.DTOs;
 using Messenger.WebApp.Models.ViewModels;
 using Messenger.WebApp.ServiceHelper.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -95,11 +96,6 @@ namespace Messenger.WebApp.ServiceHelper
 
             var response = await _httpClient.GetAsync($"api/filemanagement/download?messageFileId={messageFileId}");
             response.EnsureSuccessStatusCode();
-
-            //var downloadData = await response.Content.ReadFromJsonAsync<FileDownloadData>();
-
-            //return downloadData;
-
 
             var fileBytes = await response.Content.ReadAsByteArrayAsync();
             var contentDisposition = response.Content.Headers.ContentDisposition?.FileNameStar ?? response.Content.Headers.ContentDisposition?.FileName;

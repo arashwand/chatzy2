@@ -15,7 +15,8 @@
 
   <ItemGroup>
     <!-- Removed: <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.4.3" /> -->
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.5" /> <!-- Added for SignalR client functionality -->
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.5" /> <!-- Added for SignalR client functionality -->
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="9.0.5" /> <!-- Added for SignalR server with Redis backplane -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.4" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.0" />

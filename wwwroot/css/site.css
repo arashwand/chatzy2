@@ -10,13 +10,13 @@ body {
 
 /* --- General Chat Area Styling --- */
 #chat_content {
-    background-image: url(/assets/media/avatar/new-pattern-6.png);
+    background-image: url(/assets/media/avatar/new-pattern-63.png);
     background-color: #f6f5f3;
     position: relative;
     background-position: top left;
     background-size: 44%;
+   
 }
-
 
 /* --- Message Bubbles & Layout --- */
 /* Self Messages (Sent) */
@@ -820,7 +820,7 @@ body {
     z-index: 9;
     background-color: #00bf95;
     padding: 5px 0;
-    width: 30%;
+    width: 40%;
     margin: 0 auto;
     border-radius: 15px;
 }
@@ -1147,6 +1147,7 @@ body {
     transform: translateX(0);
     opacity: 1;
 }
+
 
 
 /***********************************************/

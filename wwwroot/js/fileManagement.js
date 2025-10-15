@@ -387,61 +387,98 @@
     // =========================================================================
     //                          File Download Management
     // =========================================================================
-    $(document).on('click', '.btn-download-file', async function (e) {
-        e.stopPropagation();
-        const $icon = $(this);
-        const $button = $icon.closest('.btn-download-file');
-        const fileId = $button.data('file-id');
-        const originalFileName = $button.data('file-originalname');
 
-        if (!fileId) {
-            console.error('File ID not found.');
-            return;
-        }
+    $(document).on('click', '.btn-download-file', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
 
-        const $spinnerIcon = $button.find('.spinner-icon');
-        const apiUrl = '/api/chat/downloadFileById';
+    const $button = $(this);
+    const fileId = $button.data('file-id');
+    const originalFileName = $button.data('file-originalname') || `file-${fileId}`;
+    const $icon = $button.find('img');
+    const $spinner = $('<span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span>');
 
-        $icon.hide();
-        $spinnerIcon.show();
+    if (!fileId) {
+        console.error('File ID not found.');
+        return;
+    }
 
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ FileId: fileId })
-            });
+    // نمایش اسپینر
+    $icon.hide();
+    $button.append($spinner);
 
-            if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    const apiUrl = `/api/chat/downloadFileById?fileId=${fileId}`;
 
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = blobUrl;
+    // برای اینکه دانلود در مرورگر انجام شود، از window.open استفاده می‌کنیم
+    const downloadWindow = window.open(apiUrl, '_blank');
 
-            let filename = originalFileName || `file-${fileId}`;
-            const contentDisposition = response.headers.get('Content-Disposition');
-            if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-                if (filenameMatch && filenameMatch[1]) {
-                    filename = filenameMatch[1];
-                }
-            }
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(blobUrl);
+    // اگر مرورگر اجازه باز کردن پاپ‌آپ ندهد:
+    if (!downloadWindow) {
+        alert('Please allow popups for this website to download the file.');
+    }
 
-        } catch (error) {
-            console.error('File download failed:', error);
-            alert('Error downloading file. Please try again.');
-        } finally {
-            $spinnerIcon.hide();
-            $icon.show();
-        }
-    });
+    // بازگرداندن وضعیت دکمه پس از چند ثانیه
+    setTimeout(() => {
+        $spinner.remove();
+        $icon.show();
+    }, 2000);
+});
 
 
+    //$(document).on('click', '.btn-download-file', async function (e) {
+    //    console.log('btn-download-file')
+    //    e.stopPropagation();
+    //    const $icon = $(this);
+    //    const $button = $icon.closest('.btn-download-file');
+    //    const fileId = $button.data('file-id');
+    //    const originalFileName = $button.data('file-originalname');
 
+    //    if (!fileId) {
+    //        console.error('File ID not found.');
+    //        return;
+    //    }
+
+    //    const $spinnerIcon = $button.find('.spinner-icon');
+    //    const apiUrl = '/api/chat/downloadFileById';
+
+    //    $icon.hide();
+    //    $spinnerIcon.show();
+
+    //    try {
+    //        const response = await fetch(apiUrl, {
+    //            method: 'POST',
+    //            headers: { 'Content-Type': 'application/json' },
+    //            body: JSON.stringify({ FileId: fileId })
+    //        });
+
+    //        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+
+    //        const blob = await response.blob();
+    //        const blobUrl = window.URL.createObjectURL(blob);
+    //        const link = document.createElement('a');
+    //        link.href = blobUrl;
+
+    //        let filename = originalFileName || `file-${fileId}`;
+    //        const contentDisposition = response.headers.get('Content-Disposition');
+    //        if (contentDisposition) {
+    //            const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+    //            if (filenameMatch && filenameMatch[1]) {
+    //                filename = filenameMatch[1];
+    //            }
+    //        }
+    //        link.setAttribute('download', filename);
+    //        document.body.appendChild(link);
+    //        link.click();
+    //        link.remove();
+    //        window.URL.revokeObjectURL(blobUrl);
+
+    //    } catch (error) {
+    //        console.error('File download failed:', error);
+    //        alert('Error downloading file. Please try again.');
+    //    } finally {
+    //        $spinnerIcon.hide();
+    //        $icon.show();
+    //    }
+    //});
+        
 });

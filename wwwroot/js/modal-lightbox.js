@@ -5,6 +5,20 @@ $(document).ready(function () {
     let activeImage = 'A'; // تعیین اینکه الان A فعال است یا B
     let touchStartX = 0;
 
+    // --- افزودن Listener برای خالی کردن مودال هنگام بسته شدن ---
+    $('#imageLightboxModal').on('hidden.bs.modal', function () {
+        // آدرس تصویر هر دو تگ را خالی می‌کند
+        $('#imageA').attr('src', '');
+        $('#imageB').attr('src', '');
+        // نام فایل نمایش داده شده را هم پاک می‌کند
+        $('#imageFileName').text('');
+        // همچنین برای اطمینان بیشتر، activeImage را به حالت پیش‌فرض (A) برمی‌گرداند
+        activeImage = 'A';
+        // کلاس‌های انیمیشن را هم پاک می‌کنیم تا اگر در حین انیمیشن بسته شد، وضعیتی نامنظم نماند
+        $('#imageA, #imageB').removeClass('active slide-in-left slide-in-right slide-center')
+            .css({ 'opacity': 1, 'transform': 'none' });
+    });
+
     // کلیک روی تصویر
     $(document).on('click', '.chat-thumbnail', async function () {
         const $group = $(this).closest('.image-group');
@@ -34,7 +48,7 @@ $(document).ready(function () {
         const next = activeImage === 'A' ? $('#imageB') : $('#imageA');
 
         try {
-            const response = await fetch('/api/chat/downloadFileById', {
+            const response = await fetch('/api/chat/downloadBlobFileById', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ FileId: image.id })
@@ -66,7 +80,7 @@ $(document).ready(function () {
             });
 
             activeImage = activeImage === 'A' ? 'B' : 'A';
-            $('.btn-download-file')
+            $('.btn-download-image-file')
                 .data('file-id', image.id)
                 .data('file-originalname', image.filename);
 
@@ -109,7 +123,7 @@ $(document).ready(function () {
     });
 
     // دانلود فایل
-    $(document).on('click', '.btn-download-file', async function (e) {
+    $(document).on('click', '.btn-download-image-file', async function (e) {
         e.stopPropagation();
         const $btn = $(this);
         const fileId = $btn.data('file-id');
@@ -121,7 +135,7 @@ $(document).ready(function () {
         $spinner.show();
 
         try {
-            const res = await fetch('/api/chat/downloadFileById', {
+            const res = await fetch('/api/chat/downloadBlobFileById', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ FileId: fileId })
