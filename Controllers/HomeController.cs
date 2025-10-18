@@ -275,51 +275,51 @@ namespace Messenger.WebApp.Controllers
             return PartialView("_ChatInfoBody", modelForView);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> UploadFiles(IFormFile file)
-        {
-            if (file == null || file.Length == 0)
-            {
-                return Json(new { success = false, message = "هیچ فایلی برای آپلود انتخاب نشده است." });
-            }
+        //[HttpPost]
+        //public async Task<IActionResult> UploadFiles(IFormFile file)
+        //{
+        //    if (file == null || file.Length == 0)
+        //    {
+        //        return Json(new { success = false, message = "هیچ فایلی برای آپلود انتخاب نشده است." });
+        //    }
 
-            // لیست پسوندهای مجاز
-            //_allowedDocExtentions
+        //    // لیست پسوندهای مجاز
+        //    //_allowedDocExtentions
 
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (string.IsNullOrEmpty(extension) || !_allowedDocExtentions.Contains(extension))
-            {
-                return BadRequest(new { success = false, message = "نوع فایل مجاز نیست." });
-            }
+        //    var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        //    if (string.IsNullOrEmpty(extension) || !_allowedDocExtentions.Contains(extension))
+        //    {
+        //        return BadRequest(new { success = false, message = "نوع فایل مجاز نیست." });
+        //    }
 
-            try
-            {
+        //    try
+        //    {
 
-                // با استفاده از using، استریم به طور خودکار بسته می‌شود
-                await using var stream = file.OpenReadStream();
+        //        // با استفاده از using، استریم به طور خودکار بسته می‌شود
+        //        await using var stream = file.OpenReadStream();
 
-                // 3. باید منتظر (await) نتیجه متد آسنکرون بمانید
-                var uploadResult = await _fileManagementServiceClient.UploadFileAsync(
-                    stream,
-                    file.FileName,
-                    file.ContentType
-                );
+        //        // 3. باید منتظر (await) نتیجه متد آسنکرون بمانید
+        //        var uploadResult = await _fileManagementServiceClient.UploadFileAsync(
+        //            stream,
+        //            file.FileName,
+        //            file.ContentType
+        //        );
 
-                if (uploadResult == null)
-                {
-                    return Json(new { success = false, message = "سرویس آپلود پاسخی برنگرداند." });
-                }
+        //        if (uploadResult == null)
+        //        {
+        //            return Json(new { success = false, message = "سرویس آپلود پاسخی برنگرداند." });
+        //        }
 
-                // 4. نام فیلد خروجی (fileId) باید با چیزی که جاوااسکریپت انتظار دارد یکی باشد
-                return Json(new { success = true, fileId = uploadResult }); // فرض می‌کنیم مدل شما یک پراپرتی Id دارد
-            }
-            catch (Exception ex)
-            {
-                // لاگ کردن خطا برای بررسی‌های بعدی بسیار مهم است
-                // Log.Error(ex, "An error occurred while uploading file."); 
-                return Json(new { success = false, message = "خطا در آپلود فایل: " + ex.Message });
-            }
-        }
+        //        // 4. نام فیلد خروجی (fileId) باید با چیزی که جاوااسکریپت انتظار دارد یکی باشد
+        //        return Json(new { success = true, fileId = uploadResult }); // فرض می‌کنیم مدل شما یک پراپرتی Id دارد
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // لاگ کردن خطا برای بررسی‌های بعدی بسیار مهم است
+        //        // Log.Error(ex, "An error occurred while uploading file."); 
+        //        return Json(new { success = false, message = "خطا در آپلود فایل: " + ex.Message });
+        //    }
+        //}
 
         /// <summary>
         ///  حذف فایل انتخاب و بارگذاری شده قبل از ارسال به گروه
