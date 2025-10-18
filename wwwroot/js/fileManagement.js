@@ -1,8 +1,10 @@
-﻿$(document).ready(function () {
+$(document).ready(function () {
 
     // =========================================================================
     //                          File Upload Management
     // =========================================================================
+    const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB per chunk
+    let activeUploads = {}; // To store active XHR requests for cancellation
 
     // A helper function to manage the visibility of the preview container
     function checkPreviewContainerVisibility() {
@@ -16,26 +18,21 @@
         }
     }
 
-    // تابع کمکی برای ساخت پیش‌نمایش فایل‌های از قبل آپلود شده (با ظاهری یکسان با آپلود جدید)
+    // تابع کمکی برای ساخت پیش‌نمایش فایل‌های از قبل آپلود شده
     function addExistingFileToPreview(fileData) {
         const elementId = 'file-' + fileData.messageFileId;
         let previewElement;
         const fileExtension = (fileData.originalFileName || fileData.fileName).split('.').pop().toLowerCase();
 
-        // بررسی اینکه فایل تصویر است یا خیر
         if (window.chatApp.ALLOWED_IMAGES.includes(fileExtension)) {
             const baseUrl = $('#baseUrl').val() || '';
             const imageURL = baseUrl + (fileData.fileThumbPath || fileData.filePath);
             previewElement = `<img src="${imageURL}" class="file-thumbnail" alt="پیش‌نمایش">`;
         } else {
-            // آیکون برای سایر فایل‌ها
             let icon = `<i class="iconsax" data-icon="document-text-1" aria-hidden="true"></i>`;
             previewElement = `<div class="file-icon">${icon}</div>`;
         }
 
-        // ساخت HTML نهایی برای پیش‌نمایش
-        // **نکته کلیدی**: ما یک data-attribute به نام data-is-existing="true" اضافه می‌کنیم
-        // تا بعداً در هنگام حذف، بتوانیم بین فایل قدیمی و جدید تمایز قائل شویم.
         const previewHtml = `
         <div class="file-preview-item" id="${elementId}">
             <div class="file-info">
@@ -48,30 +45,20 @@
                 </div>
             </div>
             <div class="status-icon">
-                <span class="action-btn remove-file-btn" 
-                      data-server-id="${fileData.messageFileId}" 
-                      data-is-existing="true" 
-                      title="حذف فایل" 
-                      style="display: inline-block;">
-                      <img src="/chatzy/assets/iconsax/trash.svg" alt="t" />
-
+                <span class="action-btn remove-file-btn" data-server-id="${fileData.messageFileId}" data-is-existing="true" title="حذف فایل" style="display: inline-block;">
+                     <img src="/chatzy/assets/iconsax/trash.svg" alt="t" />
                 </span>
             </div>
         </div>`;
-
         $('#filePreviewContainer').append(previewHtml);
-        checkPreviewContainerVisibility(); // بررسی نمایش کانتینر
-
-        if (typeof init_iconsax === 'function') {
-            init_iconsax();
-        }
+        checkPreviewContainerVisibility();
+        if (typeof init_iconsax === 'function') init_iconsax();
     }
 
     // Event listener for the file input.
     $(document).on('change', '#fileInput', function (event) {
         const files = event.target.files;
         if (!files.length) return;
-
         for (const file of files) {
             processFile(file);
         }
@@ -92,9 +79,11 @@
             addFileToPreviewList(file, elementId);
         }
 
-        $('#' + elementId).data('fileObject', file);
+        const item = $('#' + elementId);
+        item.data('fileObject', file);
+
         const fileExtension = file.name.split('.').pop().toLowerCase();
-        updateFileStatus(elementId, "Preparing...", false, null, true);
+        updateFileStatus(elementId, "Preparing...", false, null, true, 0);
 
         if (!window.chatApp || window.chatApp.ALLOWED_IMAGES.length === 0) {
             await window.chatApp.callAlloewExtentions();
@@ -102,44 +91,99 @@
 
         if (window.chatApp.ALLOWED_IMAGES.includes(fileExtension)) {
             try {
-                updateFileStatus(elementId, 'Compressing...', false, null, true);
+                updateFileStatus(elementId, 'Compressing...', false, null, true, 0);
                 const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
                 const compressedFile = await imageCompression(file, options);
-                uploadFile(compressedFile, elementId, file.name);
+                // After compression, we start the chunked upload
+                startChunkedUpload(compressedFile, elementId, file.name);
             } catch (error) {
                 updateFileStatus(elementId, 'Compression failed!', true);
             }
         } else if (window.chatApp.ALLOWED_DOCS.includes(fileExtension) || window.chatApp.ALLOWED_AUDIO.includes(fileExtension)) {
-            uploadFile(file, elementId, file.name);
+            startChunkedUpload(file, elementId, file.name);
         } else {
             updateFileStatus(elementId, 'File type not allowed!', true);
         }
     }
 
-    function uploadFile(file, elementId, originalFileName) {
-        const formData = new FormData();
-        formData.append('file', file, originalFileName);
-        updateFileStatus(elementId, 'Uploading...', false, null, true);
+    function startChunkedUpload(file, elementId, originalFileName) {
+        const uploadId = 'upload-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
-        $.ajax({
-            url: '/Home/UploadFiles',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function (response) {
-                if (response.success) {
-                    updateFileStatus(elementId, 'Success', false, response.fileId);
-                    addFileIdToHiddenInput(response.fileId.toString(), '#uploadedFileIds');
-                } else {
-                    updateFileStatus(elementId, response.message || 'Server error', true);
-                }
-            },
-            error: function (jqXHR) {
-                const errorMessage = jqXHR.responseJSON?.message || 'Connection error';
-                updateFileStatus(elementId, errorMessage, true);
+        const item = $('#' + elementId);
+        item.data('uploadId', uploadId);
+        item.data('totalChunks', totalChunks);
+        item.data('originalFileName', originalFileName);
+
+        updateFileStatus(elementId, `Uploading 0%`, false, null, true, 0);
+        uploadChunk(file, uploadId, 0, totalChunks, elementId, originalFileName);
+    }
+
+    function uploadChunk(file, uploadId, chunkIndex, totalChunks, elementId, originalFileName) {
+        const start = chunkIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+
+        const formData = new FormData();
+        formData.append('file', chunk, file.name);
+        formData.append('uploadId', uploadId);
+        formData.append('chunkIndex', chunkIndex);
+        formData.append('totalChunks', totalChunks);
+        formData.append('originalFileName', originalFileName);
+
+        const xhr = new XMLHttpRequest();
+        activeUploads[elementId] = xhr;
+
+        xhr.open('POST', '/api/chat/UploadFileChunk', true);
+
+        xhr.upload.onprogress = function (e) {
+            if (e.lengthComputable) {
+                const chunkPercent = e.loaded / e.total;
+                const totalPercent = ((chunkIndex + chunkPercent) / totalChunks) * 100;
+                updateFileStatus(elementId, `Uploading ${Math.round(totalPercent)}%`, false, null, true, totalPercent);
             }
-        });
+        };
+
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                const response = JSON.parse(xhr.responseText);
+                const isLastChunk = (chunkIndex === totalChunks - 1);
+
+                if (isLastChunk) {
+                    if (response.success) {
+                        updateFileStatus(elementId, 'Success', false, response.fileId, false, 100);
+                        addFileIdToHiddenInput(response.fileId.toString(), '#uploadedFileIds');
+                        delete activeUploads[elementId];
+                    } else {
+                        updateFileStatus(elementId, response.message || 'Server error on final chunk', true);
+                    }
+                } else {
+                    uploadChunk(file, uploadId, chunkIndex + 1, totalChunks, elementId, originalFileName);
+                }
+            } else {
+                let errorMessage = 'Connection error';
+                try {
+                    const errorResponse = JSON.parse(xhr.responseText);
+                    errorMessage = errorResponse.message || 'Unknown server error';
+                } catch (e) {
+                    // Ignore parsing error, use default message
+                }
+                updateFileStatus(elementId, errorMessage, true);
+                delete activeUploads[elementId];
+            }
+        };
+
+        xhr.onerror = function () {
+            updateFileStatus(elementId, 'Network error', true);
+            delete activeUploads[elementId];
+        };
+
+        xhr.onabort = function () {
+            console.log(`Upload for ${elementId} was canceled.`);
+            delete activeUploads[elementId];
+        };
+
+        xhr.send(formData);
     }
 
     function addFileToPreviewList(file, elementId) {
@@ -164,33 +208,47 @@
                         <div class="file-details">
                             <span class="file-size">${formattedSize}</span>
                             <div class="status-text">
-                                <div class="spinner"></div>
                                 <span class="status-message">Waiting...</span>
                             </div>
                         </div>
+                         <div class="progress-bar-container">
+                                <div class="progress-bar"></div>
+                            </div>
                     </div>
                 </div>
                 <div class="status-icon">
                     <span class="action-btn remove-file-btn" data-server-id="" title="Remove File">
-                    <img src="/chatzy/assets/iconsax/trash.svg" alt="t">
+                         <img src="/chatzy/assets/iconsax/trash.svg" alt="t">
                     </span>
-                    <span class="action-btn retry-upload-btn" title="Retry">🔄</span>
-                    <span class="action-btn cancel-upload-btn" title="Cancel">❌</span>
+                    <span class="action-btn retry-upload-btn" title="Retry">
+                        <i class="iconsax" data-icon="refresh-2" aria-hidden="true"></i>
+                    </span>
+                    <span class="action-btn cancel-upload-btn" title="Cancel">
+                        <i class="iconsax" data-icon="close-circle" aria-hidden="true"></i>
+                    </span>
                 </div>
             </div>`;
 
         $('#filePreviewContainer').append(previewHtml);
-        checkPreviewContainerVisibility(); // Check visibility after adding
-
-        if (typeof init_iconsax === 'function') {
-            init_iconsax();
-        }
+        checkPreviewContainerVisibility();
+        if (typeof init_iconsax === 'function') init_iconsax();
     }
 
-    function updateFileStatus(elementId, statusText, isError = false, serverFileId = null, inProgress = false) {
+    function updateFileStatus(elementId, statusText, isError = false, serverFileId = null, inProgress = false, progressPercent = 0) {
         const item = $('#' + elementId);
         item.find('.status-message').text(statusText);
-        item.find('.spinner').toggle(inProgress);
+
+        const progressBarContainer = item.find('.progress-bar-container');
+        const progressBar = item.find('.progress-bar');
+        const statusTextContainer = item.find('.status-text');
+
+        if (inProgress) {
+            statusTextContainer.show();
+            progressBarContainer.show();
+            progressBar.css('width', progressPercent + '%');
+        } else {
+            progressBarContainer.hide();
+        }
 
         const removeButton = item.find('.remove-file-btn');
         const retryButton = item.find('.retry-upload-btn');
@@ -202,10 +260,12 @@
 
         if (serverFileId) {
             removeButton.attr('data-server-id', serverFileId).show();
+            item.removeClass('upload-error');
         } else if (isError) {
             retryButton.show();
-            cancelButton.show();
-        } else if(inProgress) {
+            removeButton.show(); // Show remove as well, to just discard it
+            item.addClass('upload-error');
+        } else if (inProgress) {
             cancelButton.show();
         }
     }
@@ -214,6 +274,7 @@
         const item = $(this).closest('.file-preview-item');
         const fileObject = item.data('fileObject');
         if (fileObject) {
+            item.removeClass('upload-error');
             processFile(fileObject, item.attr('id'));
         }
     });
@@ -221,10 +282,16 @@
     function handleRemoveFile(button) {
         const $button = $(button);
         const item = $button.closest('.file-preview-item');
-        const serverIdToRemove = $button.data('server-id').toString();
-        const isExistingFile = $button.data('is-existing') === true; // تشخیص فایل قدیمی
+        const elementId = item.attr('id');
 
-        // پاک کردن پیش‌نمایش از DOM
+        // Cancel any ongoing upload for this item
+        if (activeUploads[elementId]) {
+            activeUploads[elementId].abort();
+        }
+
+        const serverIdToRemove = $button.data('server-id')?.toString();
+        const isExistingFile = $button.data('is-existing') === true;
+
         const img = item.find('img.file-thumbnail');
         if (img.length && img.attr('src').startsWith('blob:')) {
             URL.revokeObjectURL(img.attr('src'));
@@ -236,34 +303,19 @@
             checkPreviewContainerVisibility();
         }, 400);
 
-        // اگر فایلی برای حذف وجود داشت
         if (serverIdToRemove) {
-            // اگر این یک فایل قدیمی از حالت ویرایش بود
             if (isExistingFile) {
-                // شناسه آن را به لیست حذفی‌ها اضافه کن
                 addFileIdToHiddenInput(serverIdToRemove, '#deletUploadedFileIds');
-            }
-            // اگر یک فایل جدید بود که در همین session آپلود شده
-            else {
-                // شناسه آن را از لیست آپلود شده‌ها حذف کن
+            } else {
                 removeFileIdFromHiddenInput(serverIdToRemove, '#uploadedFileIds');
-
-                // و درخواست حذف آن را به سرور بفرست
+                // Send delete request to the server for the already uploaded file
                 $.ajax({
                     url: '/Home/DeleteFile',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ fileId: serverIdToRemove }),
-                    success: function (response) {
-                        if (response.success) {
-                            console.log('File successfully deleted from server.');
-                        } else {
-                            alert('Error deleting file from server: ' + response.message);
-                        }
-                    },
-                    error: function () {
-                        alert('Connection error while deleting file from server.');
-                    }
+                    success: (response) => console.log(response.success ? 'File successfully deleted.' : 'Error deleting file.'),
+                    error: () => alert('Connection error while deleting file.')
                 });
             }
         }
@@ -274,6 +326,7 @@
     });
 
     $(document).on('click', '.cancel-upload-btn', function () {
+        // This button now specifically cancels and then removes.
         handleRemoveFile(this);
     });
 
@@ -296,7 +349,6 @@
     // actionEditMessage
     $(document).off('click', '.actionEditMessage').on('click', '.actionEditMessage', function (e) {
         e.preventDefault();
-
         const messageBlock = $(this).closest('.message');
         const messageId = messageBlock.data('message-id');
         const messageDetailsStr = messageBlock.attr('data-message-details');
@@ -311,77 +363,51 @@
             const hasText = messageDetails.messageText && messageDetails.messageText.trim() !== '';
             const hasFiles = messageDetails.messageFiles && messageDetails.messageFiles.length > 0;
 
-            // جلوگیری از ویرایش پیام صوتی ضبط شده
-            if (!hasText && hasFiles) {
-                if (messageDetails.messageFiles.some(f => (f.fileName || '').toLowerCase().endsWith('.webm'))) {
-                    alert('امکان ویرایش پیام‌های صوتی ضبط شده وجود ندارد.');
-                    return;
-                }
+            if (!hasText && hasFiles && messageDetails.messageFiles.some(f => (f.fileName || '').toLowerCase().endsWith('.webm'))) {
+                alert('امکان ویرایش پیام‌های صوتی ضبط شده وجود ندارد.');
+                return;
             }
 
-            resetInputState(); // پاک‌سازی فرم
-
-            // تنظیم حالت ویرایش
+            resetInputState();
             $('#message-action-type').val('edit');
             $('#message-context-id').val(messageId);
             $('#cancel-edit-container').removeClass('force-hide');
 
-            // پر کردن متن پیام
             const textarea = $('#message-input');
             const text = (messageDetails.messageText || '').replace(/<br\s*\/?>/gi, '\n');
             textarea.val(text).trigger('input');
             textarea.focus();
 
-            // **استفاده از توابع جدید برای نمایش فایل‌ها**
             if (hasFiles) {
                 const previousFileIds = messageDetails.messageFiles.map(f => f.messageFileId);
-
-                // برای هر فایل، از تابع جدید در fileManagement.js استفاده کن
-                messageDetails.messageFiles.forEach(file => {
-                    // **این تابع باید در scope گلوبال در دسترس باشد**
-                    if (typeof addExistingFileToPreview === 'function') {
-                        addExistingFileToPreview(file);
-                    } else {
-                        console.error('Function addExistingFileToPreview not found!');
-                    }
-                });
-
-                // ذخیره شناسه‌ها در فیلد مخفی
+                messageDetails.messageFiles.forEach(addExistingFileToPreview);
                 $('#previousFileIds').val(previousFileIds.join(','));
             }
-
         } catch (err) {
-            console.error("خطا در خواندن اطلاعات پیام برای ویرایش.", err);
+            console.error("Error parsing message details for edit.", err);
             alert('خطا در پردازش اطلاعات پیام.');
         }
     });
 
-    // رویداد کلیک برای دکمه لغو پاسخ
     $(document).off('click', '#cancel-reply').on('click', '#cancel-reply', function () {
         resetInputState();
     });
 
-    // تابع برای ریست کردن حالت ورودی
     function resetInputState() {
-        console.log('resetInputState');
+        // Abort all active uploads
+        Object.values(activeUploads).forEach(xhr => xhr.abort());
+        activeUploads = {};
 
-        // مخفی کردن کانتینر پاسخ و کانتینر انصراف از ویرایش
         $('#reply-to-container').hide();
         $('#cancel-edit-container').addClass('force-hide');
-        // خالی کردن فیلدهای مخفی وضعیت
         $('#message-context-id').val('');
         $('#message-action-type').val('');
-
-        // خالی کردن ورودی متن
-        $('#message-input').val('');
-        $('#message-input').attr('rows', 1);
-
-        // پاک کردن کامل پیش‌نمایش فایل‌ها و شناسه‌های آنها
+        $('#message-input').val('').attr('rows', 1);
         $('#filePreviewContainer').empty();
         $('#uploadedFileIds').val('');
         $('#previousFileIds').val('');
         $('#deletUploadedFileIds').val('');
-
+        checkPreviewContainerVisibility();
     }
 
     // =========================================================================
@@ -389,96 +415,29 @@
     // =========================================================================
 
     $(document).on('click', '.btn-download-file', function (e) {
-    e.preventDefault();
-    e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
 
-    const $button = $(this);
-    const fileId = $button.data('file-id');
-    const originalFileName = $button.data('file-originalname') || `file-${fileId}`;
-    const $icon = $button.find('img');
-    const $spinner = $('<span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span>');
+        const $button = $(this);
+        const fileId = $button.data('file-id');
+        if (!fileId) return;
 
-    if (!fileId) {
-        console.error('File ID not found.');
-        return;
-    }
+        const $icon = $button.find('img, i');
+        const $spinner = $('<span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span>');
 
-    // نمایش اسپینر
-    $icon.hide();
-    $button.append($spinner);
+        $icon.hide();
+        $button.append($spinner);
 
-    const apiUrl = `/api/chat/downloadFileById?fileId=${fileId}`;
+        const apiUrl = `/api/chat/downloadFileById?fileId=${fileId}`;
+        const downloadWindow = window.open(apiUrl, '_blank');
 
-    // برای اینکه دانلود در مرورگر انجام شود، از window.open استفاده می‌کنیم
-    const downloadWindow = window.open(apiUrl, '_blank');
+        if (!downloadWindow) {
+            alert('Please allow popups for this website to download the file.');
+        }
 
-    // اگر مرورگر اجازه باز کردن پاپ‌آپ ندهد:
-    if (!downloadWindow) {
-        alert('Please allow popups for this website to download the file.');
-    }
-
-    // بازگرداندن وضعیت دکمه پس از چند ثانیه
-    setTimeout(() => {
-        $spinner.remove();
-        $icon.show();
-    }, 2000);
-});
-
-
-    //$(document).on('click', '.btn-download-file', async function (e) {
-    //    console.log('btn-download-file')
-    //    e.stopPropagation();
-    //    const $icon = $(this);
-    //    const $button = $icon.closest('.btn-download-file');
-    //    const fileId = $button.data('file-id');
-    //    const originalFileName = $button.data('file-originalname');
-
-    //    if (!fileId) {
-    //        console.error('File ID not found.');
-    //        return;
-    //    }
-
-    //    const $spinnerIcon = $button.find('.spinner-icon');
-    //    const apiUrl = '/api/chat/downloadFileById';
-
-    //    $icon.hide();
-    //    $spinnerIcon.show();
-
-    //    try {
-    //        const response = await fetch(apiUrl, {
-    //            method: 'POST',
-    //            headers: { 'Content-Type': 'application/json' },
-    //            body: JSON.stringify({ FileId: fileId })
-    //        });
-
-    //        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-
-    //        const blob = await response.blob();
-    //        const blobUrl = window.URL.createObjectURL(blob);
-    //        const link = document.createElement('a');
-    //        link.href = blobUrl;
-
-    //        let filename = originalFileName || `file-${fileId}`;
-    //        const contentDisposition = response.headers.get('Content-Disposition');
-    //        if (contentDisposition) {
-    //            const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-    //            if (filenameMatch && filenameMatch[1]) {
-    //                filename = filenameMatch[1];
-    //            }
-    //        }
-    //        link.setAttribute('download', filename);
-    //        document.body.appendChild(link);
-    //        link.click();
-    //        link.remove();
-    //        window.URL.revokeObjectURL(blobUrl);
-
-    //    } catch (error) {
-    //        console.error('File download failed:', error);
-    //        alert('Error downloading file. Please try again.');
-    //    } finally {
-    //        $spinnerIcon.hide();
-    //        $icon.show();
-    //    }
-    //});
-        
+        setTimeout(() => {
+            $spinner.remove();
+            $icon.show();
+        }, 2000);
+    });
 });
