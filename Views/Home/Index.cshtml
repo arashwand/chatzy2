@@ -154,15 +154,12 @@
              $.ajax({
                  url: '/Home/GetChatMembers',
                  type: 'GET',
-                 data:{chatId : chatId, groupType : groupType},
+                 data: { chatId: chatId, groupType: groupType },
                  success: function (data) {
-                    $('#chat-members-modal-body').html(data);
-                    var modal = new bootstrap.Modal(document.getElementById('chat-members-modal'));
-                    modal.show();
-                    console.log("Class group members loaded into modal");
-                    if (window.chatApp && typeof window.chatApp.loadAndDisplayOnlineUsers === 'function') {
-                        window.chatApp.loadAndDisplayOnlineUsers(chatId, groupType);
-                    }
+                     $('#group-info-panel').html(data).addClass('visible');
+                     if (typeof init_iconsax === 'function') {
+                         init_iconsax();
+                     }
                  },
                  error: function (error) {
                      console.error("Error fetching chat members:", error);
@@ -170,6 +167,15 @@
              });
         }
 
+        // When closing the group info panel to go back to the chat
+        $(document).on('click', '#close-group-info-panel-btn', function (e) {
+            e.preventDefault();
+            $('#group-info-panel').removeClass('visible');
+            // Optional: clear content after animation
+            setTimeout(function () {
+                $('#group-info-panel').html('');
+            }, 300);
+        });
 
     </script>
 }
