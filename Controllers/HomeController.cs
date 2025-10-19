@@ -67,9 +67,9 @@ namespace Messenger.WebApp.Controllers
 
             var user = await _userService.GetUserByIdAsync(userId);
 
-            if (user !=null)
+            if (user != null)
             {
-                if (user.NameFamily !=null && user.NameFamily != "")
+                if (user.NameFamily != null && user.NameFamily != "")
                 {
                     ViewData["userProfilePic"] = user.ProfilePicName;
                 }
@@ -485,6 +485,13 @@ namespace Messenger.WebApp.Controllers
                 AllowedDocs = allowedExtensions,
                 AllowedAudios = allowedAudioExtentions
             });
+        }
+
+
+        [HttpGet]
+        public IActionResult GetBaseURL()
+        {
+            return Ok(new { baseUrl = _baseUrl });
         }
 
     }

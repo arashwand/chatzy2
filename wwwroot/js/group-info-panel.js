@@ -1,8 +1,11 @@
-// =========================================================================
+﻿// =========================================================================
 //                  Group Shared Files Modal Management
 // =========================================================================
 
 $(document).ready(function () {
+
+    let _baseUrl = "https://localhost:7040";
+    getBaseUrl();
 
     const groupFilesModal = new bootstrap.Modal(document.getElementById('groupFilesModal'));
     const modalElement = $('#groupFilesModal');
@@ -12,16 +15,18 @@ $(document).ready(function () {
     // --- Event Listener for Opening the Modal ---
     $(document).on('click', 'a[data-bs-target="#groupFilesModal"]', function () {
         const tab = $(this).data('tab');
-
+        console.log('click on tag a and tab called')
+        currentChatId = $('#current-group-id-hidden-input').val();
+        currentGroupType = $('#current-group-type-hidden-input').val();
         // Get chatId and groupType from the active chat window context
-        const activeChat = $('.chat-list-item.active');
-        if (activeChat.length === 0) {
-            console.error("Could not determine active chat.");
-            // Optionally, show an error to the user.
-            return;
-        }
-        currentChatId = activeChat.data('chat-id');
-        currentGroupType = activeChat.data('group-type');
+        //const activeChat = $('.chat-list-item.active');
+        //if (activeChat.length === 0) {
+        //    console.error("Could not determine active chat. and chatId: " + chatId + 'and group type: ' + groupType;);
+        //    // Optionally, show an error to the user.
+        //    return;
+        //}
+        //currentChatId = activeChat.data('chat-id');
+        //currentGroupType = activeChat.data('group-type');
 
         if (!currentChatId || !currentGroupType) {
             console.error("Active chat is missing data-chat-id or data-group-type.");
@@ -37,8 +42,25 @@ $(document).ready(function () {
         fetchAndDisplaySharedContent();
     });
 
+    function getBaseUrl() {
+        fetch('/Home/GetBaseURL')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch baseUrl');
+                }
+                return response.json();
+            })
+            .then(data => {
+                _baseUrl = data.baseUrl;
+                console.log('_baseUrl is: ' + _baseUrl);
+            })
+            .catch(error => console.error('Error fetching baseUrl:', error));
+    }
+
+
     // --- Function to Fetch Data from Server ---
     function fetchAndDisplaySharedContent() {
+        console.log('fetchAndDisplaySharedContent called');
         const spinner = modalElement.find('.spinner-container');
         const noFilesMessage = modalElement.find('.no-files-message');
         const tabPanes = modalElement.find('.tab-pane');
@@ -93,8 +115,8 @@ $(document).ready(function () {
             const template = $('#media-file-template').html();
             files.forEach(file => {
                 const item = $(template);
-                const thumbnailUrl = file.fileThumbPath ? `/${file.fileThumbPath}` : `/${file.filePath}`;
-                item.find('.file-preview-link').attr('href', `/${file.filePath}`);
+                const thumbnailUrl = file.fileThumbPath ? `${_baseUrl}/${file.fileThumbPath}` : `/${file.filePath}`;
+                //item.find('.file-preview-link').attr('href', `/${file.filePath}`);
                 item.find('.file-thumbnail').attr('src', thumbnailUrl);
                 item.find('.file-name').text(file.fileName);
                 item.find('.file-size').text(formatFileSize(file.fileSize));
@@ -102,7 +124,7 @@ $(document).ready(function () {
                 container.append(item);
             });
         } else {
-             container.html('<div class="col-12 text-center p-4"><p>No media files found.</p></div>');
+            container.html('<div class="col-12 text-center p-4"><p>No media files found.</p></div>');
         }
     }
 

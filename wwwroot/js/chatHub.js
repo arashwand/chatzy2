@@ -712,7 +712,7 @@ window.chatApp = (function ($) {
         if (memberStatusElement.length > 0) {
             // Add or remove the 'online' class based on the status
             memberStatusElement.toggleClass('online', isOnline);
-            console.log(`User ${userId} status updated to: ${isOnline ? 'Online' : 'Offline'}`);
+            //console.log(`User ${userId} status updated to: ${isOnline ? 'Online' : 'Offline'}`);
 
             // پیدا کردن h6 مربوطه در همان parent
             const statusTextElement = memberStatusElement.closest('.member-details').find('.status-online');
@@ -724,7 +724,7 @@ window.chatApp = (function ($) {
 
             statusTextElement.html(`${newText} <img src="${newIcon}" alt="status-icon">`);
 
-            console.log(`User ${userId} status updated to: ${newText}`);
+           // console.log(`User ${userId} status updated to: ${newText}`);
         }
     }
 
