@@ -393,7 +393,20 @@
     </div>
     <!-- friend story modal end -->
 
-    <partial name="_GroupFilesModal" />
+   @*  <partial name="_GroupFilesModal" /> *@
+    <div class="modal fade" id="groupFilesModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="groupFilesModalLabel">Group Shared Files</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @* این بخش توسط AJAX پر خواهد شد *@
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Placeholder Modal for Future Features -->
     <div class="modal fade" id="feature-placeholder-modal" tabindex="-1" aria-labelledby="featurePlaceholderModalLabel" aria-hidden="true">

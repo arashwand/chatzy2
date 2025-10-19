@@ -724,7 +724,7 @@ window.chatApp = (function ($) {
 
             statusTextElement.html(`${newText} <img src="${newIcon}" alt="status-icon">`);
 
-           // console.log(`User ${userId} status updated to: ${newText}`);
+            console.log(`User ${userId} status updated to: ${newText}`);
         }
     }
 

@@ -9,13 +9,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
+using System.Net.Http;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Messenger.WebApp.Controllers
 {
     [Authorize]
     public class HomeController : Controller
     {
+        private readonly HttpClient _httpClient;
         private readonly ILogger<HomeController> _logger;
         private readonly IUserServiceClient _redisUserService;
         private readonly IClassGroupServiceClient _classGroupServiceClient;
@@ -37,7 +40,7 @@ namespace Messenger.WebApp.Controllers
             IClassGroupServiceClient classGroupServiceClient, IMessageServiceClient messageService,
             IFileManagementServiceClient fileManagementServiceClient, IChannelServiceClient channelServiceClient,
             IUserServiceClient userServiceClient, IOptions<ApiSettings> apiSettings,
-            IOptions<FileConfigSetting> fileConfigSettings, IManageUserServiceClient manageUserServiceClient)
+            IOptions<FileConfigSetting> fileConfigSettings, IManageUserServiceClient manageUserServiceClient, HttpClient httpClient)
         {
             _logger = logger;
             _redisUserService = redisUserServiceClient;
@@ -51,6 +54,7 @@ namespace Messenger.WebApp.Controllers
             _allowedDocExtentions = fileConfigSettings.Value.AllowedExtensions;
             _allowedAudioExtentions = fileConfigSettings.Value.AllowedAudioExtentions;
             _manageUserServiceClient = manageUserServiceClient;
+            _httpClient = httpClient;
         }
 
         public async Task<IActionResult> Index()
@@ -492,6 +496,49 @@ namespace Messenger.WebApp.Controllers
         public IActionResult GetBaseURL()
         {
             return Ok(new { baseUrl = _baseUrl });
+        }
+
+        //[HttpGet("GetGroupSharedFilesPartial")]
+        public async Task<IActionResult> GetGroupSharedFilesPartial(int chatId, string groupType, string activeTab = "media-tab")
+        {
+            if (chatId <= 0 || string.IsNullOrEmpty(groupType))
+                return BadRequest("Invalid chat ID or group type.");
+
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+                return Unauthorized("Auth token not found.");
+
+            try
+            {
+                var url = $"{_baseUrl}api/FileManagement/GetSharedFiles?chatId={chatId}&groupType={groupType}";
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
+                requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                using var response = await _httpClient.SendAsync(requestMessage);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    // اگر سرویس با خطا مواجه شد، یک پیام مناسب در Partial View نمایش می‌دهیم
+                    return PartialView("_GroupFilesSharedContent", new SharedContentDto());
+                }
+
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                // Deserialize کردن JSON به ViewModel
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var viewModel = JsonSerializer.Deserialize<SharedContentDto>(responseBody, options);
+
+                viewModel.ActiveTab = activeTab;
+                viewModel.BaseUrl = _baseUrl;
+
+                // بازگرداندن Partial View به همراه مدل
+                return PartialView("_GroupFilesSharedContent", viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting shared files for chatId {ChatId}", chatId);
+                return StatusCode(500, "Internal server error while getting shared files.");
+            }
         }
 
     }
