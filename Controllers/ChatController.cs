@@ -314,6 +314,232 @@ namespace Messenger.WebApp.Controllers
                 return StatusCode(500, "Internal server error while forwarding the file chunk.");
             }
         }
+
+        [HttpGet("getGroupSharedFiles")]
+        public async Task<IActionResult> GetGroupSharedFiles([FromQuery] int chatId, [FromQuery] string groupType)
+        {
+            if (chatId <= 0 || string.IsNullOrEmpty(groupType))
+                return BadRequest("Invalid chat ID or group type.");
+
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+                return Unauthorized("Auth token not found.");
+
+            try
+            {
+                var url = $"{_baseUrl}/api/FileManagement/GetSharedFiles?chatId={chatId}&groupType={groupType}";
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
+                requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                using var response = await _httpClient.SendAsync(requestMessage);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                return new ContentResult
+                {
+                    Content = responseBody,
+                    ContentType = response.Content.Headers.ContentType?.ToString(),
+                    StatusCode = (int)response.StatusCode
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting shared files for chatId {ChatId}", chatId);
+                return StatusCode(500, "Internal server error while getting shared files.");
+            }
+        }
     }
 }
+
+/*
+ =======================================================================================================================
+                                    WEBSERVICE LAYER CODE (For Reference)
+ =======================================================================================================================
+
+-------------------------------------------------
+-- 1. DTOs (Data Transfer Objects)
+-------------------------------------------------
+
+// In your DTOs project/folder
+public class SharedFileDto
+{
+    public long MessageFileId { get; set; }
+    public string FileName { get; set; }
+    public string FilePath { get; set; }
+    public string FileThumbPath { get; set; }
+    public long FileSize { get; set; }
+    public string FileType { get; set; } // "media", "document"
+    public DateTime SentAt { get; set; }
+}
+
+public class SharedLinkDto
+{
+    public long MessageId { get; set; }
+    public string LinkUrl { get; set; }
+    public DateTime SentAt { get; set; }
+}
+
+public class SharedContentDto
+{
+    public List<SharedFileDto> MediaFiles { get; set; } = new List<SharedFileDto>();
+    public List<SharedFileDto> DocumentFiles { get; set; } = new List<SharedFileDto>();
+    public List<SharedLinkDto> Links { get; set; } = new List<SharedLinkDto>();
+}
+
+
+-------------------------------------------------
+-- 2. IFileManagementService (Interface)
+-------------------------------------------------
+
+// In your Services/Interfaces project/folder
+public interface IFileManagementService
+{
+    // ... other methods
+    Task<SharedContentDto> GetSharedContentForChatAsync(int chatId, string groupType);
+}
+
+
+-------------------------------------------------
+-- 3. FileManagementService (Implementation)
+-------------------------------------------------
+
+// In your Services project/folder
+public class FileManagementService : IFileManagementService
+{
+    private readonly YourDbContext _context; // Replace with your actual DbContext
+
+    public FileManagementService(YourDbContext context)
+    {
+        _context = context;
+    }
+
+    // ... other method implementations
+
+    public async Task<SharedContentDto> GetSharedContentForChatAsync(int chatId, string groupType)
+    {
+        var sharedContent = new SharedContentDto();
+
+        // Define allowed extensions for media and documents
+        var mediaExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".mp4", ".mov", ".avi", ".webm", ".mp3", ".wav", ".ogg" };
+        var docExtensions = new[] { ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".zip", ".rar" };
+
+        // Determine the message query based on group type
+        IQueryable<Message> messagesQuery;
+        if (groupType.Equals("ClassGroup", StringComparison.OrdinalIgnoreCase))
+        {
+            messagesQuery = _context.Messages.Where(m => m.ClassGroupId == chatId);
+        }
+        else if (groupType.Equals("Channel", StringComparison.OrdinalIgnoreCase))
+        {
+            messagesQuery = _context.Messages.Where(m => m.ChannelId == chatId);
+        }
+        else
+        {
+            return sharedContent; // Or throw an exception for invalid groupType
+        }
+
+        // Fetch files
+        var files = await messagesQuery
+            .SelectMany(m => m.MessageFiles)
+            .Where(f => f.IsDeleted == false)
+            .OrderByDescending(f => f.Message.MessageDateTime)
+            .Select(f => new SharedFileDto
+            {
+                MessageFileId = f.MessageFileId,
+                FileName = f.FileName,
+                FilePath = f.FilePath,
+                FileThumbPath = f.FileThumbPath,
+                FileSize = f.FileSize,
+                SentAt = f.Message.MessageDateTime
+            })
+            .ToListAsync();
+
+        // Categorize files
+        foreach (var file in files)
+        {
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (mediaExtensions.Contains(extension))
+            {
+                file.FileType = "media";
+                sharedContent.MediaFiles.Add(file);
+            }
+            else if (docExtensions.Contains(extension))
+            {
+                file.FileType = "document";
+                sharedContent.DocumentFiles.Add(file);
+            }
+        }
+
+        // Fetch links
+        var links = await messagesQuery
+            .Where(m => m.MessageText.MessageTxt.Contains("http://") || m.MessageText.MessageTxt.Contains("https://"))
+            .OrderByDescending(m => m.MessageDateTime)
+            .Select(m => new
+            {
+                m.MessageId,
+                m.MessageText.MessageTxt,
+                m.MessageDateTime
+            })
+            .ToListAsync();
+
+        // Extract links from message text (a simple regex can do this)
+        var urlRegex = new Regex(@"(https?:\/\/[^\s]+)");
+        foreach (var message in links)
+        {
+            var matches = urlRegex.Matches(message.MessageTxt);
+            foreach (Match match in matches)
+            {
+                sharedContent.Links.Add(new SharedLinkDto
+                {
+                    MessageId = message.MessageId,
+                    LinkUrl = match.Value,
+                    SentAt = message.MessageDateTime
+                });
+            }
+        }
+
+        return sharedContent;
+    }
+}
+
+
+-------------------------------------------------
+-- 4. FileManagementController (API Controller)
+-------------------------------------------------
+
+// In your Controllers project/folder
+[Authorize]
+[Route("api/[controller]")]
+[ApiController]
+public class FileManagementController : ControllerBase
+{
+    private readonly IFileManagementService _fileManagementService;
+    private readonly ILogger<FileManagementController> _logger;
+
+    public FileManagementController(IFileManagementService fileManagementService, ILogger<FileManagementController> logger)
+    {
+        _fileManagementService = fileManagementService;
+        _logger = logger;
+    }
+
+    // ... other actions
+
+    [HttpGet("GetSharedFiles")]
+    public async Task<IActionResult> GetSharedFiles([FromQuery] int chatId, [FromQuery] string groupType)
+    {
+        if (chatId <= 0 || string.IsNullOrEmpty(groupType))
+            return BadRequest("Valid Chat ID and Group Type are required.");
+
+        try
+        {
+            var sharedContent = await _fileManagementService.GetSharedContentForChatAsync(chatId, groupType);
+            return Ok(sharedContent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching shared content for chat {ChatId} of type {GroupType}", chatId, groupType);
+            return StatusCode(500, "An internal error occurred while fetching shared content.");
+        }
+    }
+}
+*/
 

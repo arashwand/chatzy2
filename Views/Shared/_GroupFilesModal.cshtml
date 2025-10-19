@@ -1,0 +1,102 @@
+@*
+    This file defines the modal for displaying group files.
+    It includes three tabs for media, documents, and links.
+    Client-side script will handle fetching data and populating the tabs.
+*@
+
+<div class="modal fade" id="groupFilesModal" tabindex="-1" aria-labelledby="groupFilesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="groupFilesModalLabel">Group Shared Files</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="groupFilesTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="media-tab" data-bs-toggle="tab" data-bs-target="#media-tab-pane" type="button" role="tab" aria-controls="media-tab-pane" aria-selected="true">Media</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="docs-tab" data-bs-toggle="tab" data-bs-target="#docs-tab-pane" type="button" role="tab" aria-controls="docs-tab-pane" aria-selected="false">Documents</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="links-tab" data-bs-toggle="tab" data-bs-target="#links-tab-pane" type="button" role="tab" aria-controls="links-tab-pane" aria-selected="false">Links</button>
+                    </li>
+                </ul>
+                <div class="tab-content pt-3" id="groupFilesTabContent">
+                    <div class="text-center p-5 spinner-container">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="media-tab-pane" role="tabpanel" aria-labelledby="media-tab">
+                        <div class="row g-3 files-container">
+                            @* Media files will be dynamically inserted here *@
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="docs-tab-pane" role="tabpanel" aria-labelledby="docs-tab">
+                        <ul class="list-group list-group-flush files-container">
+                            @* Document files will be dynamically inserted here *@
+                        </ul>
+                    </div>
+                    <div class="tab-pane fade" id="links-tab-pane" role="tabpanel" aria-labelledby="links-tab">
+                         <ul class="list-group list-group-flush files-container">
+                            @* Links will be dynamically inserted here *@
+                        </ul>
+                    </div>
+                    <div class="text-center p-5 no-files-message" style="display: none;">
+                        <p>No files found in this category.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Templates for dynamic content -->
+<template id="media-file-template">
+    <div class="col-4">
+        <div class="card file-card h-100">
+            <a href="#" class="file-preview-link" target="_blank">
+                <img src="" class="card-img-top file-thumbnail" alt="File preview">
+            </a>
+            <div class="card-body">
+                <h6 class="card-title file-name text-truncate"></h6>
+                <p class="card-text text-muted file-size"></p>
+            </div>
+            <div class="card-footer">
+                <a href="#" class="btn btn-sm btn-outline-primary btn-download-file w-100" data-file-id="">
+                    <i class="iconsax" data-icon="document-download"></i> Download
+                </a>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="doc-file-template">
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <div class="file-icon-sm me-3">
+                 <i class="iconsax" data-icon="document-text-1"></i>
+            </div>
+            <div>
+                <div class="file-name fw-bold"></div>
+                <div class="file-size text-muted small"></div>
+            </div>
+        </div>
+        <a href="#" class="btn btn-sm btn-outline-primary btn-download-file" data-file-id="">
+            <i class="iconsax" data-icon="document-download"></i> Download
+        </a>
+    </li>
+</template>
+
+<template id="link-template">
+     <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+             <div class="file-icon-sm me-3">
+                 <i class="iconsax" data-icon="link"></i>
+            </div>
+            <a href="#" class="link-url text-truncate" target="_blank"></a>
+        </div>
+    </li>
+</template>
