@@ -160,6 +160,10 @@
                      if (typeof init_iconsax === 'function') {
                          init_iconsax();
                      }
+                     // After the panel is visible, load the online status for members
+                     if (window.chatApp && typeof window.chatApp.loadAndDisplayOnlineUsers === 'function') {
+                         window.chatApp.loadAndDisplayOnlineUsers(chatId, groupType);
+                     }
                  },
                  error: function (error) {
                      console.error("Error fetching chat members:", error);

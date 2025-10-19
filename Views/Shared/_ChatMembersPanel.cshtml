@@ -67,31 +67,25 @@
         <div class="file-part">
             <ul class="file-list">
                 <li>
-                    <a href="group-file.html">
-                        <h5>Media Files (12)</h5>
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#feature-placeholder-modal">
+                        <h5>Media Files (@Model.MediaFilesCount)</h5>
                         <i class="iconsax icon" data-icon="chevron-right"></i>
                     </a>
                 </li>
                 <li>
-                    <a href="group-file.html">
-                        <h5>Document Files (12)</h5>
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#feature-placeholder-modal">
+                        <h5>Document Files (@Model.DocumentFilesCount)</h5>
                         <i class="iconsax icon" data-icon="chevron-right"></i>
                     </a>
                 </li>
                 <li>
-                    <a href="group-file.html">
-                        <h5>Link Files (12)</h5>
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#feature-placeholder-modal">
+                        <h5>Link Files (@Model.LinkFilesCount)</h5>
                         <i class="iconsax icon" data-icon="chevron-right"></i>
                     </a>
                 </li>
             </ul>
         </div>
-
-       @*  <div class="group-details">
-            <h6>Group Details :</h6>
-            <p>@Model.GroupDescription</p>
-        </div> *@
-
         <div class="members-part">
             <div class="member-title">
                 <h5>Total People</h5>
@@ -103,7 +97,7 @@
                     <li>
                         <div class="member-box">
                             <div class="member-details">
-                                <div class="position-relative">
+                                <div class="position-relative chat-list-image" id="member-status-@member.UserId">
                                     <img class="img-fluid img position-relative" src="@member.ImagePath" alt="p1">
                                     @if (member.IsAdmin)
                                     {

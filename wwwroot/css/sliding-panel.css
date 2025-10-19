@@ -28,6 +28,19 @@
     transform: translateX(0); /* Slide in to the center */
 }
 
+/* Style for online status indicator */
+.chat-list-image.online::after {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    top: 2px;
+    left: 2px;
+    background-color: #01AA85; /* Using a direct color, assuming --success-color might not be available here */
+    border: 2px solid #FFFFFF; /* Assuming --white */
+    border-radius: 100%;
+}
+
 /* --- Child element adjustments for scrolling --- */
 
 /* The header from _ChatMessageBody.cshtml */
