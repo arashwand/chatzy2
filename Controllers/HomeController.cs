@@ -266,8 +266,8 @@ namespace Messenger.WebApp.Controllers
                 var group = await _classGroupServiceClient.GetClassGroupByIdAsync(chatId);
                 if (group != null)
                 {
-                    name = group.Name;
-                    description = group.Description;
+                    name = group.LevelName;
+                    description = group.ClassTiming;//.Description;
                 }
             }
             else
@@ -275,8 +275,8 @@ namespace Messenger.WebApp.Controllers
                 var channel = await _channelServiceClient.GetChannelByIdAsync(chatId);
                 if (channel != null)
                 {
-                    name = channel.Name;
-                    description = channel.Description;
+                    name = channel.ChannelName;
+                    description = channel.ChannelTitle;
                 }
             }
 
@@ -319,8 +319,9 @@ namespace Messenger.WebApp.Controllers
                 UserId = m.UserId,
                 FullName = m.NameFamily,
                 Status = "Offline", // Default status, will be updated by SignalR on the client
-                ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/assets/media/avatar/UserIcon.png" : $"{_baseUrl}/{m.ProfilePicName}",
-                IsAdmin = m.IsAdmin
+                //ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/assets/media/avatar/UserIcon.png" : $"{_baseUrl}/{m.ProfilePicName}",
+                ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/assets/media/avatar/UserIcon.png" : $"/{m.ProfilePicName}",
+                RoleName = false//m.IsAdmin
             }).ToList();
 
             var viewModel = new ChatMembersViewModel

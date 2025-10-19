@@ -141,6 +141,15 @@ namespace Messenger.WebApp.ServiceHelper
             return await response.Content.ReadFromJsonAsync<FileRenameResult>();
         }
 
-
+        public async Task<FileCountsDto> GetFileCountsForChatAsync(int chatId, string groupType)
+        {
+            var result =  new FileCountsDto()
+            {
+                DocumentCount=1,
+                MediaCount = 2,
+                LinkCount = 3
+            };
+            return result;
+        }
     }
 }

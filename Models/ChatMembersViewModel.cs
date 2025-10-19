@@ -13,9 +13,9 @@ namespace Messenger.WebApp.Models
     public class ChatMemberViewModel
     {
         public long UserId { get; set; }
-        public string FullName { get; set; }
+        public string? FullName { get; set; }
         public string Status { get; set; }
-        public string ImagePath { get; set; }
-        public bool IsAdmin { get; set; }
+        public string? ImagePath { get; set; }
+        public string? RoleName { get; set; }
     }
 }

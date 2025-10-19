@@ -1,3 +1,4 @@
+@using Messenger.Tools
 @model Messenger.WebApp.Models.ChatMembersViewModel
 
 <!-- header starts -->
@@ -32,7 +33,7 @@
 <section class="section-b-space">
     <div class="custom-container">
         
-        <ul class="group-feature-list">
+        @* <ul class="group-feature-list">
             <li>
                 <a href="group-invite-link.html" class="features">
                     <img class="img-fluid features-icon " src="assets/images/svg/connect.svg" alt="link">
@@ -57,10 +58,10 @@
                 </a>
                 <h5 class="error-color mt-2">Leave</h5>
             </li>
-        </ul>
+        </ul> *@
 
         <div class="group-details">
-            <h6>Group Details :</h6>
+            <h6>Group Details : @Model.GroupName</h6>
             <p>@Model.GroupDescription</p>
         </div>
 
@@ -98,15 +99,24 @@
                         <div class="member-box">
                             <div class="member-details">
                                 <div class="position-relative chat-list-image" id="member-status-@member.UserId">
-                                    <img class="img-fluid img position-relative" src="@member.ImagePath" alt="p1">
-                                    @if (member.IsAdmin)
+                                    <img class="img-fluid img position-relative" src="/assets/media/avatar/@member.ImagePath" alt="p1">
+                                    @if (member.RoleName == ConstRoles.Manager)
                                     {
-                                        <div class="admin-tag">GA</div>
+                                        <div class="admin-tag">M</div>
+                                    }
+                                    else if (member.RoleName == ConstRoles.Teacher)
+                                    {
+                                        <div class="admin-tag">T</div>
+                                    }
+                                    else if(member.RoleName == ConstRoles.Student)
+                                    {
+                                        <div class="admin-tag">S</div>
                                     }
                                 </div>
                                 <div>
                                     <h5>@member.FullName</h5>
-                                    <h6>@member.Status <img src="~/chatzy/assets/images/svg/smiling-eyes.svg" alt="status-icon"></h6>
+                                    <h6 class="status-online">@member.Status <img src="~/chatzy/assets/images/svg/smiling-eyes.svg" alt="status-icon"></h6>
+                                    @* <h6>member qoute : Happy Ever After </h6> *@
                                 </div>
                             </div>
                             @* TODO: Member options can be implemented later *@

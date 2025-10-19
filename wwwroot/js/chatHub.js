@@ -713,6 +713,18 @@ window.chatApp = (function ($) {
             // Add or remove the 'online' class based on the status
             memberStatusElement.toggleClass('online', isOnline);
             console.log(`User ${userId} status updated to: ${isOnline ? 'Online' : 'Offline'}`);
+
+            // پیدا کردن h6 مربوطه در همان parent
+            const statusTextElement = memberStatusElement.closest('.member-details').find('.status-online');
+
+            // تغییر متن و آیکن
+            const newText = isOnline ? 'Online' : 'Offline';
+            const newIcon = isOnline ? '/chatzy/assets/images/svg/smiling-eyes.svg'
+                : '/chatzy/assets/images/svg/smile.svg';
+
+            statusTextElement.html(`${newText} <img src="${newIcon}" alt="status-icon">`);
+
+            console.log(`User ${userId} status updated to: ${newText}`);
         }
     }
 
