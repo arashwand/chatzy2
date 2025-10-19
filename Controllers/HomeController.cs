@@ -321,7 +321,7 @@ namespace Messenger.WebApp.Controllers
                 Status = "Offline", // Default status, will be updated by SignalR on the client
                 //ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/assets/media/avatar/UserIcon.png" : $"{_baseUrl}/{m.ProfilePicName}",
                 ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/assets/media/avatar/UserIcon.png" : $"/{m.ProfilePicName}",
-                RoleName = false//m.IsAdmin
+                RoleName = m.RoleName//m.IsAdmin
             }).ToList();
 
             var viewModel = new ChatMembersViewModel
