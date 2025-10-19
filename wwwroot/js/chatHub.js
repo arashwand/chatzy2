@@ -705,12 +705,15 @@ window.chatApp = (function ($) {
 
 
     //*** وضعیت آنلاین/آفلاین یک کاربر را در UI به‌روز می‌کند
-    function updateUserStatusIcon(userId, isOnline, groupId, groupType) {
-        const selector = `.user-status-icon[data-user-id='${userId}'][data-group-id='${groupId}'][data-group-type='${groupType}']`;
-        const icon = $(selector);
-        if (icon.length === 0) return;
-        icon.toggleClass('avatar-online', isOnline).toggleClass('avatar-offline', !isOnline).attr('title', isOnline ? 'آنلاین' : 'آفلاین');
-        console.log('userid :' + userId + ' status isOnline:' + isOnline);
+    function updateUserStatusIcon(userId, isOnline) {
+        // Find the specific member's status container by the new ID
+        const memberStatusElement = $(`#member-status-${userId}`);
+
+        if (memberStatusElement.length > 0) {
+            // Add or remove the 'online' class based on the status
+            memberStatusElement.toggleClass('online', isOnline);
+            console.log(`User ${userId} status updated to: ${isOnline ? 'Online' : 'Offline'}`);
+        }
     }
 
     //*** نشانگر "در حال تایپ" را برای چندین کاربر به‌روز می‌کند.*/
@@ -1198,6 +1201,35 @@ window.chatApp = (function ($) {
             signalRConnection.on("AllUnreadMessagesSuccessfullyMarkedAsRead", handleAllUnreadMessageSuccessfullyMarkedAsRead);
             signalRConnection.on("UserDeleteMessage", handleDeleteMessage);
             signalRConnection.on("UserSaveMessage", handleUserSaveMessage);
+
+            signalRConnection.on("ReceiveVoiceMessageResult", function(data) {
+                console.log("ReceiveVoiceMessageResult received:", data);
+
+                if (data.success && data.recordingId === recordingId) {
+
+                    if (window.voiceUploadTimeout) {
+                        clearTimeout(window.voiceUploadTimeout);
+                        window.voiceUploadTimeout = null;
+                    }
+
+                    pendingVoiceFileId = data.fileId;
+
+                    if (window.lastRecordedBlob) {
+                        pendingVoiceUrl = URL.createObjectURL(window.lastRecordedBlob);
+                        pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
+                        addFileIdToHiddenInput(data.fileId, '#uploadedFileIds');
+
+                        isProcessing = false;
+                        updateChatInputUI('preview', {
+                            duration: data.duration,
+                            durationFormatted: data.durationFormatted
+                        });
+                    } else {
+                        console.error("Last recorded blob was not found for creating a preview.");
+                        cleanupVoiceState();
+                    }
+                }
+            });
 
             // مدیریت خطا در ارسال پیام
             signalRConnection.on("SendMessageError", function (errorMessage) {
@@ -1689,14 +1721,9 @@ $(document).ready(function () {
             try {
                 mediaRecorder = new MediaRecorder(stream, { mimeType: currentMimeType });
 
-                // داده‌های صوتی را جمع‌آوری کرده و هر قطعه را فوراً ارسال کنید
+                // داده‌های صوتی را جمع‌آوری کن
                 mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) {
-                        // هم برای ساخت پیش‌نمایش نهایی و هم برای ارسال، داده‌ها را نگه می‌داریم
-                        audioChunks.push(e.data);
-                        // قطعه را فوراً به عنوان یک قطعه میانی ارسال می‌کنیم
-                        sendAudioChunk(e.data, false);
-                    }
+                    if (e.data.size > 0) audioChunks.push(e.data);
                 };
 
                 // وقتی ضبط متوقف شد، آخرین قطعه را پردازش و ارسال کن
@@ -1705,7 +1732,10 @@ $(document).ready(function () {
                     processAndSendFinalChunk();
                 };
 
-                mediaRecorder.start(1000); // شروع ضبط
+                mediaRecorder.start(); // شروع ضبط
+
+                // هر 1 ثانیه، قطعات جمع‌آوری شده را ارسال کن
+                recordingChunkerInterval = setInterval(processAndSendIntermediateChunks, 1000);
 
             } catch (err) {
                 console.error("خطا در ایجاد MediaRecorder:", err);
@@ -1726,6 +1756,7 @@ $(document).ready(function () {
         isProcessing = true; // وارد حالت پردازش شو
 
         clearInterval(recordingTimerInterval);
+        clearInterval(recordingChunkerInterval); // تایمر ارسال قطعات را متوقف کن
 
         changeIcon($('.btn-record-voice'), 'microphone');
         updateChatInputUI('processing');
@@ -1738,6 +1769,16 @@ $(document).ready(function () {
         }
     }
 
+    // قطعات میانی را پردازش و ارسال می‌کند
+    function processAndSendIntermediateChunks() {
+        if (audioChunks.length === 0) return;
+
+        // یک Blob از تمام قطعات موجود بساز
+        const chunkBlob = new Blob(audioChunks, { type: currentMimeType });
+        audioChunks = []; // آرایه را برای قطعات بعدی خالی کن
+
+        sendAudioChunk(chunkBlob, false); // ارسال به عنوان قطعه میانی
+    }
 
     // آخرین قطعه را پردازش و ارسال می‌کند
     function processAndSendFinalChunk() {
@@ -1762,12 +1803,8 @@ $(document).ready(function () {
             return;
         }
 
-        // برای جلوگیری از خطای "The format of value is invalid" در سمت سرور،
-        // قطعه صدا را با یک نوع MIME ساده‌شده (`audio/webm`) بسته‌بندی می‌کنیم.
-        const simplifiedBlob = new Blob([audioBlob], { type: 'audio/webm' });
-
         const formData = new FormData();
-        formData.append('file', simplifiedBlob, `chunk.webm`);
+        formData.append('file', audioBlob, `chunk.webm`);
         formData.append('recordingId', recordingId);
         formData.append('chunkIndex', chunkIndex);
         formData.append('isLastChunk', isLastChunk);
@@ -1779,31 +1816,15 @@ $(document).ready(function () {
                 data: formData,
                 processData: false,
                 contentType: false,
-                success: function (data) {
-                    console.log("پاسخ پردازش فایل صوتی با موفقیت از طریق HTTP دریافت شد:", data);
+                success: function (response) {
+                    // پاسخ HTTP فقط یک تاییدیه است. داده‌های اصلی از طریق SignalR می‌آید.
+                    console.log("آخرین قطعه با موفقیت ارسال شد. منتظر پاسخ SignalR...");
 
-                    // بررسی موفقیت و تطابق شناسه ضبط
-                    if (data.success && data.recordingId === recordingId) {
-                        pendingVoiceFileId = data.fileId;
-
-                        if (window.lastRecordedBlob) {
-                            pendingVoiceUrl = URL.createObjectURL(window.lastRecordedBlob);
-                            pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
-                            addFileIdToHiddenInput(data.fileId, '#uploadedFileIds');
-
-                            isProcessing = false;
-                            updateChatInputUI('preview', {
-                                duration: data.duration,
-                                durationFormatted: data.durationFormatted
-                            });
-                        } else {
-                            console.error("آخرین قطعه ضبط شده برای ایجاد پیش‌نمایش یافت نشد.");
-                            cleanupVoiceState();
-                        }
-                    } else {
-                        alert("خطایی در پردازش فایل صوتی در سرور رخ داد.");
+                    // یک تایم‌اوت تنظیم کن تا اگر پاسخ SignalR نرسید، خطا نمایش داده شود
+                    window.voiceUploadTimeout = setTimeout(() => {
+                        alert("پاسخی از سرور برای پردازش فایل صوتی دریافت نشد. لطفاً دوباره تلاش کنید.");
                         cleanupVoiceState();
-                    }
+                    }, 20000); // 20 ثانیه
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                     console.error('خطای ارتباطی در ارسال آخرین قطعه:', textStatus, errorThrown);
@@ -1838,11 +1859,13 @@ $(document).ready(function () {
     function cleanupVoiceState(deleteFromServer = false, voiceWasSent = false) {
         // Stop any running timers
         if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+        if (recordingChunkerInterval) clearInterval(recordingChunkerInterval);
         if (window.voiceUploadTimeout) {
             clearTimeout(window.voiceUploadTimeout);
             window.voiceUploadTimeout = null;
         }
         recordingTimerInterval = null;
+        recordingChunkerInterval = null;
         window.lastRecordedBlob = null;
 
 

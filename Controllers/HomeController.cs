@@ -248,6 +248,45 @@ namespace Messenger.WebApp.Controllers
         }
 
         /// <summary>
+        /// A helper method to fetch detailed information for a chat (group or channel),
+        /// including its name, description, and file counts.
+        /// </summary>
+        /// <param name="chatId">The ID of the chat.</param>
+        /// <param name="groupType">The type of the chat ('ClassGroup' or 'Channel').</param>
+        /// <returns>A tuple containing the chat's name, description, and file counts.</returns>
+        private async Task<(string Name, string Description, FileCountsDto FileCounts)> GetChatDetailsAsync(int chatId, string groupType)
+        {
+            string name = "نام یافت نشد";
+            string description = "";
+            FileCountsDto fileCounts;
+
+            // Fetch name and description based on chat type
+            if (groupType == ConstChat.ClassGroupType)
+            {
+                var group = await _classGroupServiceClient.GetClassGroupByIdAsync(chatId);
+                if (group != null)
+                {
+                    name = group.Name;
+                    description = group.Description;
+                }
+            }
+            else
+            {
+                var channel = await _channelServiceClient.GetChannelByIdAsync(chatId);
+                if (channel != null)
+                {
+                    name = channel.Name;
+                    description = channel.Description;
+                }
+            }
+
+            // Fetch file counts from the dedicated service, handling potential nulls
+            fileCounts = await _fileManagementServiceClient.GetFileCountsForChatAsync(chatId, groupType) ?? new FileCountsDto();
+
+            return (name, description, fileCounts);
+        }
+
+        /// <summary>
         /// گرفتن اعضای یک گروه
         /// </summary>
         /// <param name="chatId"></param>
@@ -260,30 +299,37 @@ namespace Messenger.WebApp.Controllers
                 return BadRequest("User ID not found in claims.");
             }
 
-            // Fetch members
-            var membersDto = groupType == ConstChat.ClassGroupType ?
-               await _classGroupServiceClient.GetClassGroupMembersAsync(chatId) :
-               await _channelServiceClient.GetChannelMembersAsync(chatId);
+            // Fetch members in parallel with chat details for better performance
+            var membersTask = groupType == ConstChat.ClassGroupType ?
+               _classGroupServiceClient.GetClassGroupMembersAsync(chatId) :
+               _channelServiceClient.GetChannelMembersAsync(chatId);
 
-            // TODO: Fetch actual group name and description. Using placeholders for now.
-            var groupName = "Group Name Placeholder";
-            var groupDescription = "This is a placeholder description for the group. It can be updated later with actual data from the service.";
+            var chatDetailsTask = GetChatDetailsAsync(chatId, groupType);
+
+            // Await both tasks
+            await Task.WhenAll(membersTask, chatDetailsTask);
+
+            var membersDto = await membersTask;
+            var chatDetails = await chatDetailsTask;
 
             // Map DTOs to ViewModel
             var memberViewModels = membersDto.Select(m => new ChatMemberViewModel
             {
                 UserId = m.UserId,
                 FullName = m.NameFamily,
-                Status = "Online", // Placeholder status
-                ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/chatzy/assets/images/profile/p1.png" : $"{_baseUrl}/{m.ProfilePicName}",
-                IsAdmin = m.IsAdmin // Assuming the DTO has an IsAdmin property
+                Status = "Offline", // Default status, will be updated by SignalR on the client
+                ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/assets/media/avatar/UserIcon.png" : $"{_baseUrl}/{m.ProfilePicName}",
+                IsAdmin = m.IsAdmin
             }).ToList();
 
             var viewModel = new ChatMembersViewModel
             {
-                GroupName = groupName,
-                GroupDescription = groupDescription,
-                Members = memberViewModels
+                GroupName = chatDetails.Name,
+                GroupDescription = chatDetails.Description,
+                Members = memberViewModels,
+                MediaFilesCount = chatDetails.FileCounts.MediaCount,
+                DocumentFilesCount = chatDetails.FileCounts.DocumentCount,
+                LinkFilesCount = chatDetails.FileCounts.LinkCount
             };
 
             return PartialView("~/Views/Shared/_ChatMembersPanel.cshtml", viewModel);

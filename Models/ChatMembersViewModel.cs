@@ -4,6 +4,9 @@ namespace Messenger.WebApp.Models
     {
         public string GroupName { get; set; }
         public string GroupDescription { get; set; }
+        public int MediaFilesCount { get; set; }
+        public int DocumentFilesCount { get; set; }
+        public int LinkFilesCount { get; set; }
         public IEnumerable<ChatMemberViewModel> Members { get; set; }
     }
 
