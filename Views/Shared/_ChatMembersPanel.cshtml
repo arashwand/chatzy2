@@ -1,10 +1,10 @@
 @model Messenger.WebApp.Models.ChatMembersViewModel
 
 <!-- header starts -->
-<header class="image-header-panel ratio_40">
+<header class="image-header-panel ratio_40 p-0 overflow-clip">
     <img class="bg-img group-head-bg" src="~/chatzy/assets/images/background/group-bg.png" alt="">
 
-    <div class="header-panel">
+    <div class="header-panel position-fixed">
         <a href="#" id="close-group-info-panel-btn">
             <i class="iconsax icon-btn" data-icon="chevron-left"></i>
         </a>
@@ -31,19 +31,67 @@
 <!-- group info section starts -->
 <section class="section-b-space">
     <div class="custom-container">
-        @* Hiding feature list for now, can be enabled later *@
-        @* <ul class="group-feature-list">
-            ...
-        </ul> *@
+        
+        <ul class="group-feature-list">
+            <li>
+                <a href="group-invite-link.html" class="features">
+                    <img class="img-fluid features-icon " src="assets/images/svg/connect.svg" alt="link">
+                </a>
+                <h5 class="mt-2">Link</h5>
+            </li>
+            <li>
+                <a href="#mute" data-bs-toggle="modal" class="features">
+                    <img class="img-fluid features-icon " src="assets/images/svg/bell-mute.svg" alt="bell-mute">
+                </a>
+                <h5 class="mt-2">Mute</h5>
+            </li>
+            <li>
+                <a href="#" class="features">
+                    <img class="img-fluid features-icon" src="assets/images/svg/profile-add.svg" alt="profile-add">
+                </a>
+                <h5 class="mt-2">Add</h5>
+            </li>
+            <li>
+                <a href="#leave" data-bs-toggle="modal" class="features">
+                    <img class="img-fluid features-icon error" src="assets/images/svg/logout.svg" alt="logout">
+                </a>
+                <h5 class="error-color mt-2">Leave</h5>
+            </li>
+        </ul>
+
         <div class="group-details">
             <h6>Group Details :</h6>
             <p>@Model.GroupDescription</p>
         </div>
 
-        @* Hiding file list for now, can be enabled later *@
-        @* <div class="file-part">
-            ...
+        <div class="file-part">
+            <ul class="file-list">
+                <li>
+                    <a href="group-file.html">
+                        <h5>Media Files (12)</h5>
+                        <i class="iconsax icon" data-icon="chevron-right"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="group-file.html">
+                        <h5>Document Files (12)</h5>
+                        <i class="iconsax icon" data-icon="chevron-right"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="group-file.html">
+                        <h5>Link Files (12)</h5>
+                        <i class="iconsax icon" data-icon="chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+       @*  <div class="group-details">
+            <h6>Group Details :</h6>
+            <p>@Model.GroupDescription</p>
         </div> *@
+
         <div class="members-part">
             <div class="member-title">
                 <h5>Total People</h5>

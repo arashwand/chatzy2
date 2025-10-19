@@ -3,7 +3,6 @@
     position: fixed;
     top: 0;
     right: -100%; /* Start off-screen */
-
     /* --- Fix for Width Issue --- */
     width: 100%; /* Take full width on small screens */
     max-width: 600px; /* But not more than 600px on larger screens */
@@ -11,17 +10,18 @@
     right: 0;
     margin: auto;
     transform: translateX(150%); /* Start off-screen to the right */
-
-
     /* --- Fix for Scrolling Issue --- */
     height: 100vh; /* Full viewport height */
     background-color: #fff;
     z-index: 1050;
     display: flex;
     flex-direction: column;
-
     /* --- Animation --- */
     transition: transform 0.3s ease-in-out;
+}
+
+.overflow-clip {
+    overflow: clip;
 }
 
 .chat-details-panel-container.visible {

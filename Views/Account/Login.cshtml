@@ -27,7 +27,7 @@
         <div class="form-group mt-4">
             <label class="form-label fw-semibold dark-text" asp-for="LoginCode">نام کاربری</label>
             <div class="form-input">
-                <input asp-for="LoginCode" class="form-control" placeholder="نام کاربری خود را وارد کنید" required>
+                <input asp-for="LoginCode" class="form-control" placeholder="نام کاربری خود را وارد کنید" required dir="ltr">
             </div>
             <span asp-validation-for="LoginCode" class="text-danger"></span>
         </div>
@@ -35,7 +35,7 @@
         <div class="form-group mt-2">
             <label class="form-label fw-semibold dark-text" asp-for="Password">رمز عبور</label>
             <div class="form-input">
-                <input type="password" asp-for="Password" class="form-control" placeholder="رمز عبور خود را وارد کنید" required>
+                <input type="password" asp-for="Password" class="form-control" placeholder="رمز عبور خود را وارد کنید" required dir="ltr">
             </div>
             <span asp-validation-for="Password" class="text-danger"></span>
         </div>

@@ -269,6 +269,7 @@ namespace Messenger.WebApp.Controllers
             var groupName = "Group Name Placeholder";
             var groupDescription = "This is a placeholder description for the group. It can be updated later with actual data from the service.";
 
+            bool isAdmin = User.IsInRole(ConstRoles.Manager);
             // Map DTOs to ViewModel
             var memberViewModels = membersDto.Select(m => new ChatMemberViewModel
             {
@@ -276,7 +277,7 @@ namespace Messenger.WebApp.Controllers
                 FullName = m.NameFamily,
                 Status = "Online", // Placeholder status
                 ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/chatzy/assets/images/profile/p1.png" : $"{_baseUrl}/{m.ProfilePicName}",
-                IsAdmin = m.IsAdmin // Assuming the DTO has an IsAdmin property
+                IsAdmin = false//m.IsAdmin // Assuming the DTO has an IsAdmin property
             }).ToList();
 
             var viewModel = new ChatMembersViewModel
