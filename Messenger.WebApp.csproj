@@ -31,6 +31,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="wwwroot\service-worker.js" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\IEMessenger\DTOs\Messenger.DTOs.csproj" />
     <ProjectReference Include="..\..\..\IEMessenger\Messenger.Tools\Messenger.Tools.csproj" />
     <ProjectReference Include="..\..\..\IEMessenger\Services\Messenger.Services.csproj" />

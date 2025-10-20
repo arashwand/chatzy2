@@ -1,25 +1,21 @@
-﻿
+﻿// --- START OF FILE modal-lightbox.js (نسخه اصلاح‌شده) ---
+
 $(document).ready(function () {
     let currentIndex = 0;
     let imageList = [];
-    let activeImage = 'A'; // تعیین اینکه الان A فعال است یا B
+    let activeImage = 'A';
     let touchStartX = 0;
 
     // --- افزودن Listener برای خالی کردن مودال هنگام بسته شدن ---
     $('#imageLightboxModal').on('hidden.bs.modal', function () {
-        // آدرس تصویر هر دو تگ را خالی می‌کند
         $('#imageA').attr('src', '');
         $('#imageB').attr('src', '');
-        // نام فایل نمایش داده شده را هم پاک می‌کند
         $('#imageFileName').text('');
-        // همچنین برای اطمینان بیشتر، activeImage را به حالت پیش‌فرض (A) برمی‌گرداند
         activeImage = 'A';
-        // کلاس‌های انیمیشن را هم پاک می‌کنیم تا اگر در حین انیمیشن بسته شد، وضعیتی نامنظم نماند
         $('#imageA, #imageB').removeClass('active slide-in-left slide-in-right slide-center')
             .css({ 'opacity': 1, 'transform': 'none' });
     });
 
-    // کلیک روی تصویر
     $(document).on('click', '.chat-thumbnail', async function () {
         const $group = $(this).closest('.image-group');
         const $thumbs = $group.find('.chat-thumbnail');
@@ -48,12 +44,12 @@ $(document).ready(function () {
         const next = activeImage === 'A' ? $('#imageB') : $('#imageA');
 
         try {
-            const response = await fetch('/api/chat/downloadBlobFileById', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ FileId: image.id })
-            });
+            // *** تغییر کلیدی: درخواست fetch به آدرس صحیح API شما ارسال می‌شود ***
+            // این درخواست از نوع GET است و توسط Service Worker رهگیری خواهد شد.
+            const response = await fetch(`/api/chat/downloadFileById/?fileId=${image.id}`);
+
             if (!response.ok) throw new Error('Failed to load image');
+
             const blob = await response.blob();
             const blobUrl = URL.createObjectURL(blob);
 
@@ -67,7 +63,6 @@ $(document).ready(function () {
                 next.addClass('slide-in-right');
             }
 
-            // فعال‌سازی انیمیشن
             requestAnimationFrame(() => {
                 $('#imageLoader').hide();
                 active.removeClass('slide-center').css('opacity', 1);
@@ -90,7 +85,8 @@ $(document).ready(function () {
         }
     }
 
-    // دکمه قبلی و بعدی
+
+    // دکمه قبلی و بعدی 
     $('#prevImage').on('click', async function () {
         if (currentIndex > 0) {
             currentIndex--;
@@ -104,7 +100,7 @@ $(document).ready(function () {
         }
     });
 
-    // پشتیبانی از swipe (موبایل)
+    // پشتیبانی از swipe 
     $('#imageLightboxModal').on('touchstart', e => {
         touchStartX = e.originalEvent.touches[0].clientX;
     });
@@ -122,40 +118,32 @@ $(document).ready(function () {
         }
     });
 
-    // دانلود فایل
+    // دانلود فایل (این بخش را نیز می‌توان به GET تغییر داد)
     $(document).on('click', '.btn-download-image-file', async function (e) {
         e.stopPropagation();
         const $btn = $(this);
         const fileId = $btn.data('file-id');
         const fileName = $btn.data('file-originalname');
 
-        const $icon = $btn.find('i');
-        const $spinner = $btn.find('.spinner-icon');
-        $icon.hide();
-        $spinner.show();
-
-        try {
-            const res = await fetch('/api/chat/downloadBlobFileById', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ FileId: fileId })
-            });
-            if (!res.ok) throw new Error();
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName || `file-${fileId}`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            alert('خطا در دانلود فایل');
-        } finally {
-            $spinner.hide();
-            $icon.show();
-        }
+        const downloadUrl = `/api/chat/downloadFileById/?fileId=${fileId}`;
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName || `file-${fileId}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
     });
-});
 
+    /**میتوانیم یک  دکمه را در دسترس کاربر قرار دهیم تا این تابع را فراخوانی کند و کش تصاویر را خالی کند*/
+    async function clearImageCache() {
+        if ('caches' in window) {
+            try {
+                await caches.delete('image-lightbox-cache-v1'); // نام دقیق کش را وارد کنید
+                alert('حافظه پنهان با موفقیت پاک شد. برای اعمال تغییرات، صفحه را مجددا بارگیری کنید.');
+            } catch (error) {
+                console.error('خطا در پاک‌سازی کش:', error);
+                alert('خطایی در پاک‌سازی حافظه پنهان رخ داد.');
+            }
+        }
+    }
+});

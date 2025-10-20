@@ -49,6 +49,11 @@ namespace Messenger.WebApp.Controllers
             public long FileId { get; set; }
         }
 
+        /// <summary>
+        /// دانلود فایل بر اساس استریم
+        /// </summary>
+        /// <param name="fileId"></param>
+        /// <returns></returns>
         [HttpGet("downloadFileById")]
         public async Task<IActionResult> DownloadFileById([FromQuery] long fileId)
         {
@@ -70,7 +75,11 @@ namespace Messenger.WebApp.Controllers
         }
 
 
-
+        /// <summary>
+        /// دانلود فایل بر اساس استریم
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost("downloadBlobFileById")]
         public async Task<IActionResult> DownloadFileById([FromBody] DownloadFileRequest request)
         {

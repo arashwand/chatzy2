@@ -393,7 +393,7 @@
     </div>
     <!-- friend story modal end -->
 
-   @*  <partial name="_GroupFilesModal" /> *@
+   <!--chat files modal-->
     <div class="modal fade" id="groupFilesModal">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -447,6 +447,19 @@
         </div>
     </div>
 
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker با موفقیت ثبت شد:', registration);
+                    })
+                    .catch(error => {
+                        console.log('ثبت Service Worker با خطا مواجه شد:', error);
+                    });
+            });
+        }
+    </script>
 
     <!-- iconsax js -->
     <script src="~/chatzy/assets/js/iconsax.js"></script>
