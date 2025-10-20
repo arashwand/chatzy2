@@ -502,6 +502,11 @@ window.chatApp = (function ($) {
     //*** پیام جدید را در پنجره چت نمایش می‌دهد.
     // جایگزین تابع displayMessage فعلی کنید
     function displayMessage(message) {
+        // ذخیره پیام در پایگاه داده محلی
+        if (message.groupType && message.groupId) {
+            saveMessages(message.groupType, message.groupId, [message]);
+        }
+
         console.log("Displaying message received:", message);
         console.log(`Displaying message for group ${message.groupId}. Active group is ${$('#current-group-id-hidden-input').val()}`);
 
@@ -687,6 +692,11 @@ window.chatApp = (function ($) {
       * محتوای یک پیام ویرایش شده را در UI به‌روز می‌کند و داده‌های پنهان آن را نیز آپدیت می‌کند.
       */
     function handleEditedMessage(message) {
+        // به‌روزرسانی پیام در پایگاه داده محلی
+        if (message.groupType && message.groupId) {
+            saveMessages(message.groupType, message.groupId, [message]);
+        }
+
         console.log("Received edit for messageId: " + message.messageId);
         const messageElement = $('#message-' + message.messageId);
         if (!messageElement.length) {
@@ -831,22 +841,25 @@ window.chatApp = (function ($) {
     }
 
 
-    function handleDeleteMessage(messageId, result) {
-        console.log('indide UserDeleteMessage ' + messageId + ' and result is :' + result);
-        // نتیجه را پردازش میکنیم اگر موفق بود حذف میشود و اگر ناموفق بود به کاربر پیام نمایش داده میشود
-        const messageElement = $('#message-' + messageId);
-        if (result === true) {
-            if (messageElement.length) {
-                // اضافه کردن transition به صورت مستقیم
-                messageElement.css('transition', 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out');
+    function handleDeleteMessage(messageId, groupType, groupId, result) {
+        console.log(`UserDeleteMessage received for messageId: ${messageId} in ${groupType}/${groupId}`);
 
+        if (result === true) {
+            if (groupType && groupId) {
+                // حذف از IndexedDB
+                deleteMessage(groupType, groupId, messageId.toString()).catch(err => console.error("Error deleting message from IndexedDB:", err));
+            }
+
+            const messageElement = $('#message-' + messageId);
+            if (messageElement.length) {
+                messageElement.css('transition', 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out');
                 messageElement.addClass('removing');
                 setTimeout(() => {
                     messageElement.remove();
                 }, 400);
             }
         } else {
-            console.log('result from hub to handleDeleteMessage has error')
+            console.log('Delete message failed on server, result:', result);
         }
     }
 
@@ -869,31 +882,25 @@ window.chatApp = (function ($) {
 
     function makeJsonObjectForMessateDetails(message) {
         try {
-            console.log('inside makeJsonObjectForMessateDetails ******************************' + message)
-            // بررسی وجود آبجکت message و خواص اصلی آن
-            if (!message || !message.messageText) {
-                throw new Error("Invalid message object: messageText is missing.");
+            if (!message) {
+                throw new Error("Invalid message object provided.");
             }
 
             const messageDetails = {
-                messageText: message.messageText,
+                messageText: message.messageText || null,
                 replyToMessageId: message.replyToMessageId,
                 replyMessage: message.replyMessage,
                 messageFiles: message.messageFiles,
+                messageDateTime: message.messageDateTime,
+                isReadByAnyRecipient: message.isReadByAnyRecipient || false,
             };
 
-            // تبدیل آبجکت به رشته JSON
             const messageDetailsJson = JSON.stringify(messageDetails);
-
-            // نمایش نتیجه موفقیت‌آمیز در کنسول
-            console.log("JSON object created successfully:", messageDetailsJson);
-
             return messageDetailsJson;
+
         } catch (error) {
-            // مدیریت و نمایش خطا در کنسول
-            console.error("An error occurred:", error.message);
-            // بازگرداندن مقدار null یا یک رشته خالی در صورت بروز خطا
-            return null;
+            console.error("An error occurred in makeJsonObjectForMessateDetails:", error.message);
+            return '{}'; // Return empty JSON object on error
         }
     }
 
@@ -1160,6 +1167,7 @@ window.chatApp = (function ($) {
             });
 
             signalRConnection.on("ReceiveEditedMessage", handleEditedMessage);
+            signalRConnection.on("UserDeleteMessage", handleDeleteMessage);
 
             // دریافت و اعمال تعداد پیامهای خوانده نشده
             signalRConnection.on("UpdateUnreadCount", function (key, count) {
@@ -1545,6 +1553,78 @@ window.chatApp = (function ($) {
             }
         },
 
+        /**
+         * پیام‌ها را از DOM خوانده و در IndexedDB ذخیره می‌کند
+         */
+        cacheMessagesFromDOM: function() {
+            const chatId = parseInt($('#current-group-id-hidden-input').val());
+            const groupType = $('#current-group-type-hidden-input').val();
+            if (!chatId || !groupType) return;
+
+            const messages = [];
+            $('.message[data-message-id]').each(function() {
+                try {
+                    const details = $(this).attr('data-message-details');
+                    if (details) {
+                        const messageData = JSON.parse(details);
+                        messageData.id = $(this).data('message-id').toString();
+                        messageData.messageId = $(this).data('message-id').toString();
+                        messageData.senderUserId = $(this).data('sender-id');
+                        messageData.senderUserName = $(this).data('sender-username');
+                        messageData.timestamp = new Date(messageData.messageDateTime).toISOString();
+                        messages.push(messageData);
+                    }
+                } catch (e) {
+                    console.warn("Could not parse message details for caching:", $(this).data('message-id'), e);
+                }
+            });
+
+            if (messages.length > 0) {
+                saveMessages(groupType, chatId, messages)
+                    .then(() => console.log(`${messages.length} messages cached for ${groupType}/${chatId}.`))
+                    .catch(err => console.error(`Failed to cache messages for ${groupType}/${chatId}:`, err));
+            }
+        },
+
+        /**
+         * پیام‌های کش‌شده را در UI رندر می‌کند
+         */
+        renderMessages: function(messages, containerSelector) {
+            const container = $(containerSelector);
+            container.empty(); // پاک کردن محتوای قبلی
+
+            if (!messages || messages.length === 0) {
+                // نمایش پیام "هیچ پیامی یافت نشد" یا حالت خالی
+                container.html('<p class="text-center p-5">هیچ پیامی برای نمایش وجود ندارد.</p>');
+                return;
+            }
+
+            // گروه‌بندی پیام‌ها بر اساس تاریخ
+            const grouped = {};
+            messages.forEach(msg => {
+                const date = formatDate(new Date(msg.messageDateTime || msg.timestamp));
+                if (!grouped[date]) grouped[date] = [];
+                grouped[date].push(msg);
+            });
+
+            // رندر کردن هر گروه
+            for (const date in grouped) {
+                const dateId = `date-${date}`;
+                const persianDate = convertGregorianToJalaaliSimple(date);
+                let dateHtml = `<div class="message-day" data-message-date="${dateId}">
+                                    <div class="message-divider sticky-top pb-2" data-label="${persianDate}" id="${dateId}"></div>`;
+
+                grouped[date].forEach(msg => {
+                    dateHtml += createMessageHtmlBody(msg);
+                });
+
+                dateHtml += `</div>`;
+                container.append(dateHtml);
+            }
+             if (typeof init_iconsax === 'function') {
+                init_iconsax();
+            }
+        }
     };
 
     // این آبجکت عمومی را برمی‌گردانیم تا window.chatApp به آن مقداردهی شود.
