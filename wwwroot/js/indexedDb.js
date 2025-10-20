@@ -30,12 +30,13 @@ function openDB() {
 }
 
 /**
- * تمام شناسه‌های پیام موجود در یک چت را بازیابی می‌کند
+ * شناسه‌های پیام‌های جدیدتر از یک تاریخ مشخص را بازیابی می‌کند
  * @param {string} groupType - نوع گروه
  * @param {string} roomId - شناسه چت‌روم
+ * @param {string} timestamp - تاریخ به صورت ISO string
  * @returns {Promise<Array<string>>} - آرایه‌ای از شناسه‌های پیام
  */
-async function getAllMessageIds(groupType, roomId) {
+async function getMessageIdsSince(groupType, roomId, timestamp) {
     const db = await openDB();
     const storeName = `${CHAT_STORE_PREFIX}${groupType}_${roomId}`;
 
@@ -46,16 +47,30 @@ async function getAllMessageIds(groupType, roomId) {
 
     const transaction = db.transaction(storeName, 'readonly');
     const store = transaction.objectStore(storeName);
-    const request = store.getAllKeys();
+    const index = store.index('timestamp');
+    const messageIds = [];
+
+    // یک محدوده برای تاریخ‌های جدیدتر از timestamp ایجاد می‌کنیم
+    const range = IDBKeyRange.lowerBound(timestamp, false); // false یعنی خود تاریخ را شامل شود
+
+    // از openKeyCursor برای بهینه‌سازی استفاده می‌کنیم چون فقط به کلیدها نیاز داریم
+    const request = index.openKeyCursor(range);
 
     return new Promise((resolve, reject) => {
         request.onsuccess = (event) => {
-            db.close();
-            resolve(event.target.result);
+            const cursor = event.target.result;
+            if (cursor) {
+                // primaryKey همان شناسه پیام (id) است
+                messageIds.push(cursor.primaryKey);
+                cursor.continue();
+            } else {
+                db.close();
+                resolve(messageIds);
+            }
         };
         request.onerror = (event) => {
             db.close();
-            console.error('خطا در بازیابی کلیدها:', event.target.error);
+            console.error('خطا در بازیابی کلیدها بر اساس تاریخ:', event.target.error);
             reject(event.target.error);
         };
     });

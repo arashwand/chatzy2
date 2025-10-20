@@ -1652,23 +1652,31 @@ window.chatApp = (function ($) {
         },
 
         syncChatHistory: async function(groupType, chatId) {
-            console.log(`Starting history sync for ${groupType}/${chatId}...`);
+            console.log(`Starting smart history sync for ${groupType}/${chatId}...`);
             try {
-                const localMessageIds = await getAllMessageIds(groupType, chatId);
+                // ۱. محاسبه زمان برای ۳ ساعت قبل
+                const threeHoursAgo = new Date();
+                threeHoursAgo.setHours(threeHoursAgo.getHours() - 3);
+                const timestamp = threeHoursAgo.toISOString();
 
-                if (localMessageIds.length === 0) {
-                    console.log("No local messages to sync.");
-                    return; // اگر پیامی در کش نیست، نیازی به همگام‌سازی نیست
+                // ۲. دریافت شناسه‌های پیام‌های جدیدتر از ۳ ساعت قبل
+                const recentMessageIds = await getMessageIdsSince(groupType, chatId, timestamp);
+
+                if (recentMessageIds.length === 0) {
+                    console.log("No recent local messages to sync.");
+                    return; // اگر پیام جدیدی در کش نیست، نیازی به همگام‌سازی نیست
                 }
 
-                // فرض بر این است که API در این آدرس ایجاد خواهد شد
+                console.log(`Syncing ${recentMessageIds.length} recent messages...`);
+
+                // ۳. ارسال لیست بهینه شده به سرور
                 const response = await fetch('/api/chat/sync', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         groupType: groupType,
                         chatId: chatId,
-                        clientMessageIds: localMessageIds
+                        clientMessageIds: recentMessageIds // ارسال لیست بهینه شده
                     })
                 });
 
@@ -1678,17 +1686,16 @@ window.chatApp = (function ($) {
 
                 const syncResult = await response.json();
 
-                // پردازش پیام‌های حذف شده
+                // ۴. پردازش پیام‌های حذف شده
                 if (syncResult.deletedMessageIds && syncResult.deletedMessageIds.length > 0) {
                     console.log(`Sync: Deleting ${syncResult.deletedMessageIds.length} messages.`);
                     for (const msgId of syncResult.deletedMessageIds) {
                         await deleteMessage(groupType, chatId, msgId);
-                        // حذف پیام از UI اگر در حال نمایش باشد
-                        $(`#message-${msgId}`).remove();
+                        $(`#message-${msgId}`).remove(); // حذف از UI
                     }
                 }
 
-                console.log("History sync completed successfully.");
+                console.log("Smart history sync completed successfully.");
 
             } catch (error) {
                 console.error("Failed to sync chat history:", error);
