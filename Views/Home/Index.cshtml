@@ -150,9 +150,9 @@
              }
          }
 
-        window.GetChatMembers = function(chatId, groupType){
+        window.GetChatDetails = function(chatId, groupType){
              $.ajax({
-                 url: '/Home/GetChatMembers',
+                 url: '/Home/GetChatDetails',
                  type: 'GET',
                  data: { chatId: chatId, groupType: groupType },
                  success: function (data) {

@@ -1,5 +1,7 @@
 ﻿using Azure;
 using Messenger.DTOs;
+using Messenger.Models.Models;
+using Messenger.Tools;
 using Messenger.WebApp.Models.ViewModels;
 using Messenger.WebApp.ServiceHelper.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -142,15 +144,19 @@ namespace Messenger.WebApp.ServiceHelper
             return await response.Content.ReadFromJsonAsync<FileRenameResult>();
         }
 
-        public async Task<FileCountsDto> GetFileCountsForChatAsync(int chatId, string groupType)
+        public async Task<CountSharedContentDto> GetFileCountsForChatAsync(int chatId, string groupType)
         {
-            var result =  new FileCountsDto()
-            {
-                DocumentCount=1,
-                MediaCount = 2,
-                LinkCount = 3
-            };
-            return result;
+            if (chatId <= 0)
+                throw new ArgumentException("ایدی چت نامعتبر است", nameof(chatId));
+
+            if (groupType != ConstChat.ClassGroupType && groupType != ConstChat.ChannelGroupType)
+                throw new ArgumentException("نوع چت نامعتبر است", nameof(groupType));
+
+            var requestUri = $"api/filemanagement/GetCountSharedFiles?chatId={chatId}&groupType={groupType}";
+
+            var response = await _httpClient.GetFromJsonAsync<CountSharedContentDto>(requestUri);
+            return response ?? new CountSharedContentDto();
+
         }
 
        

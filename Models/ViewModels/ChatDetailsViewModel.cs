@@ -1,6 +1,6 @@
-namespace Messenger.WebApp.Models
+namespace Messenger.WebApp.Models.ViewModels
 {
-    public class ChatMembersViewModel
+    public class ChatDetailsViewModel
     {
         public string GroupName { get; set; }
         public string GroupDescription { get; set; }

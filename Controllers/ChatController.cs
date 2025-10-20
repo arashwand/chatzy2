@@ -1,3 +1,4 @@
+using Azure.Core;
 using Messenger.DTOs;
 using Messenger.Tools;
 using Messenger.WebApp.Models;
@@ -51,48 +52,20 @@ namespace Messenger.WebApp.Controllers
         [HttpGet("downloadFileById")]
         public async Task<IActionResult> DownloadFileById([FromQuery] long fileId)
         {
-            if (fileId <= 0)
-                return BadRequest("Invalid file ID.");
+            if (fileId <= 0) return BadRequest("Request cannot be null.");
 
             try
             {
-                // دریافت توکن از کوکی یا هر روش دلخواه
-                var token = Request.Cookies["AuthToken"];
-                if (string.IsNullOrEmpty(token))
-                    return Unauthorized("Token not found.");
+                var fileData = await _fileService.GetFileDataAsync(fileId);
+                if (fileData == null)
+                    return NotFound("File not found.");
 
-                // ساخت درخواست HTTP به سرویس بیرونی
-                using var requestMessage = new HttpRequestMessage(
-                    HttpMethod.Get,
-                    $"{_baseUrl}/api/filemanagement/download?messageFileId={fileId}"
-                );
-
-                requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-                // استفاده از ResponseHeadersRead برای استریم مستقیم
-                using var response = await _httpClient.SendAsync(
-                    requestMessage,
-                    HttpCompletionOption.ResponseHeadersRead
-                );
-
-                if (!response.IsSuccessStatusCode)
-                    return StatusCode((int)response.StatusCode, "File not found or download failed.");
-
-                var stream = await response.Content.ReadAsStreamAsync();
-
-                var contentDisposition = response.Content.Headers.ContentDisposition?.FileNameStar
-                                         ?? response.Content.Headers.ContentDisposition?.FileName
-                                         ?? $"file-{fileId}";
-
-                var mimeType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
-
-                // enableRangeProcessing=true باعث می‌شود مرورگر بتواند resume کند
-                return File(stream, mimeType, contentDisposition, enableRangeProcessing: true);
+                return File(fileData.Content, fileData.ContentType, fileData.FileName);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error downloading file with ID {FileId}", fileId);
-                return StatusCode(500, "Internal server error while downloading file.");
+                _logger.LogError(ex, "Error in DeleteMessage action.");
+                return StatusCode(500, "Internal server error deleting message.");
             }
         }
 

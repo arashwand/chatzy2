@@ -1,5 +1,5 @@
 @using Messenger.Tools
-@model Messenger.WebApp.Models.ChatMembersViewModel
+@model Messenger.WebApp.Models.ViewModels.ChatDetailsViewModel
 
 <!-- header starts -->
 <header class="image-header-panel ratio_40 p-0 overflow-clip">
@@ -100,18 +100,11 @@
                             <div class="member-details">
                                 <div class="position-relative chat-list-image" id="member-status-@member.UserId">
                                     <img class="img-fluid img position-relative" src="/assets/media/avatar/@member.ImagePath" alt="p1">
-                                    @if (member.RoleName == ConstRoles.Manager)
-                                    {
-                                        <div class="admin-tag">M</div>
-                                    }
-                                    else if (member.RoleName == ConstRoles.Teacher)
+                                    @if (member.RoleName == ConstRoles.Teacher)
                                     {
                                         <div class="admin-tag">T</div>
                                     }
-                                    else if(member.RoleName == ConstRoles.Student)
-                                    {
-                                        <div class="admin-tag">S</div>
-                                    }
+                                   
                                 </div>
                                 <div>
                                     <h5>@member.FullName</h5>

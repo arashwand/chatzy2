@@ -258,11 +258,11 @@ namespace Messenger.WebApp.Controllers
         /// <param name="chatId">The ID of the chat.</param>
         /// <param name="groupType">The type of the chat ('ClassGroup' or 'Channel').</param>
         /// <returns>A tuple containing the chat's name, description, and file counts.</returns>
-        private async Task<(string Name, string Description, FileCountsDto FileCounts)> GetChatDetailsAsync(int chatId, string groupType)
+        private async Task<(string Name, string Description, CountSharedContentDto FileCounts)> GetChatDetailsAsync(int chatId, string groupType)
         {
             string name = "نام یافت نشد";
             string description = "";
-            FileCountsDto fileCounts;
+            CountSharedContentDto fileCounts;
 
             // Fetch name and description based on chat type
             if (groupType == ConstChat.ClassGroupType)
@@ -285,7 +285,7 @@ namespace Messenger.WebApp.Controllers
             }
 
             // Fetch file counts from the dedicated service, handling potential nulls
-            fileCounts = await _fileManagementServiceClient.GetFileCountsForChatAsync(chatId, groupType) ?? new FileCountsDto();
+            fileCounts = await _fileManagementServiceClient.GetFileCountsForChatAsync(chatId, groupType);
 
             return (name, description, fileCounts);
         }
@@ -295,7 +295,7 @@ namespace Messenger.WebApp.Controllers
         /// </summary>
         /// <param name="chatId"></param>
         /// <returns></returns>
-        public async Task<IActionResult> GetChatMembers(int chatId, string groupType)
+        public async Task<IActionResult> GetChatDetails(int chatId, string groupType)
         {
             var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
             if (userId == null)
@@ -309,6 +309,8 @@ namespace Messenger.WebApp.Controllers
                _channelServiceClient.GetChannelMembersAsync(chatId);
 
             var chatDetailsTask = GetChatDetailsAsync(chatId, groupType);
+
+            var chatfileCount = 1;
 
             // Await both tasks
             await Task.WhenAll(membersTask, chatDetailsTask);
@@ -328,17 +330,17 @@ namespace Messenger.WebApp.Controllers
                 RoleName = m.RoleName//m.IsAdmin
             }).ToList();
 
-            var viewModel = new ChatMembersViewModel
+            var chatDetailsViewModel = new ChatDetailsViewModel
             {
                 GroupName = chatDetails.Name,
                 GroupDescription = chatDetails.Description,
                 Members = memberViewModels,
-                MediaFilesCount = chatDetails.FileCounts.MediaCount,
-                DocumentFilesCount = chatDetails.FileCounts.DocumentCount,
-                LinkFilesCount = chatDetails.FileCounts.LinkCount
+                MediaFilesCount = chatDetails.FileCounts.MediaFilesCount,
+                DocumentFilesCount = chatDetails.FileCounts.DocumentFilesCount,
+                LinkFilesCount = chatDetails.FileCounts.LinkFilesCount
             };
 
-            return PartialView("~/Views/Shared/_ChatMembersPanel.cshtml", viewModel);
+            return PartialView("~/Views/Shared/_ChatMembersPanel.cshtml", chatDetailsViewModel);
         }
 
         [HttpPost]
