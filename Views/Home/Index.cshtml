@@ -94,9 +94,21 @@
                         // جایگزینی محتوای کامل با داده‌های سرور
                         chatPanel.html(data);
 
-                        // اطمینان از اسکرول به پایین و فعال‌سازی مجدد لیسنرها
+                        // فعال‌سازی مجدد لیسنرها
                         window.chatApp.reAttachScrollListener();
-                        $('#chat-finished')?.get(0)?.scrollIntoView({ block: 'end' });
+
+                        // اسکرول هوشمند
+                        const lastReadMessageId = $('#lastReadMessageId').val();
+                        let targetElement = null;
+                        if (lastReadMessageId) {
+                            targetElement = document.getElementById(`message-${lastReadMessageId}`);
+                        }
+
+                        if (targetElement) {
+                            targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        } else {
+                            $('#chat-finished')?.get(0)?.scrollIntoView({ block: 'end' });
+                        }
 
                         // ذخیره پیام‌های جدید در کش
                         setTimeout(() => window.chatApp.cacheMessagesFromDOM(), 500);

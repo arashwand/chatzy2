@@ -68,53 +68,78 @@ window.chatApp = (function ($) {
 
 
     // دریافت اطلاعات قدیمی تر جهت نمایش به کاربر
-    let getOldDataRunning = false;// پرچم برای نشان دادن در حال بارگذاری است
-    let hasMoreMessages = $('#hasMoreMessages').val();  // پرچم برای نشان دادن موجود بودن پیام‌های بیشتر
-    function getOldData() {
-        if (hasMoreMessages && !getOldDataRunning) {
+    let getOldDataRunning = false;
+    let hasMoreMessages = true; // این مقدار باید از سرور کنترل شود
+    async function getOldData() {
+        if (!hasMoreMessages || getOldDataRunning) {
+            console.log('getDatarunning is on, or hasMoreMessages = false');
+            return;
+        }
 
-            getOldDataRunning = true;
+        getOldDataRunning = true;
+        const chatId = parseInt($('#current-group-id-hidden-input').val());
+        const groupType = $('#current-group-type-hidden-input').val();
+
+        // پیدا کردن قدیمی‌ترین پیام در UI
+        const firstMessageElement = $('.message[data-message-id]').first();
+        if (!firstMessageElement.length) {
+            getOldDataRunning = false;
+            return; // هیچ پیامی برای مقایسه وجود ندارد
+        }
+
+        const firstMessageDetails = JSON.parse(firstMessageElement.attr('data-message-details'));
+        const oldestTimestamp = firstMessageDetails.messageDateTime;
+
+        // ۱. تلاش برای خواندن از کش
+        const cachedMessages = await getMessagesBefore(groupType, chatId, oldestTimestamp);
+
+        if (cachedMessages.length > 0) {
+            console.log(`Loaded ${cachedMessages.length} older messages from cache.`);
+            groupMessagesByDate(cachedMessages);
+            getOldDataRunning = false;
+            // اگر کش کمتر از حد انتظار (مثلاً ۵۰) پیام برگرداند، ممکن است پیام‌های بیشتری در سرور باشد
+            if (cachedMessages.length < 50) {
+                 hasMoreMessages = false; // فرض می‌کنیم این آخرین بخش از کش بوده
+            }
+        } else {
+            // ۲. اگر کش خالی بود، درخواست از سرور
+            console.log("No older messages in cache, fetching from server...");
             var lastmessageId = $('#lastMessageIdLoad').val();
-            if (lastmessageId == 0) {
+             if (lastmessageId == 0) {
+                getOldDataRunning = false;
+                hasMoreMessages = false;
                 return;
             }
 
-            console.log('last messageId is :' + lastmessageId);
-            const chatId = parseInt($('#current-group-id-hidden-input').val());
-            const currentGroupType = $('#current-group-type-hidden-input').val();
             $.ajax({
                 url: '/Home/GetOldMessage',
                 type: 'POST',
-                data: { chatId: chatId, groupType: currentGroupType, messageId: lastmessageId },
+                data: { chatId: chatId, groupType: groupType, messageId: lastmessageId },
                 success: function (response) {
-                    if (response.success) {
+                    if (response.success && response.data.length > 0) {
+                        // ذخیره در کش
+                        saveMessages(groupType, chatId, response.data);
+                        // نمایش در UI
+                        groupMessagesByDate(response.data);
 
-                        //  اگر کمتر از 50 ایتم بود، یعنی به انتهای پیام ها رسیده ایم و دیگر درخواست نکند
+                        $('#lastMessageIdLoad').val(response.lastMessageId);
+
                         if (response.data.length < 50) {
                             hasMoreMessages = false;
                         }
-                        groupMessagesByDate(response.data);
-
-                        var lastMessageIdRecived = parseInt(response.lastMessageId);
-                        $('#lastMessageIdLoad').val(lastMessageIdRecived);// مقدار این المان باید بروزرسانی شود با ای دی اخرین پیام
-
-                        console.log('با موفقیت لود شد!' + response.lastMessageId);
                     } else {
-                        console.log('خطا در فراخوانی پیامهای قبلی!: ' + response.message);
+                        hasMoreMessages = false; // هیچ پیام دیگری وجود ندارد
+                        console.log('No more old messages on server.');
                     }
-                },
-                complete: function () {
-                    getOldDataRunning = false;
                 },
                 error: function () {
                     console.log('خطای ارتباط با سرور.');
+                },
+                complete: function () {
+                    getOldDataRunning = false;
                 }
             });
-
-        } else {
-            console.log('getDatarunning is on, or hasMoreMessages = false');
         }
-
     }
 
     function formatDate(date) {

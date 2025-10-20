@@ -30,6 +30,51 @@ function openDB() {
 }
 
 /**
+ * پیام‌های قدیمی‌تر از یک تاریخ مشخص را بازیابی می‌کند
+ * @param {string} groupType - نوع گروه
+ * @param {string} roomId - شناسه چت‌روم
+ * @param {string} timestamp - تاریخ به صورت ISO string
+ * @param {number} [count=50] - تعداد پیام‌ها
+ * @returns {Promise<Array<object>>}
+ */
+async function getMessagesBefore(groupType, roomId, timestamp, count = 50) {
+    const db = await openDB();
+    const storeName = `${CHAT_STORE_PREFIX}${groupType}_${roomId}`;
+
+    if (!db.objectStoreNames.contains(storeName)) {
+        db.close();
+        return [];
+    }
+
+    const transaction = db.transaction(storeName, 'readonly');
+    const store = transaction.objectStore(storeName);
+    const index = store.index('timestamp');
+    const messages = [];
+
+    // یک محدوده برای تاریخ‌های قدیمی‌تر از timestamp ایجاد می‌کنیم
+    const range = IDBKeyRange.upperBound(timestamp, true); // true یعنی خود تاریخ را شامل نشود
+
+    const request = index.openCursor(range, 'prev');
+
+    return new Promise((resolve, reject) => {
+        request.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor && messages.length < count) {
+                messages.push(cursor.value);
+                cursor.continue();
+            } else {
+                db.close();
+                resolve(messages.reverse());
+            }
+        };
+        request.onerror = (event) => {
+            db.close();
+            reject(event.target.error);
+        };
+    });
+}
+
+/**
  * اطمینان حاصل می‌کند که آبجکت استور برای یک چت خاص وجود دارد
  * @param {IDBDatabase} db - نمونه پایگاه داده
  * @param {string} groupType - نوع گروه ('ClassGroup' یا 'ChannelGroup')
