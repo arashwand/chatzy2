@@ -1649,6 +1649,50 @@ window.chatApp = (function ($) {
              if (typeof init_iconsax === 'function') {
                 init_iconsax();
             }
+        },
+
+        syncChatHistory: async function(groupType, chatId) {
+            console.log(`Starting history sync for ${groupType}/${chatId}...`);
+            try {
+                const localMessageIds = await getAllMessageIds(groupType, chatId);
+
+                if (localMessageIds.length === 0) {
+                    console.log("No local messages to sync.");
+                    return; // اگر پیامی در کش نیست، نیازی به همگام‌سازی نیست
+                }
+
+                // فرض بر این است که API در این آدرس ایجاد خواهد شد
+                const response = await fetch('/api/chat/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        groupType: groupType,
+                        chatId: chatId,
+                        clientMessageIds: localMessageIds
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Sync request failed with status ${response.status}`);
+                }
+
+                const syncResult = await response.json();
+
+                // پردازش پیام‌های حذف شده
+                if (syncResult.deletedMessageIds && syncResult.deletedMessageIds.length > 0) {
+                    console.log(`Sync: Deleting ${syncResult.deletedMessageIds.length} messages.`);
+                    for (const msgId of syncResult.deletedMessageIds) {
+                        await deleteMessage(groupType, chatId, msgId);
+                        // حذف پیام از UI اگر در حال نمایش باشد
+                        $(`#message-${msgId}`).remove();
+                    }
+                }
+
+                console.log("History sync completed successfully.");
+
+            } catch (error) {
+                console.error("Failed to sync chat history:", error);
+            }
         }
     };
 

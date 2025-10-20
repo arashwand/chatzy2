@@ -30,6 +30,38 @@ function openDB() {
 }
 
 /**
+ * تمام شناسه‌های پیام موجود در یک چت را بازیابی می‌کند
+ * @param {string} groupType - نوع گروه
+ * @param {string} roomId - شناسه چت‌روم
+ * @returns {Promise<Array<string>>} - آرایه‌ای از شناسه‌های پیام
+ */
+async function getAllMessageIds(groupType, roomId) {
+    const db = await openDB();
+    const storeName = `${CHAT_STORE_PREFIX}${groupType}_${roomId}`;
+
+    if (!db.objectStoreNames.contains(storeName)) {
+        db.close();
+        return [];
+    }
+
+    const transaction = db.transaction(storeName, 'readonly');
+    const store = transaction.objectStore(storeName);
+    const request = store.getAllKeys();
+
+    return new Promise((resolve, reject) => {
+        request.onsuccess = (event) => {
+            db.close();
+            resolve(event.target.result);
+        };
+        request.onerror = (event) => {
+            db.close();
+            console.error('خطا در بازیابی کلیدها:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+/**
  * پیام‌های قدیمی‌تر از یک تاریخ مشخص را بازیابی می‌کند
  * @param {string} groupType - نوع گروه
  * @param {string} roomId - شناسه چت‌روم

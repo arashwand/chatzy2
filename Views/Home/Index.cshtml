@@ -65,6 +65,11 @@
                 console.log("chatId selected = " + chatId + " and groupType : " + groupType);
                 ChatActivated(chatId, groupType);
 
+                // TODO: فعال‌سازی پس از ایجاد API سمت سرور
+                // برای فعال کردن همگام‌سازی تاریخچه و حذف پیام‌های قدیمی از کش،
+                // این خط را پس از ایجاد API در آدرس /api/chat/sync از حالت کامنت خارج کنید.
+                // await window.chatApp.syncChatHistory(groupType, chatId);
+
                 // ۱. نمایش فوری اسکلت و پنل
                 const skeletonHtml = createChatPanelSkeleton();
                 const chatPanel = $('#chat-details-panel');
