@@ -1695,15 +1695,15 @@ window.chatApp = (function ($) {
                 console.log(`Syncing from ${syncStartDate.toISOString()}. Found ${localMessageIds.length} local messages in this period.`);
 
                 // ۴. ارسال درخواست جامع به سرور
-                const response = await fetch('/api/chat/sync', {
+                const response = await fetch('/api/Messages/sync', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        groupType: groupType,
-                        chatId: chatId,
-                        clientMessageIds: localMessageIds,
-                        syncFrom: syncStartDate.toISOString(), // ارسال بازه زمانی به سرور
-                        syncTo: syncEndDate
+                        GroupType: groupType,
+                        ChatId: chatId,
+                        ClientMessageIds: localMessageIds,
+                        SyncFrom: syncStartDate.toISOString(),
+                        SyncTo: syncEndDate
                     })
                 });
 
