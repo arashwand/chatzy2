@@ -31,6 +31,19 @@ window.chatApp = (function ($) {
     // =================================================
     // این توابع، عملیات داخلی ماژول را انجام می‌دهند.
 
+    /**
+     * آخرین زمان فعالیت کاربر را در حافظه محلی مرورگر (localStorage) ذخیره می‌کند.
+     * این کار به ما کمک می‌کند تا در مراجعه بعدی کاربر، بازه زمانی دقیقی برای همگام‌سازی پیام‌ها داشته باشیم.
+     */
+    function updateLastActivityTimestamp() {
+        try {
+            localStorage.setItem('lastActivityTimestamp', new Date().toISOString());
+            console.log("Last activity timestamp updated.");
+        } catch (e) {
+            console.error("Could not write to localStorage:", e);
+        }
+    }
+
     //تابع اعلام وضعیت کاربر انلاین شده
     async function announceUserPresence() {
         console.log("Announcing user presence to the main API...");
@@ -527,6 +540,7 @@ window.chatApp = (function ($) {
     //*** پیام جدید را در پنجره چت نمایش می‌دهد.
     // جایگزین تابع displayMessage فعلی کنید
     function displayMessage(message) {
+        updateLastActivityTimestamp(); // بروزرسانی زمان آخرین فعالیت
         // ذخیره پیام در پایگاه داده محلی
         if (message.groupType && message.groupId) {
             saveMessages(message.groupType, message.groupId, [message]);
@@ -717,6 +731,7 @@ window.chatApp = (function ($) {
       * محتوای یک پیام ویرایش شده را در UI به‌روز می‌کند و داده‌های پنهان آن را نیز آپدیت می‌کند.
       */
     function handleEditedMessage(message) {
+        updateLastActivityTimestamp(); // بروزرسانی زمان آخرین فعالیت
         // به‌روزرسانی پیام در پایگاه داده محلی
         if (message.groupType && message.groupId) {
             saveMessages(message.groupType, message.groupId, [message]);
@@ -867,6 +882,7 @@ window.chatApp = (function ($) {
 
 
     function handleDeleteMessage(messageId, groupType, groupId, result) {
+        updateLastActivityTimestamp(); // بروزرسانی زمان آخرین فعالیت
         console.log(`UserDeleteMessage received for messageId: ${messageId} in ${groupType}/${groupId}`);
 
         if (result === true) {
@@ -1286,6 +1302,9 @@ window.chatApp = (function ($) {
             signalRConnection.start()
                 .then(() => {
                     console.log("ChatApp initialized and connected for user: " + currentUser);
+
+                    updateLastActivityTimestamp(); // بروزرسانی زمان آخرین فعالیت هنگام آنلاین شدن
+
                     // Initial check for visible messages once connected and UI is likely stable
 
                     //  پس از اتصال موفق به هاب داخلی، حضور کاربر را به سرور اصلی اعلام می‌کنیم
@@ -1651,32 +1670,40 @@ window.chatApp = (function ($) {
             }
         },
 
-        syncChatHistory: async function(groupType, chatId) {
+        syncChatHistory: async function (groupType, chatId) {
             console.log(`Starting smart history sync for ${groupType}/${chatId}...`);
             try {
-                // ۱. محاسبه زمان برای ۳ ساعت قبل
-                const threeHoursAgo = new Date();
-                threeHoursAgo.setHours(threeHoursAgo.getHours() - 3);
-                const timestamp = threeHoursAgo.toISOString();
+                // ۱. خواندن آخرین زمان فعالیت از localStorage
+                let lastSyncTimestamp = localStorage.getItem('lastActivityTimestamp');
 
-                // ۲. دریافت شناسه‌های پیام‌های جدیدتر از ۳ ساعت قبل
-                const recentMessageIds = await getMessageIdsSince(groupType, chatId, timestamp);
-
-                if (recentMessageIds.length === 0) {
-                    console.log("No recent local messages to sync.");
-                    return; // اگر پیام جدیدی در کش نیست، نیازی به همگام‌سازی نیست
+                if (!lastSyncTimestamp) {
+                    // اگر هیچ زمانی ذخیره نشده بود، به عنوان اولین بار، فقط ۲۴ ساعت گذشته را همگام‌سازی کن
+                    const oneDayAgo = new Date();
+                    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+                    lastSyncTimestamp = oneDayAgo.toISOString();
+                    console.log("No last activity timestamp found. Defaulting to last 24 hours.");
                 }
 
-                console.log(`Syncing ${recentMessageIds.length} recent messages...`);
+                // ۲. ایجاد بازه زمانی با حاشیه امن ۳ ساعته
+                const syncStartDate = new Date(lastSyncTimestamp);
+                syncStartDate.setHours(syncStartDate.getHours() - 3);
+                const syncEndDate = new Date().toISOString();
 
-                // ۳. ارسال لیست بهینه شده به سرور
+                // ۳. دریافت تمام شناسه‌های پیام‌های موجود در کش در این بازه زمانی
+                const localMessageIds = await getAllMessageIdsAfter(groupType, chatId, syncStartDate.toISOString());
+
+                console.log(`Syncing from ${syncStartDate.toISOString()}. Found ${localMessageIds.length} local messages in this period.`);
+
+                // ۴. ارسال درخواست جامع به سرور
                 const response = await fetch('/api/chat/sync', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         groupType: groupType,
                         chatId: chatId,
-                        clientMessageIds: recentMessageIds // ارسال لیست بهینه شده
+                        clientMessageIds: localMessageIds,
+                        syncFrom: syncStartDate.toISOString(), // ارسال بازه زمانی به سرور
+                        syncTo: syncEndDate
                     })
                 });
 
@@ -1686,14 +1713,31 @@ window.chatApp = (function ($) {
 
                 const syncResult = await response.json();
 
-                // ۴. پردازش پیام‌های حذف شده
+                // ۵. پردازش نتایج همگام‌سازی
+
+                // الف) پردازش پیام‌های حذف شده
                 if (syncResult.deletedMessageIds && syncResult.deletedMessageIds.length > 0) {
                     console.log(`Sync: Deleting ${syncResult.deletedMessageIds.length} messages.`);
                     for (const msgId of syncResult.deletedMessageIds) {
-                        await deleteMessage(groupType, chatId, msgId);
-                        $(`#message-${msgId}`).remove(); // حذف از UI
+                        await deleteMessage(groupType, chatId, msgId.toString());
+                        $(`#message-${msgId}`).remove();
                     }
                 }
+
+                // ب) پردازش پیام‌های ویرایش شده
+                if (syncResult.editedMessages && syncResult.editedMessages.length > 0) {
+                    console.log(`Sync: Updating ${syncResult.editedMessages.length} edited messages.`);
+                    // تابع handleEditedMessage پیام را در کش هم ذخیره می‌کند
+                    syncResult.editedMessages.forEach(handleEditedMessage);
+                }
+
+                // ج) پردازش پیام‌های جدید
+                if (syncResult.newMessages && syncResult.newMessages.length > 0) {
+                    console.log(`Sync: Adding ${syncResult.newMessages.length} new messages.`);
+                    // تابع displayMessage پیام‌ها را در UI نمایش داده و در کش ذخیره می‌کند
+                    syncResult.newMessages.forEach(displayMessage);
+                }
+
 
                 console.log("Smart history sync completed successfully.");
 

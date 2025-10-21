@@ -30,6 +30,50 @@ function openDB() {
 }
 
 /**
+ * تمام شناسه‌های پیام را بعد از یک تاریخ مشخص بازیابی می‌کند
+ * @param {string} groupType - نوع گروه
+ * @param {string} roomId - شناسه چت‌روم
+ * @param {string} timestamp - تاریخ به صورت ISO string
+ * @returns {Promise<Array<string>>} - آرایه‌ای از شناسه‌های پیام
+ */
+async function getAllMessageIdsAfter(groupType, roomId, timestamp) {
+    const db = await openDB();
+    const storeName = `${CHAT_STORE_PREFIX}${groupType}_${roomId}`;
+
+    if (!db.objectStoreNames.contains(storeName)) {
+        db.close();
+        return [];
+    }
+
+    const transaction = db.transaction(storeName, 'readonly');
+    const store = transaction.objectStore(storeName);
+    const index = store.index('timestamp');
+    const messageIds = [];
+
+    // یک محدوده برای تاریخ‌های جدیدتر از timestamp ایجاد می‌کنیم
+    const range = IDBKeyRange.lowerBound(timestamp, true); // true یعنی خود تاریخ را شامل نشود
+
+    const request = index.openKeyCursor(range);
+
+    return new Promise((resolve, reject) => {
+        request.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+                messageIds.push(cursor.primaryKey);
+                cursor.continue();
+            } else {
+                db.close();
+                resolve(messageIds);
+            }
+        };
+        request.onerror = (event) => {
+            db.close();
+            reject(event.target.error);
+        };
+    });
+}
+
+/**
  * شناسه‌های پیام‌های جدیدتر از یک تاریخ مشخص را بازیابی می‌کند
  * @param {string} groupType - نوع گروه
  * @param {string} roomId - شناسه چت‌روم
