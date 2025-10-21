@@ -5,6 +5,7 @@ using Messenger.WebApp.Models;
 using Messenger.WebApp.Models.ViewModels;
 using Messenger.WebApp.ServiceHelper;
 using Messenger.WebApp.ServiceHelper.Interfaces;
+using Messenger.WebApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -27,6 +28,7 @@ namespace Messenger.WebApp.Controllers
         private readonly IFileManagementServiceClient _fileManagementServiceClient;
         private readonly IUserServiceClient _userService;
         private readonly IManageUserServiceClient _manageUserServiceClient;
+        private readonly IMessageService _messageServiceV2;
         private string[] _allowedImageExtentions;
         private string[] _allowedDocExtentions;
         private string[] _allowedAudioExtentions;
@@ -40,7 +42,8 @@ namespace Messenger.WebApp.Controllers
             IClassGroupServiceClient classGroupServiceClient, IMessageServiceClient messageService,
             IFileManagementServiceClient fileManagementServiceClient, IChannelServiceClient channelServiceClient,
             IUserServiceClient userServiceClient, IOptions<ApiSettings> apiSettings,
-            IOptions<FileConfigSetting> fileConfigSettings, IManageUserServiceClient manageUserServiceClient, HttpClient httpClient)
+            IOptions<FileConfigSetting> fileConfigSettings, IManageUserServiceClient manageUserServiceClient, HttpClient httpClient,
+            IMessageService messageServiceV2)
         {
             _logger = logger;
             _redisUserService = redisUserServiceClient;
@@ -55,6 +58,7 @@ namespace Messenger.WebApp.Controllers
             _allowedAudioExtentions = fileConfigSettings.Value.AllowedAudioExtentions;
             _manageUserServiceClient = manageUserServiceClient;
             _httpClient = httpClient;
+            _messageServiceV2 = messageServiceV2;
         }
 
         public async Task<IActionResult> Index()
@@ -500,49 +504,6 @@ namespace Messenger.WebApp.Controllers
             return Ok(new { baseUrl = _baseUrl });
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetUnreadMessageCount(int chatId, string groupType)
-        {
-            var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-            if (userId <= 0)
-            {
-                return Unauthorized();
-            }
-
-            try
-            {
-                // در اینجا باید سرویسی را فراخوانی کنید که تعداد پیام‌های خوانده نشده را از Redis یا پایگاه داده برمی‌گرداند
-                // به عنوان مثال، فرض می‌کنیم سرویس پیام چنین متدی دارد
-                // var unreadCount = await _messageService.GetUnreadCountAsync(chatId, groupType, userId);
-
-                // ---- شبیه‌سازی برای تست ----
-                // این عدد را برای تست به صورت ثابت برمی‌گردانیم. در نسخه نهایی باید با سرویس واقعی جایگزین شود.
-                var unreadCount = 120;
-                // -------------------------
-
-                return Ok(new { count = unreadCount });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting unread message count for chat {ChatId}", chatId);
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetMessagesFromFirstUnread(int chatId, string groupType)
-        {
-            try
-            {
-                var messages = await _messageService.GetMessagesFromFirstUnreadAsync(chatId, groupType);
-                return Ok(messages);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting messages from first unread for chat {ChatId}", chatId);
-                return StatusCode(500, "An error occurred while fetching messages.");
-            }
-        }
 
         //[HttpGet("GetGroupSharedFilesPartial")]
         public async Task<IActionResult> GetGroupSharedFilesPartial(int chatId, string groupType, string activeTab = "media-tab")
@@ -587,5 +548,34 @@ namespace Messenger.WebApp.Controllers
             }
         }
 
+
+        /// <summary>
+        /// End-Point جامع برای دریافت داده‌های اولیه چت
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> GetInitialChatData([FromBody] InitialChatDataRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userId = long.Parse(User.FindFirstValue("UserId"));
+            if (userId <= 0)
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var response = await _messageServiceV2.GetInitialChatDataAsync(request, userId);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "خطا در دریافت داده‌های اولیه چت برای {ChatId}", request.ChatId);
+                return StatusCode(500, "خطای داخلی سرور");
+            }
+        }
     }
 }

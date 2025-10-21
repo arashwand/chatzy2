@@ -62,85 +62,74 @@
 
             // When a chat is selected
             window.GetSelectedChatMessages = async function(chatId, groupType) {
-                console.log("chatId selected = " + chatId + " and groupType : " + groupType);
+                console.log(`بارگذاری چت: ${groupType}/${chatId}`);
                 ChatActivated(chatId, groupType);
 
-                // دریافت تعداد پیام‌های خوانده نشده
+                // ۱. نمایش فوری اسکلت لودینگ
+                const chatPanel = $('#chat-details-panel');
+                chatPanel.html(createChatPanelSkeleton()).addClass('visible');
+
+                // ۲. آماده‌سازی درخواست جامع
+                const syncRequest = await window.chatApp.createSyncRequest(groupType, chatId);
+                const requestData = {
+                    chatId: chatId,
+                    groupType: groupType,
+                    syncRequest: syncRequest
+                };
+
+                // ۳. ارسال درخواست واحد به سرور
                 $.ajax({
-                    url: '/Home/GetUnreadMessageCount',
-                    type: 'GET',
-                    data: { chatId: chatId, groupType: groupType },
-                    success: function (response) {
+                    url: '/Home/GetInitialChatData',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(requestData),
+                    success: async function(response) {
+                        // ۴. پردازش پاسخ جامع
+
+                        // الف) اعمال نتایج همگام‌سازی در کش
+                        await window.chatApp.applySyncResult(groupType, chatId, response.syncResult);
+
+                        // ب) رندر کردن پیام‌های دریافتی
+                        // ابتدا یک partial view خالی با ساختار اصلی را رندر می‌کنیم
+                        const initialChatHtml = createInitialChatView(chatId, groupType, response.lastReadMessageId);
+                        chatPanel.html(initialChatHtml);
+                        window.chatApp.renderMessages(response.messages, '#Message_Days');
+
+                        // ج) نمایش و تنظیم شمارنده پیام‌های خوانده نشده
                         const notice = $('#unreadMessagesNotice');
-                        if (response.count > 0 && notice.length) {
-                            notice.find('#unreadCount').text(response.count);
+                        if (response.unreadCount > 0 && notice.length) {
+                            notice.find('#unreadCount').text(response.unreadCount);
                             notice.show();
                         } else if (notice.length) {
                             notice.hide();
                         }
-                    }
-                });
 
-                // TODO: فعال‌سازی پس از ایجاد API سمت سرور
-                // برای فعال کردن همگام‌سازی تاریخچه و حذف پیام‌های قدیمی از کش،
-                // این خط را پس از ایجاد API در آدرس /api/chat/sync از حالت کامنت خارج کنید.
-                 await window.chatApp.syncChatHistory(groupType, chatId);
-
-                // ۱. نمایش فوری اسکلت و پنل
-                const skeletonHtml = createChatPanelSkeleton();
-                const chatPanel = $('#chat-details-panel');
-                chatPanel.html(skeletonHtml).addClass('visible');
-
-                // ۲. تلاش برای خواندن از کش
-                try {
-                    const cachedMessages = await getMessages(groupType, chatId);
-                    if (cachedMessages && cachedMessages.length > 0) {
-                        console.log(`Loaded ${cachedMessages.length} messages from cache for ${groupType}/${chatId}.`);
-                        window.chatApp.renderMessages(cachedMessages, '#Message_Days');
-                        $('#chat-finished')?.get(0)?.scrollIntoView({ block: 'end' });
-                    } else {
-                        console.log("No messages found in cache for this chat.");
-                        // می‌توانید یک لودر متفاوت یا پیام "در حال بارگذاری..." نشان دهید
-                    }
-                } catch (err) {
-                    console.error("Error reading from IndexedDB:", err);
-                }
-
-                // ۳. درخواست به‌روزرسانی از سرور در پس‌زمینه
-                $.ajax({
-                    url: '/Home/GetChatMessages',
-                    type: 'GET',
-                    data: { chatId: chatId, groupType: groupType },
-                    success: function (data) {
-                        // جایگزینی محتوای کامل با داده‌های سرور
-                        chatPanel.html(data);
-
-                        // فعال‌سازی مجدد لیسنرها
-                        window.chatApp.reAttachScrollListener();
-
-                        // اسکرول هوشمند
-                        const lastReadMessageId = $('#lastReadMessageId').val();
+                        // د) اسکرول هوشمند
                         let targetElement = null;
-                        if (lastReadMessageId) {
-                            targetElement = document.getElementById(`message-${lastReadMessageId}`);
+                        if (response.isFromUnread && response.lastReadMessageId) {
+                             targetElement = document.getElementById(`message-${response.lastReadMessageId}`);
+                             // اضافه کردن یک کلاس برای هایلایت کردن پیام
+                             if(targetElement) $(targetElement).addClass('highlight-message');
                         }
 
                         if (targetElement) {
                             targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         } else {
-                            $('#chat-finished')?.get(0)?.scrollIntoView({ block: 'end' });
+                             $('#chat-finished')?.get(0)?.scrollIntoView({ block: 'end' });
                         }
 
-                        // ذخیره پیام‌های جدید در کش
-                        setTimeout(() => window.chatApp.cacheMessagesFromDOM(), 500);
-
+                        // ه) فعال‌سازی مجدد کامپوننت‌ها و لیسنرها
+                        window.chatApp.reAttachScrollListener();
                         if (typeof init_iconsax === 'function') {
                             init_iconsax();
                         }
+
+                        // و) ذخیره پیام‌های جدید در کش
+                        await window.chatApp.addOrUpdateMessages(groupType, chatId, response.messages);
+
                     },
-                    error: function (error) {
-                        console.error("Error fetching chat messages from server:", error);
-                        // در صورت خطا، می‌توانید پیام مناسبی به کاربر نشان دهید
+                    error: function(error) {
+                        console.error("خطا در دریافت داده‌های اولیه چت:", error);
                         chatPanel.find('#Message_Days').html('<p class="text-center text-danger p-5">خطا در بارگذاری پیام‌ها از سرور.</p>');
                     }
                 });
@@ -258,45 +247,94 @@
             }, 300);
         });
 
-        // رویداد کلیک برای پرش به اولین پیام خوانده نشده
-        $(document).on('click', '#unreadMessagesNotice', function() {
-            const chatId = $('#current-group-id-hidden-input').val();
-            const groupType = $('#current-group-type-hidden-input').val();
-            const noticeButton = $(this);
+            function createInitialChatView(chatId, groupType, lastReadMessageId) {
+                // ایجاد ساختار HTML کامل برای پنل چت
+                return `
+                    <!-- header -->
+                    <div class="chat-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn back-btn d-lg-none" id="close-chat-panel-btn" type="button">
+                                <i class="iconsax" data-icon="arrow-left"></i>
+                            </button>
+                            <div class="d-flex align-items-center gap-3" onclick="GetChatDetails('${chatId}', '${groupType}')" style="cursor:pointer;">
+                                <div class="chat-user-img">
+                                    <img class="img-fluid" src="/assets/media/avatar/UserIcon.png" alt="user" />
+                                    <div class="active-status"></div>
+                                </div>
+                                <div class="chat-user-name">
+                                    <h6 class="text-truncate" id="chat-group-name-in-header">...</h6>
+                                    <span class="content-color d-block" id="chat-group-members-count-in-header">...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-4">
+                            <!-- Actions like call/video can be added here -->
+                        </div>
+                    </div>
+                    <!-- / header -->
 
-            // نمایش یک لودر کوچک روی دکمه
-            noticeButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+                    <!-- content -->
+                    <div class="chat-content" id="chat_content">
+                        <input type="hidden" id="current-group-id-hidden-input" value="${chatId}" />
+                        <input type="hidden" id="current-group-type-hidden-input" value="${groupType}" />
+                        <input type="hidden" id="lastReadMessageId" value="${lastReadMessageId || ''}" />
+                        <input type="hidden" id="lastMessageIdLoad" value="0" />
 
-            $.ajax({
-                url: '/Home/GetMessagesFromFirstUnread',
-                type: 'GET',
-                data: { chatId: chatId, groupType: groupType },
-                success: function(messages) {
-                    if (messages && messages.length > 0) {
-                        const messageContainer = $('#Message_Days');
+                         <a class="btn" id="unreadMessagesNotice" style="display: none;">
+                            <span id="unreadCount"></span> پیام خوانده نشده
+                            <i class="iconsax" data-icon="arrow-down"></i>
+                        </a>
 
-                        // ۱. پاک کردن پیام‌های فعلی
-                        messageContainer.empty();
+                        <div id="Message_Days">
+                            <!-- Messages will be rendered here by chatApp.renderMessages -->
+                        </div>
+                        <div id="chat-finished"></div>
+                    </div>
+                    <!-- / content -->
 
-                        // ۲. رندر کردن پیام‌های جدید
-                        window.chatApp.renderMessages(messages, '#Message_Days');
+                    <!-- footer -->
+                    <div class="chat-footer">
+                         <div id="filePreviewContainer" class="file-preview-container"></div>
+                         <div class="main-input-area">
+                            <div id="reply-to-container" class="reply-preview-container" style="display: none;">
+                                <div class="reply-content">
+                                    <div class="reply-info">
+                                        <span id="reply-to-user"></span>
+                                        <span id="reply-to-text" class="text-truncate"></span>
+                                    </div>
+                                </div>
+                                <button id="cancel-reply" class="btn-close"></button>
+                            </div>
+                            <div class="text-input-group">
+                                <textarea class="form-control" id="message-input" placeholder="پیام شما..." rows="1"></textarea>
+                                <button class="btn btn-attachment" type="button" id="attachment-btn" onclick="document.getElementById('file-upload-input').click();">
+                                     <i class="iconsax" data-icon="paperclip-2"></i>
+                                </button>
+                                <input type="file" id="file-upload-input" multiple style="display:none;" />
+                            </div>
+                            <button class="btn btn-send" type="button" id="send-message-button">
+                                <i class="iconsax" data-icon="send-1"></i>
+                            </button>
+                         </div>
+                    </div>
+                    <!-- / footer -->
+                `;
+            }
 
-                        // ۳. اسکرول به اولین پیام جدید
-                        const firstMessageId = messages[0].messageId;
-                        const firstMessageElement = document.getElementById(`message-${firstMessageId}`);
-                        if (firstMessageElement) {
-                            firstMessageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
+            // رویداد کلیک برای پرش به اولین پیام خوانده نشده
+            $(document).on('click', '#unreadMessagesNotice', function() {
+                const lastReadMessageId = $('#lastReadMessageId').val();
+                if (lastReadMessageId) {
+                    const targetElement = document.getElementById(`message-${lastReadMessageId}`);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                         $(targetElement).addClass('highlight-message');
+                         // هایلایت بعد از چند ثانیه محو شود
+                        setTimeout(() => $(targetElement).removeClass('highlight-message'), 2000);
                     }
-                    // دکمه به طور خودکار مخفی می‌ماند چون محتوا جایگزین شده
-                },
-                error: function() {
-                    alert('خطا در بارگذاری پیام‌های جدید.');
-                    // برگرداندن دکمه به حالت اولیه در صورت خطا
-                    noticeButton.html('<span id="unreadCount"></span> پیام جدید <i class="iconsax" data-icon="arrow-down"></i>');
                 }
+                $(this).hide(); // مخفی کردن دکمه پس از کلیک
             });
-        });
 
     </script>
 }

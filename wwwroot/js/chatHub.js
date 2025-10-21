@@ -24,6 +24,9 @@ window.chatApp = (function ($) {
     let heartbeatTimer = null; // متغیر برای نگهداری تایمر Heartbeat
     const HEARTBEAT_INTERVAL = 180 * 1000; // ارسال Heartbeat هر 90 ثانیه (90000 میلی‌ثانیه)
 
+    // --- متغیرهای جدید برای Prefetching ---
+    let prefetchedMessages = [];
+    let isPrefetching = false;
 
 
     // =================================================
@@ -79,80 +82,111 @@ window.chatApp = (function ($) {
         }
     }
 
+    /**
+     * پیش‌بارگذاری پیام‌های قدیمی‌تر در پس‌زمینه
+     */
+    function startPrefetch() {
+        if (isPrefetching || !hasMoreMessages || getOldDataRunning || prefetchedMessages.length > 0) {
+            return; // اگر در حال پیش‌بارگذاری، بارگذاری اصلی، یا داده از قبل موجود است، کاری نکن
+        }
+
+        isPrefetching = true;
+        console.log("Starting prefetch...");
+
+        const chatId = parseInt($('#current-group-id-hidden-input').val());
+        const groupType = $('#current-group-type-hidden-input').val();
+        const lastmessageId = $('#lastMessageIdLoad').val();
+
+        if (lastmessageId == 0) {
+            isPrefetching = false;
+            hasMoreMessages = false;
+            return;
+        }
+
+        $.ajax({
+            url: '/Home/GetOldMessage',
+            type: 'POST',
+            data: { chatId: chatId, groupType: groupType, messageId: lastmessageId },
+            success: function (response) {
+                if (response.success && response.data.length > 0) {
+                    console.log(`Prefetched ${response.data.length} messages.`);
+                    prefetchedMessages = response.data; // ذخیره در کش موقت
+                    prefetchedMessages.nextLastMessageId = response.lastMessageId; // ذخیره شناسه بعدی
+                    saveMessages(groupType, chatId, response.data); // ذخیره در IndexedDB
+
+                    if (response.data.length < 50) {
+                        hasMoreMessages = false;
+                    }
+                } else {
+                    hasMoreMessages = false;
+                }
+            },
+            error: function () {
+                console.error('Prefetch failed.');
+            },
+            complete: function () {
+                isPrefetching = false;
+            }
+        });
+    }
+
 
     // دریافت اطلاعات قدیمی تر جهت نمایش به کاربر
     let getOldDataRunning = false;
     let hasMoreMessages = true; // این مقدار باید از سرور کنترل شود
     async function getOldData() {
-        if (!hasMoreMessages || getOldDataRunning) {
-            console.log('getDatarunning is on, or hasMoreMessages = false');
+        if (getOldDataRunning || !hasMoreMessages) {
             return;
         }
+
+        // ۱. ابتدا داده‌های پیش‌بارگذاری شده را چک کن
+        if (prefetchedMessages.length > 0) {
+            console.log("Rendering prefetched data...");
+            groupMessagesByDate(prefetchedMessages);
+            $('#lastMessageIdLoad').val(prefetchedMessages.nextLastMessageId);
+            prefetchedMessages = []; // خالی کردن کش موقت
+            return; // عملیات تمام شد
+        }
+
 
         getOldDataRunning = true;
         const chatId = parseInt($('#current-group-id-hidden-input').val());
         const groupType = $('#current-group-type-hidden-input').val();
 
-        // پیدا کردن قدیمی‌ترین پیام در UI
-        const firstMessageElement = $('.message[data-message-id]').first();
-        if (!firstMessageElement.length) {
+        // ۲. اگر داده پیش‌بارگذاری شده نبود، از سرور واکشی کن
+        console.log("No prefetched data, fetching from server directly...");
+        var lastmessageId = $('#lastMessageIdLoad').val();
+         if (lastmessageId == 0) {
             getOldDataRunning = false;
-            return; // هیچ پیامی برای مقایسه وجود ندارد
+            hasMoreMessages = false;
+            return;
         }
 
-        const firstMessageDetails = JSON.parse(firstMessageElement.attr('data-message-details'));
-        const oldestTimestamp = firstMessageDetails.messageDateTime;
+        $.ajax({
+            url: '/Home/GetOldMessage',
+            type: 'POST',
+            data: { chatId: chatId, groupType: groupType, messageId: lastmessageId },
+            success: function (response) {
+                if (response.success && response.data.length > 0) {
+                    saveMessages(groupType, chatId, response.data);
+                    groupMessagesByDate(response.data);
+                    $('#lastMessageIdLoad').val(response.lastMessageId);
 
-        // ۱. تلاش برای خواندن از کش
-        const cachedMessages = await getMessagesBefore(groupType, chatId, oldestTimestamp);
-
-        if (cachedMessages.length > 0) {
-            console.log(`Loaded ${cachedMessages.length} older messages from cache.`);
-            groupMessagesByDate(cachedMessages);
-            getOldDataRunning = false;
-            // اگر کش کمتر از حد انتظار (مثلاً ۵۰) پیام برگرداند، ممکن است پیام‌های بیشتری در سرور باشد
-            if (cachedMessages.length < 50) {
-                 hasMoreMessages = false; // فرض می‌کنیم این آخرین بخش از کش بوده
-            }
-        } else {
-            // ۲. اگر کش خالی بود، درخواست از سرور
-            console.log("No older messages in cache, fetching from server...");
-            var lastmessageId = $('#lastMessageIdLoad').val();
-             if (lastmessageId == 0) {
-                getOldDataRunning = false;
-                hasMoreMessages = false;
-                return;
-            }
-
-            $.ajax({
-                url: '/Home/GetOldMessage',
-                type: 'POST',
-                data: { chatId: chatId, groupType: groupType, messageId: lastmessageId },
-                success: function (response) {
-                    if (response.success && response.data.length > 0) {
-                        // ذخیره در کش
-                        saveMessages(groupType, chatId, response.data);
-                        // نمایش در UI
-                        groupMessagesByDate(response.data);
-
-                        $('#lastMessageIdLoad').val(response.lastMessageId);
-
-                        if (response.data.length < 50) {
-                            hasMoreMessages = false;
-                        }
-                    } else {
-                        hasMoreMessages = false; // هیچ پیام دیگری وجود ندارد
-                        console.log('No more old messages on server.');
+                    if (response.data.length < 50) {
+                        hasMoreMessages = false;
                     }
-                },
-                error: function () {
-                    console.log('خطای ارتباط با سرور.');
-                },
-                complete: function () {
-                    getOldDataRunning = false;
+                } else {
+                    hasMoreMessages = false;
+                    console.log('No more old messages on server.');
                 }
-            });
-        }
+            },
+            error: function () {
+                console.log('خطای ارتباط با سرور.');
+            },
+            complete: function () {
+                getOldDataRunning = false;
+            }
+        });
     }
 
     function formatDate(date) {
@@ -1509,23 +1543,34 @@ window.chatApp = (function ($) {
 
             if (active) {
                 console.log("Scroll listener activated.");
+                const PREFETCH_THRESHOLD = 800; // پیکسل - آستانه برای شروع پیش‌بارگذاری
+                const LOAD_THRESHOLD = 200;     // پیکسل - آستانه برای نمایش داده‌ها
+
                 chatContentScroller.on('scroll.chatApp', function () {
-                    var scrollTopLength = chatContentScroller.scrollTop();
-                    if (scrollTopLength <= 200 && scrollTopLength > 0 && chatContentScroller.is(':visible')) {
-                        getOldData();
+                    const scrollTop = $(this).scrollTop();
+
+                    // ۱. منطق پیش‌بارگذاری (Prefetching)
+                    if (scrollTop <= PREFETCH_THRESHOLD && scrollTop > 0 && $(this).is(':visible')) {
+                        startPrefetch(); // درخواست در پس‌زمینه ارسال می‌شود
                     }
 
-                    const scrollHeight = chatContentScroller.prop("scrollHeight");
-                    const clientHeight = chatContentScroller.innerHeight();
-                    if (scrollHeight - (scrollTopLength + clientHeight) <= 5) {
+                    // ۲. منطق بارگذاری و نمایش داده‌ها
+                    if (scrollTop <= LOAD_THRESHOLD && scrollTop > 0 && $(this).is(':visible')) {
+                        getOldData(); // داده‌های پیش‌بارگذاری شده را نمایش می‌دهد یا درخواست جدید می‌فرستد
+                    }
+
+                    // ۳. منطق مخفی کردن اعلان پیام جدید
+                    const scrollHeight = this.scrollHeight;
+                    const clientHeight = this.clientHeight;
+                    if (scrollHeight - (scrollTop + clientHeight) <= 5) {
                         if (newMessagesNotice.is(':visible')) {
                             newMessagesNotice.hide().data('newCount', 0).text('');
                         }
                     }
 
+                    // ۴. منطق بررسی پیام‌های قابل مشاهده (برای علامت‌گذاری به عنوان خوانده شده)
                     clearTimeout(scrollTimer);
                     scrollTimer = setTimeout(function () {
-                        console.log("Chat scrolled (#chat_content), running global checkVisibleMessages.");
                         checkVisibleMessages();
                     }, 250);
                 });
@@ -1744,7 +1789,63 @@ window.chatApp = (function ($) {
             } catch (error) {
                 console.error("Failed to sync chat history:", error);
             }
+        },
+
+        /**
+         * یک درخواست همگام‌سازی جامع برای سرور ایجاد می‌کند.
+         */
+        createSyncRequest: async function(groupType, chatId) {
+            let lastSyncTimestamp = localStorage.getItem('lastActivityTimestamp');
+            if (!lastSyncTimestamp) {
+                const oneDayAgo = new Date();
+                oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+                lastSyncTimestamp = oneDayAgo.toISOString();
+            }
+
+            const syncStartDate = new Date(lastSyncTimestamp);
+            syncStartDate.setHours(syncStartDate.getHours() - 3); // حاشیه امن ۳ ساعته
+            const syncEndDate = new Date().toISOString();
+
+            const localMessageIds = await getAllMessageIdsAfter(groupType, chatId, syncStartDate.toISOString());
+
+            return {
+                ClientMessageIds: localMessageIds,
+                SyncFrom: syncStartDate.toISOString(),
+                SyncTo: syncEndDate
+            };
+        },
+
+        /**
+         * نتایج همگام‌سازی را در کش و UI اعمال می‌کند.
+         */
+        applySyncResult: async function(groupType, chatId, syncResult) {
+            if (!syncResult) return;
+
+            // الف) پردازش پیام‌های حذف شده
+            if (syncResult.deletedMessageIds && syncResult.deletedMessageIds.length > 0) {
+                for (const msgId of syncResult.deletedMessageIds) {
+                    await deleteMessage(groupType, chatId, msgId.toString());
+                    $(`#message-${msgId}`).remove();
+                }
+            }
+
+            // ب) پردازش پیام‌های ویرایش شده
+            if (syncResult.editedMessages && syncResult.editedMessages.length > 0) {
+                // handleEditedMessage هم در UI و هم در کش آپدیت می‌کند
+                syncResult.editedMessages.forEach(handleEditedMessage);
+            }
+        },
+
+        /**
+         * پیام‌ها را به صورت دسته‌ای در IndexedDB ذخیره یا به‌روزرسانی می‌کند.
+         * (این تابع از saveMessages موجود در indexedDb.js استفاده می‌کند)
+         */
+        addOrUpdateMessages: async function(groupType, chatId, messages) {
+            if (messages && messages.length > 0) {
+                await saveMessages(groupType, chatId, messages);
+            }
         }
+
     };
 
     // این آبجکت عمومی را برمی‌گردانیم تا window.chatApp به آن مقداردهی شود.
