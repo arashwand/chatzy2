@@ -596,3 +596,169 @@ namespace Messenger.WebApp.Controllers
 
     }
 }
+
+/*
+======================================================================================================================
+// کد پیشنهادی برای پیاده‌سازی در سرویس بیرونی شما (External Web Service)
+// لطفاً این متد و کلاس‌های DTO زیر را در MessageService و کنترلر مربوطه در پروژه API اصلی خود قرار دهید.
+======================================================================================================================
+
+//-------------------------------------------------------------------------------------
+// 1. مدل‌های درخواست و پاسخ (DTOs)
+// این مدل‌ها باید در دسترس پروژه API شما باشند.
+//-------------------------------------------------------------------------------------
+
+/// <summary>
+/// مدل درخواست برای دریافت داده‌های اولیه چت.
+/// </summary>
+public class GetInitialChatDataRequest
+{
+    [Required]
+    public string GroupType { get; set; }
+
+    [Required]
+    public string ChatId { get; set; }
+
+    /// <summary>
+    /// آخرین زمان فعالیت کاربر که از localStorage خوانده می‌شود.
+    /// برای همگام‌سازی پیام‌های ویرایش/حذف شده استفاده می‌شود.
+    /// </summary>
+    public DateTime? LastActivityTimestamp { get; set; }
+}
+
+/// <summary>
+/// مدل پاسخ برای داده‌های اولیه چت.
+/// </summary>
+public class GetInitialChatDataResult
+{
+    public List<MessageDto> Messages { get; set; } = new List<MessageDto>();
+    public List<MessageDto> EditedMessages { get; set; } = new List<MessageDto>();
+    public List<long> DeletedMessageIds { get; set; } = new List<long>();
+    public long? LastReadMessageId { get; set; }
+    public int TotalUnreadCount { get; set; }
+    public bool HasMoreOldMessages { get; set; }
+}
+
+
+//-------------------------------------------------------------------------------------
+// 2. منطق جدید در MessageService
+// این متد جایگزین SyncChatHistoryAsync شده و تمام سناریوها را پوشش می‌دهد.
+//-------------------------------------------------------------------------------------
+
+public async Task<GetInitialChatDataResult> GetInitialChatDataAsync(GetInitialChatDataRequest request, long currentUserId)
+{
+    try
+    {
+        var result = new GetInitialChatDataResult();
+        var chatIdLong = long.Parse(request.ChatId);
+
+        // ایجاد کوئری پایه برای پیام‌ها
+        var baseQuery = GetMessagesQuery(); // از متد کمکی فعلی شما استفاده می‌کنیم
+
+        // فیلتر کردن کوئری بر اساس نوع گروه و شناسه چت
+        switch (request.GroupType)
+        {
+            case "ClassGroup":
+                baseQuery = baseQuery.Where(m => m.ClassGroupMessages.Any(cg => cg.ClassId == chatIdLong));
+                break;
+            case "ChannelGroup":
+                baseQuery = baseQuery.Where(m => m.ChannelMessages.Any(ch => ch.ChannelId == chatIdLong));
+                break;
+        }
+
+        // --- بخش همگام‌سازی (Sync) ---
+        if (request.LastActivityTimestamp.HasValue)
+        {
+            var syncTime = request.LastActivityTimestamp.Value.AddMinutes(-5); // یک تلورانس 5 دقیقه‌ای
+
+            // یافتن پیام‌های ویرایش شده از آخرین فعالیت کاربر
+            var editedMessages = await baseQuery
+                .Where(m => m.IsEdited == true && m.MessageDateTime >= syncTime) // فرض: EditDate وجود ندارد، از تاریخ پیام استفاده می‌کنیم
+                .ToListAsync();
+            result.EditedMessages = MapMessagesToDto(editedMessages, currentUserId);
+
+            // یافتن پیام‌های حذف شده از آخرین فعالیت کاربر
+            result.DeletedMessageIds = await baseQuery
+                .Where(m => m.IsHidden == true && m.MessageDateTime >= syncTime)
+                .Select(m => m.MessageId)
+                .ToListAsync();
+        }
+
+        // --- بخش بارگذاری هوشمند پیام‌ها ---
+
+        // 1. محاسبه تعداد پیام‌های خوانده نشده
+        var unreadMessagesQuery = baseQuery.Where(m => !m.MessageReads.Any(r => r.UserId == currentUserId));
+        result.TotalUnreadCount = await unreadMessagesQuery.CountAsync();
+
+        List<Message> finalMessages;
+
+        if (result.TotalUnreadCount > 100)
+        {
+            // سناریو 1: بیش از 100 پیام خوانده نشده
+            // ۱۰۰ پیام آخر خوانده نشده را انتخاب می‌کنیم
+            var last100Unread = await unreadMessagesQuery
+                .OrderByDescending(m => m.MessageDateTime)
+                .Take(100)
+                .ToListAsync();
+
+            result.LastReadMessageId = last100Unread.FirstOrDefault()?.MessageId;
+            var oldestOfUnread = last100Unread.LastOrDefault();
+
+            // ۲۰ پیام خوانده شده قبل از آنها را برای ایجاد زمینه گفتگو واکشی می‌کنیم
+            var previousReadMessages = await baseQuery
+                .Where(m => m.MessageDateTime < oldestOfUnread.MessageDateTime && m.MessageReads.Any(r => r.UserId == currentUserId))
+                .OrderByDescending(m => m.MessageDateTime)
+                .Take(20)
+                .ToListAsync();
+
+            finalMessages = last100Unread.Concat(previousReadMessages).OrderBy(m => m.MessageDateTime).ToList();
+        }
+        else if (result.TotalUnreadCount > 0)
+        {
+            // سناریو 2: بین 1 تا 100 پیام خوانده نشده
+            var allUnread = await unreadMessagesQuery.OrderBy(m => m.MessageDateTime).ToListAsync();
+            result.LastReadMessageId = allUnread.LastOrDefault()?.MessageId;
+            var oldestUnread = allUnread.FirstOrDefault();
+
+            // ۲۰ پیام خوانده شده قبل از آنها را واکشی می‌کنیم
+            var previousReadMessages = await baseQuery
+                .Where(m => m.MessageDateTime < oldestUnread.MessageDateTime && m.MessageReads.Any(r => r.UserId == currentUserId))
+                .OrderByDescending(m => m.MessageDateTime)
+                .Take(20)
+                .ToListAsync();
+
+            finalMessages = allUnread.Concat(previousReadMessages).OrderBy(m => m.MessageDateTime).ToList();
+        }
+        else
+        {
+            // سناریو 3: هیچ پیام خوانده نشده‌ای وجود ندارد
+            result.LastReadMessageId = null; // اسکرول به انتها
+            finalMessages = await baseQuery
+                .OrderByDescending(m => m.MessageDateTime)
+                .Take(30) // ۳۰ پیام آخر را نمایش بده
+                .ToListAsync();
+            finalMessages.Reverse(); // مرتب‌سازی از قدیم به جدید
+        }
+
+        result.Messages = MapMessagesToDto(finalMessages, currentUserId);
+
+        // 3. بررسی وجود پیام‌های قدیمی‌تر
+        var oldestMessageInResult = finalMessages.FirstOrDefault();
+        if (oldestMessageInResult != null)
+        {
+            result.HasMoreOldMessages = await baseQuery.AnyAsync(m => m.MessageDateTime < oldestMessageInResult.MessageDateTime);
+        }
+        else
+        {
+            result.HasMoreOldMessages = false;
+        }
+
+        return result;
+    }
+    catch (Exception ex)
+    {
+        // لاگ کردن خطا
+        return new GetInitialChatDataResult(); // بازگرداندن نتیجه خالی در صورت بروز خطا
+    }
+}
+*/
