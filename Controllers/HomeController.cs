@@ -496,6 +496,60 @@ namespace Messenger.WebApp.Controllers
             return Ok(new { baseUrl = _baseUrl });
         }
 
+        /// <summary>
+        /// داده‌های اولیه چت را به صورت یکپارچه دریافت می‌کند.
+        /// این متد به عنوان پروکسی برای سرویس اصلی عمل می‌کند.
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> GetInitialChatData([FromBody] GetInitialChatDataRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+            {
+                return Unauthorized("Auth token not found.");
+            }
+
+            try
+            {
+                // آدرس اندپوینت واقعی در سرویس اصلی
+                var url = $"{_baseUrl}api/Chat/GetInitialChatData";
+
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, url);
+                requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                // سریالایز کردن بدنه درخواست
+                var jsonRequest = JsonSerializer.Serialize(request);
+                requestMessage.Content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
+
+                using var response = await _httpClient.SendAsync(requestMessage);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    // اگر سرویس با خطا مواجه شد، پاسخ خطا را به کلاینت برگردان
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Error from external API for GetInitialChatData: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                    return StatusCode((int)response.StatusCode, errorContent);
+                }
+
+                var responseBody = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var result = JsonSerializer.Deserialize<GetInitialChatDataResult>(responseBody, options);
+
+                // بازگرداندن نتیجه موفقیت‌آمیز به کلاینت
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error proxying GetInitialChatData for chatId {ChatId}", request.ChatId);
+                return StatusCode(500, "Internal server error while fetching initial chat data.");
+            }
+        }
+
         //[HttpGet("GetGroupSharedFilesPartial")]
         public async Task<IActionResult> GetGroupSharedFilesPartial(int chatId, string groupType, string activeTab = "media-tab")
         {

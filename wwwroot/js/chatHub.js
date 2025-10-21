@@ -1670,66 +1670,121 @@ window.chatApp = (function ($) {
             }
         },
 
-        syncChatHistory: async function (groupType, chatId) {
-            console.log(`Starting smart history sync for ${groupType}/${chatId}...`);
+        /**
+         * فرآیند کامل بارگذاری یک چت را مدیریت می‌کند.
+         * این تابع ابتدا UI را آماده کرده، سپس داده‌ها را از کش محلی بارگذاری می‌کند
+         * و در نهایت آخرین تغییرات را از سرور همگام‌سازی می‌کند.
+         * @param {string} groupType - نوع گروه ('ClassGroup' یا 'ChannelGroup').
+         * @param {string|number} chatId - شناسه چت.
+         */
+        loadChat: async function (groupType, chatId) {
+            // ۱. نمایش فوری اسکلت لودینگ و پنل چت
+            // این بخش چون در index.cshtml وجود دارد، اینجا تکرار نمی‌شود.
+            // اطمینان حاصل کنید که قبل از فراخوانی این تابع، UI اولیه ساخته شده است.
+            console.log(`Loading chat for ${groupType}/${chatId}`);
+
+            // ۲. تلاش برای خواندن پیام‌ها از کش محلی (IndexedDB)
             try {
-                let lastSyncTimestamp = localStorage.getItem('lastActivityTimestamp');
-
-                if (!lastSyncTimestamp) {
-                    const oneDayAgo = new Date();
-                    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-                    lastSyncTimestamp = oneDayAgo.toISOString();
-                    console.log("No last activity timestamp found. Defaulting to last 24 hours.");
+                const cachedMessages = await getMessages(groupType, chatId);
+                if (cachedMessages && cachedMessages.length > 0) {
+                    console.log(`Loaded ${cachedMessages.length} messages from cache.`);
+                    publicApi.renderMessages(cachedMessages, '#Message_Days');
+                    // اسکرول به انتها برای پیام‌های کش‌شده
+                    $('#chat-finished')?.get(0)?.scrollIntoView({ block: 'end' });
+                } else {
+                    console.log("No messages found in cache. Waiting for server response.");
+                    // در این حالت، اسکلت لودینگ به کاربر نمایش داده می‌شود
                 }
+            } catch (err) {
+                console.error("Error reading messages from IndexedDB:", err);
+                // حتی در صورت خطا، به مرحله همگام‌سازی با سرور ادامه می‌دهیم
+            }
 
-                const syncStartDate = new Date(lastSyncTimestamp);
-                syncStartDate.setHours(syncStartDate.getHours() - 3);
-                const syncEndDate = new Date().toISOString();
+            // ۳. فراخوانی تابع همگام‌سازی برای دریافت آخرین داده‌ها از سرور
+            await publicApi.syncChatHistory(groupType, chatId);
+        },
 
-                const localMessageIds = await getAllMessageIdsAfter(groupType, chatId, syncStartDate.toISOString());
-                console.log(`Syncing from ${syncStartDate.toISOString()}. Found ${localMessageIds.length} local messages.`);
+        /**
+         * تاریخچه چت را با سرور همگام‌سازی می‌کند.
+         * این تابع از اندپوینت جدید GetInitialChatData برای دریافت پیام‌های جدید،
+         * ویرایش‌شده، حذف‌شده و همچنین اطلاعات مربوط به اسکرول هوشمند استفاده می‌کند.
+         * @param {string} groupType - نوع گروه.
+         * @param {string|number} chatId - شناسه چت.
+         */
+        syncChatHistory: async function (groupType, chatId) {
+            console.log(`Starting data sync for ${groupType}/${chatId}...`);
+            try {
+                // دریافت آخرین شناسه‌ی پیام و زمان آخرین فعالیت از حافظه محلی
+                const lastMessageIdInClient = await getLastMessageId(groupType, chatId);
+                const lastActivityTimestamp = localStorage.getItem('lastActivityTimestamp');
 
                 $.ajax({
-                    url: '/api/chat/SyncMessageHistory',
+                    url: '/Home/GetInitialChatData', // <-- استفاده از اندپوینت جدید پروکسی
                     type: 'POST',
-                    xhrFields: { withCredentials: true },
                     contentType: 'application/json',
                     data: JSON.stringify({
                         GroupType: groupType,
-                        ChatId: chatId.toString(), // حتما string
-                        ClientMessageIds: localMessageIds,
-                        SyncFrom: syncStartDate.toISOString(),
-                        SyncTo: syncEndDate
+                        ChatId: chatId.toString(),
+                        LastMessageIdInClient: lastMessageIdInClient,
+                        LastActivityTimestamp: lastActivityTimestamp
                     }),
                     success: async function (response) {
                         console.log('Sync successful:', response);
 
-                        const syncResult = response;
-
-                        if (syncResult.deletedMessageIds?.length) {
-                            for (const msgId of syncResult.deletedMessageIds) {
+                        // پردازش پیام‌های حذف‌شده
+                        if (response.deletedMessageIds?.length) {
+                            for (const msgId of response.deletedMessageIds) {
                                 await deleteMessage(groupType, chatId, msgId.toString());
                                 $(`#message-${msgId}`).remove();
                             }
                         }
 
-                        if (syncResult.editedMessages?.length) {
-                            syncResult.editedMessages.forEach(handleEditedMessage);
+                        // پردازش پیام‌های ویرایش‌شده
+                        if (response.editedMessages?.length) {
+                            response.editedMessages.forEach(handleEditedMessage);
                         }
 
-                        if (syncResult.newMessages?.length) {
-                            syncResult.newMessages.forEach(displayMessage);
+                        // پردازش و نمایش پیام‌های جدید
+                        if (response.messages?.length) {
+                            // در بارگذاری اولیه، ممکن است لازم باشد UI را کاملاً بازسازی کنیم
+                            if (!lastMessageIdInClient) {
+                                publicApi.renderMessages(response.messages, '#Message_Days');
+                            } else {
+                                response.messages.forEach(displayMessage);
+                            }
+                            // ذخیره پیام‌های جدید در کش
+                            await saveMessages(groupType, chatId, response.messages);
                         }
 
-                        console.log("Smart history sync completed successfully.");
+                        // به‌روزرسانی شمارنده پیام‌های خوانده‌نشده
+                        updateUnreadCountForGroup(`${groupType}_${chatId}`, response.totalUnreadCount);
+
+                        // فعال‌سازی مجدد لیسنر اسکرول
+                        publicApi.reAttachScrollListener();
+
+                        // اسکرول هوشمند
+                        const lastReadMessageId = response.lastReadMessageId;
+                        let targetElement = null;
+                        if (lastReadMessageId) {
+                            targetElement = document.getElementById(`message-${lastReadMessageId}`);
+                        }
+
+                        if (targetElement) {
+                            targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        } else {
+                            $('#chat-finished')?.get(0)?.scrollIntoView({ block: 'end' });
+                        }
+
+                        console.log("Data sync completed successfully.");
                     },
                     error: function (xhr, status, error) {
-                        console.error('Failed to sync chat history:', xhr.status, xhr.responseText || error);
+                        console.error('Failed to sync chat data:', xhr.status, xhr.responseText || error);
+                        $('#Message_Days').html('<p class="text-center text-danger p-5">خطا در بارگذاری پیام‌ها از سرور.</p>');
                     }
                 });
 
             } catch (error) {
-                console.error("Failed to sync chat history:", error);
+                console.error("An error occurred during the sync process:", error);
             }
         }
 
