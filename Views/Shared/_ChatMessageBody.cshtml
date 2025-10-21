@@ -79,6 +79,7 @@
         </div>
         <input type="hidden" id="lastMessageIdLoad" value="@(Model.Count() > 0 ? Model.Last().MessageId : 0)" />
         <input type="hidden" id="hasMoreMessages" value="@(Model.Count() >= 50 ? true : false)" />
+        <input type="hidden" id="lastReadMessageId" value="@(ViewData["LastReadMessageId"] ?? 0)" />
 
         <div id="Message_Days">
             @{
@@ -353,5 +354,34 @@
 
 
 <script>
-   
+    $(document).ready(function () {
+        // تاخیر کوتاهی برای اطمینان از رندر شدن کامل DOM
+        setTimeout(function () {
+            const lastReadMessageId = parseInt($('#lastReadMessageId').val(), 10);
+            const chatContent = $('#chat_content');
+
+            if (lastReadMessageId > 0) {
+                const targetMessage = $(`#message-${lastReadMessageId}`);
+                if (targetMessage.length) {
+                    // اسکرول به پیام مورد نظر
+                    chatContent.scrollTop(targetMessage.offset().top - chatContent.offset().top + chatContent.scrollTop());
+                    console.log(`Scrolled to last read message: ${lastReadMessageId}`);
+                } else {
+                    // اگر پیام مورد نظر پیدا نشد، به آخرین پیام اسکرول کن
+                    const chatFinished = $('#chat-finished');
+                    if (chatFinished.length) {
+                        chatFinished[0].scrollIntoView({ behavior: 'auto', block: 'end' });
+                    }
+                    console.log(`Last read message ${lastReadMessageId} not found. Scrolling to bottom.`);
+                }
+            } else {
+                // اگر هیچ پیام خوانده نشده‌ای نبود، به آخرین پیام اسکرول کن
+                const chatFinished = $('#chat-finished');
+                if (chatFinished.length) {
+                    chatFinished[0].scrollIntoView({ behavior: 'auto', block: 'end' });
+                }
+                console.log("No last read message ID. Scrolling to bottom.");
+            }
+        }, 100); // 100 میلی‌ثانیه تاخیر
+    });
 </script>

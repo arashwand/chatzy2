@@ -156,6 +156,8 @@ namespace Messenger.WebApp.Controllers
                     await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId) :
                     await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId);
 
+                var lastReadMessageId = await GetLastReadMessageIdPlaceholderAsync(chatId, groupType, long.Parse(userId));
+                ViewData["LastReadMessageId"] = lastReadMessageId;
                 ViewData["classGroupId"] = chatId;
                 ViewData["baseUrl"] = _baseUrl;
                 ViewData["chatType"] = groupType;
@@ -543,5 +545,20 @@ namespace Messenger.WebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// شبیه‌ساز برای دریافت شناسه آخرین پیام خوانده شده.
+        /// TODO: این یک پیاده‌سازی موقت است. منطق واقعی باید در سرویس پیام پیاده‌سازی شود
+        /// و از اینجا فراخوانی گردد تا آخرین پیام خوانده شده توسط کاربر در این چت مشخص شود.
+        /// </summary>
+        /// <param name="chatId">شناسه چت (گروه یا کانال)</param>
+        /// <param name="groupType">نوع چت</param>
+        /// <param name="userId">شناسه کاربر</param>
+        /// <returns>شناسه آخرین پیام خوانده شده</returns>
+        private async Task<long> GetLastReadMessageIdPlaceholderAsync(int chatId, string groupType, long userId)
+        {
+            // در پیاده‌سازی واقعی، این متد باید یک سرویس را فراخوانی کند
+            // await _messageService.GetLastReadMessageIdAsync(chatId, groupType, userId);
+            return await Task.FromResult(0L); // بازگرداندن مقدار ثابت به صورت موقت
+        }
     }
 }
