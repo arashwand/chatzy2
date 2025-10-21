@@ -1752,6 +1752,13 @@ window.chatApp = (function ($) {
                             } else {
                                 response.messages.forEach(displayMessage);
                             }
+                            // قبل از ذخیره، مطمئن می‌شویم که هر پیام پراپرتی 'id' را برای IndexedDB دارد
+                            response.messages.forEach(msg => {
+                                // keyPath ما 'id' است، اما سرور 'messageId' را برمی‌گرداند
+                                if (msg.messageId && !msg.id) {
+                                    msg.id = msg.messageId.toString();
+                                }
+                            });
                             // ذخیره پیام‌های جدید در کش
                             await saveMessages(groupType, chatId, response.messages);
                         }
