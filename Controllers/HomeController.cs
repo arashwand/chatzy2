@@ -89,6 +89,38 @@ namespace Messenger.WebApp.Controllers
             return View();
         }
 
+        /// <summary>
+        /// گرفتن پیامهای یک گروه بصورت جیسون
+        /// </summary>
+        /// <param name="chatId"></param>
+        /// <param name="groupType"></param>
+        /// <param name="pageNumber"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="messageId"></param>
+        /// <returns></returns>
+        public async Task<IActionResult> GetChatMessagesJson(int chatId, string groupType, int pageNumber = 1, int pageSize = 50, long messageId = 0)
+        {
+            try
+            {
+                var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+                if (userId == null)
+                {
+                    return BadRequest("User ID not found in claims.");
+                }
+
+                var messages = groupType == ConstChat.ClassGroupType ?
+                    await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId) :
+                    await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId);
+
+                return Json(messages);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error in GetChatMessagesJson " + ex);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
 
 
         /// <summary>

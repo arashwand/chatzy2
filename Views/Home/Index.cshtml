@@ -4,7 +4,6 @@
 }
 @using System.Security.Claims
 @using Messenger.Tools
-@using Messenger.DTOs
 
 @section Styles {
    
@@ -41,11 +40,6 @@
     <!-- chat section end -->
 </div>
 
-<!-- Hidden Template for Chat Panel -->
-<div id="chat-panel-template" style="display: none;">
-    <partial name="~/Views/Shared/_ChatMessageBody.cshtml" model="new List<MessageDto>()" />
-</div>
-
 
 
 @section Scripts {
@@ -71,91 +65,104 @@
                 console.log("chatId selected = " + chatId + " and groupType : " + groupType);
                 ChatActivated(chatId, groupType);
 
-                // ۱. آماده‌سازی فوری UI از الگوی مخفی
-                const templateHtml = $('#chat-panel-template').html();
+                // ۱. ایجاد و نمایش فوری ساختار پایه UI
                 const chatPanel = $('#chat-details-panel');
-                chatPanel.html(templateHtml);
-
-                // مقادیر chatId و groupType را در input های مخفی پنل جدید تنظیم کن
-                chatPanel.find('#current-group-id-hidden-input').val(chatId);
-                chatPanel.find('#current-group-type-hidden-input').val(groupType);
-
-                // پنل را نمایش بده
-                chatPanel.addClass('visible');
+                const chatTitle = $(`#${groupType}_${chatId}`).find('.chat-name').text();
+                const layoutHtml = createChatPanelLayout(chatId, groupType, chatTitle);
+                chatPanel.html(layoutHtml).addClass('visible');
+                if (typeof init_iconsax === 'function') {
+                    init_iconsax();
+                }
 
                 // ۲. نمایش فوری پیام‌ها از کش
                 try {
                     const cachedMessages = await getMessages(groupType, chatId);
                     if (cachedMessages && cachedMessages.length > 0) {
-                        console.log(`Loaded ${cachedMessages.length} messages from cache for ${groupType}/${chatId}.`);
+                        console.log(`Loaded ${cachedMessages.length} messages from cache.`);
                         window.chatApp.renderMessages(cachedMessages, '#Message_Days');
-                        // به انتهای پیام‌ها اسکرول کن
                         $('#chat-finished')?.get(0)?.scrollIntoView({ block: 'end' });
                     } else {
-                        console.log("No messages found in cache. Waiting for server...");
-                        // اگر کش خالی بود، یک لودر نمایش بده
-                        $('#Message_Days').html('<div class="d-flex justify-content-center align-items-center h-100"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+                        console.log("No messages in cache. Waiting for server...");
                     }
                 } catch (err) {
                     console.error("Error reading from IndexedDB:", err);
                 }
-
-                // فعال‌سازی لیسنر اسکرول برای پیام‌های کش‌شده
                 window.chatApp.reAttachScrollListener();
 
-                // ۳. همگام‌سازی و به‌روزرسانی از سرور در پس‌زمینه
-                // ابتدا همگام‌سازی تغییرات اخیر
+                // ۳. همگام‌سازی و دریافت داده‌های نهایی از سرور در پس‌زمینه
                 await window.chatApp.syncChatHistory(groupType, chatId);
 
-                // سپس درخواست برای دریافت بدنه کامل و به‌روز شده
                 $.ajax({
-                    url: '/Home/GetChatMessages',
+                    url: '/Home/GetChatMessagesJson', // <-- Endpoint جدید
                     type: 'GET',
                     data: { chatId: chatId, groupType: groupType },
-                    success: function (data) {
-                        // جایگزینی محتوای کامل با داده‌های به‌روز سرور
-                        chatPanel.html(data);
+                    success: function (messages) {
+                        if (messages && messages.length > 0) {
+                            console.log(`Loaded ${messages.length} messages from server.`);
+                            // رندر مجدد با داده‌های کامل سرور
+                            window.chatApp.renderMessages(messages, '#Message_Days');
 
-                        // فعال‌سازی مجدد لیسنرها
-                        window.chatApp.reAttachScrollListener();
+                            // ذخیره پیام‌های جدید در کش
+                             saveMessages(groupType, chatId, messages);
 
-                        // اسکرول هوشمند بر اساس پیام خوانده‌شده
-                        const lastReadMessageId = $('#lastReadMessageId').val();
-                        let targetElement = lastReadMessageId ? document.getElementById(`message-${lastReadMessageId}`) : null;
-
-                        if (targetElement) {
-                            targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        } else {
+                            // اسکرول هوشمند
+                            // (این بخش می‌تواند بر اساس منطق lastReadMessageId که از سرور می‌آید، تکمیل شود)
                             $('#chat-finished')?.get(0)?.scrollIntoView({ block: 'end' });
-                        }
-
-                        // ذخیره پیام‌های جدید در کش
-                        setTimeout(() => window.chatApp.cacheMessagesFromDOM(), 500);
-
-                        if (typeof init_iconsax === 'function') {
-                            init_iconsax();
                         }
                     },
                     error: function (error) {
                         console.error("Error fetching chat messages from server:", error);
-                        chatPanel.find('#Message_Days').html('<p class="text-center text-danger p-5">خطا در بارگذاری پیام‌ها از سرور.</p>');
+                        $('#Message_Days').html('<p class="text-center text-danger p-5">خطا در بارگذاری پیام‌ها از سرور.</p>');
                     }
                 });
             };
 
-            function createChatPanelSkeleton() {
+            function createChatPanelLayout(chatId, groupType, chatTitle) {
                 return `
-                    <div class="chat-header-skeleton"></div>
-                    <div class="chat-content-skeleton">
-                        <div id="Message_Days">
-                             <div class="d-flex justify-content-center align-items-center h-100">
-                                <div class="spinner-border" role="status">
-                                    <span class="visually-hidden">Loading...</span>
+                    <input type="hidden" id="current-group-id-hidden-input" value="${chatId}" />
+                    <input type="hidden" id="current-group-type-hidden-input" value="${groupType}" />
+                    <header id="header" class="section-t-space main-header inner-page-header">
+                        <div class="custom-container"><div class="header-panel contact-panel">
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="#" id="close-chat-panel-btn"><i class="iconsax icon-btn" data-icon="chevron-left"></i></a>
+                                <div class="profile-head">
+                                    <div class="profile-img"><i class="iconsax" data-icon="group" style="font-size: 36px;"></i></div>
+                                    <div><h4 class="fw-semibold">${chatTitle}</h4><small class="text-muted" id="typing-indicator-${chatId}"></small></div>
                                 </div>
                             </div>
+                            <div class="d-flex align-items-center gap-sm-3 gap-2">
+                                <div class="dropdown more-options dropdown-menu-end">
+                                    <a class="btn dropdown-toggle mt-0 p-0" href="#" role="button" data-bs-toggle="dropdown"><i class="iconsax icon-btn" data-icon="menu-meatballs"></i></a>
+                                    <ul class="dropdown-menu"><li><a class="dropdown-item align-items-center d-flex" href="#" onclick="GetChatDetails('${chatId}', '${groupType}')"><i class="iconsax" data-icon="group"></i>&nbsp;<span>اعضای گروه</span></a></li></ul>
+                                </div>
+                            </div>
+                        </div></div>
+                    </header>
+                    <section class="section-lg-b-space position-relative pt-0" id="chat_content">
+                        <div class="custom-container">
+                             <div id="Message_Days">
+                                <div class="d-flex justify-content-center align-items-center h-100"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>
+                             </div>
+                             <div class="chat-finished" id="chat-finished"></div>
                         </div>
-                    </div>
-                    <div class="chat-footer-skeleton"></div>`;
+                    </section>
+                     <div class="messages-panel">
+                        <div class="action-banners-container">
+                            <div id="cancel-edit-container" class="force-hide"><a href="#" id="cancel-edit-button">انصراف</a><div class="edit-indicator"><span class="edit-text">در حال ویرایش</span><div class="edit-bar"></div></div></div>
+                            <div id="reply-to-container" style="display: none;"><div class="reply-indicator"><div class="reply-bar"></div><div class="reply-content"><div id="reply-thumbnail-container"></div><span id="reply-icon-container"></span><div class="reply-text-content"><span id="reply-to-user"></span><span id="reply-to-text"></span></div></div></div><a href="#" id="cancel-reply">انصراف</a></div>
+                        </div>
+                        <div id="filePreviewContainer"></div>
+                        <form onsubmit="return false;" class="message-form-container">
+                            <div id="text-input-area" class="message-inputarea">
+                                <a href="#" onclick="$('#fileInput').click(); return false;"><i class="iconsax icon-btn" data-icon="picture-add"></i></a>
+                                <a class="btn-record-voice"><i class="iconsax icon-btn" data-icon="mic-2"></i></a>
+                                <textarea type="text" class="message-input" id="message-input" placeholder="Type here..." rows="1"></textarea>
+                                <a href="#" class="" id="send-message-button"><i class="iconsax icon-btn" data-icon="send-btn1"></i></a>
+                            </div>
+                            <div id="voice-input-area" style="display: none;"></div>
+                            <input type="file" id="fileInput" multiple style="display: none;" /><input type="hidden" id="uploadedFileIds" name="uploadedFileIds" /><input type="hidden" id="previousFileIds" name="previousFileIds" /><input type="hidden" id="deletUploadedFileIds" name="deletUploadedFileIds" /><input type="hidden" id="message-context-id" value="" /><input type="hidden" id="message-action-type" value="" />
+                        </form>
+                    </div>`;
             }
 
             // When "Saved Messages" is selected
