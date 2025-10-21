@@ -257,5 +257,20 @@ namespace Messenger.WebApp.ServiceHelper
         //    response.EnsureSuccessStatusCode();
         //    return await response.Content.ReadFromJsonAsync<MessageDto>();
         //}
+
+        public async Task<IEnumerable<MessageDto>> GetMessagesFromFirstUnreadAsync(int chatId, string groupType)
+        {
+            try
+            {
+                var response = await _httpClient.GetFromJsonAsync<IEnumerable<MessageDto>>(
+                    $"api/messages/from-first-unread?chatId={chatId}&groupType={groupType}");
+                return response ?? new List<MessageDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting messages from first unread for chat {ChatId}", chatId);
+                throw;
+            }
+        }
     }
 }

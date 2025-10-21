@@ -500,6 +500,50 @@ namespace Messenger.WebApp.Controllers
             return Ok(new { baseUrl = _baseUrl });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetUnreadMessageCount(int chatId, string groupType)
+        {
+            var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            if (userId <= 0)
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                // در اینجا باید سرویسی را فراخوانی کنید که تعداد پیام‌های خوانده نشده را از Redis یا پایگاه داده برمی‌گرداند
+                // به عنوان مثال، فرض می‌کنیم سرویس پیام چنین متدی دارد
+                // var unreadCount = await _messageService.GetUnreadCountAsync(chatId, groupType, userId);
+
+                // ---- شبیه‌سازی برای تست ----
+                // این عدد را برای تست به صورت ثابت برمی‌گردانیم. در نسخه نهایی باید با سرویس واقعی جایگزین شود.
+                var unreadCount = 120;
+                // -------------------------
+
+                return Ok(new { count = unreadCount });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting unread message count for chat {ChatId}", chatId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMessagesFromFirstUnread(int chatId, string groupType)
+        {
+            try
+            {
+                var messages = await _messageService.GetMessagesFromFirstUnreadAsync(chatId, groupType);
+                return Ok(messages);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting messages from first unread for chat {ChatId}", chatId);
+                return StatusCode(500, "An error occurred while fetching messages.");
+            }
+        }
+
         //[HttpGet("GetGroupSharedFilesPartial")]
         public async Task<IActionResult> GetGroupSharedFilesPartial(int chatId, string groupType, string activeTab = "media-tab")
         {

@@ -73,7 +73,13 @@
 <section class="section-lg-b-space position-relative pt-0" id="chat_content">
     <img class="img-fluid chat-bg" src="" alt="wallpaper">
     <div class="custom-container">
-       
+
+        <!-- اعلان برای پرش به پیام‌های خوانده نشده -->
+        <div id="unreadMessagesNotice" class="sticky-top mt-4 pb-2 btn btn-info text-white" style="display:none; cursor:pointer; z-index: 10; padding-bottom: 5px !important; margin-bottom: 5px;">
+            <span id="unreadCount"></span> پیام جدید
+            <i class="iconsax" data-icon="arrow-down"></i>
+        </div>
+
         <div id="newMessagesNotice" class="sticky-top mt-4 pb-2 btn btn-primary" style="display:none; cursor:pointer; z-index: 10; padding-bottom: 5px !important; margin-bottom: 5px;" data-newCount="0">
             مشاهده پیام‌های جدید
         </div>

@@ -313,7 +313,7 @@ window.chatApp = (function ($) {
         }
 
         return `
-            <li class="message ${liClass}" id="${elementId}" data-message-id="${messageId}" data-client-id="${message.clientMessageId || ''}" data-sender-id="${message.senderUserId}" data-sender-username="${message.senderUserName}" data-message-details='${messageDetailsJson}'>
+            <li class="message ${liClass}" id="${elementId}" data-message-id="${messageId}" data-client-id="${message.clientMessageId || ''}" data-sender-id="${message.senderUserId}" data-sender-username="${message.senderUserName}" data-message-details='${messageDetailsJson}' data-is-read="false">
                 ${dropdownHtml}
                 <div class="message-box ${message.isReadByAnyRecipient ? "read" : ""}">
                     ${personImageHtml}
