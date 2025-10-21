@@ -11,6 +11,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System.Net.Http;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
 
 namespace Messenger.WebApp.Controllers
@@ -297,6 +298,25 @@ namespace Messenger.WebApp.Controllers
             }
         }
 
-       
+
+        [HttpPost("sync")]
+        public async Task<IActionResult> Sync([FromBody] SyncChatRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Received sync request for {GroupType}/{ChatId} from {SyncFrom} to {SyncTo}",
+                    request.GroupType, request.ChatId, request.SyncFrom, request.SyncTo);
+
+                // فوروارد کردن درخواست به وب‌سرویس بیرونی
+                var externalResponse = await _messageServiceClient.GetNewMessagesForSync(request);
+
+                return Ok(externalResponse);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while syncing chat history");
+                return StatusCode(500, new { error = "Failed to sync chat history" });
+            }
+        }
     }
 }

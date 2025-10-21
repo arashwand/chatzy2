@@ -1,6 +1,8 @@
 ﻿using Messenger.DTOs;
 using Messenger.WebApp.ServiceHelper.Interfaces;
 using Messenger.WebApp.ServiceHelper.RequestDTOs;
+using System.Text;
+using System.Text.Json;
 
 namespace Messenger.WebApp.ServiceHelper
 {
@@ -250,12 +252,24 @@ namespace Messenger.WebApp.ServiceHelper
             return await response.Content.ReadFromJsonAsync<MessageDto>();
         }
 
-        //public async Task<MessageDto> EditChannelMessageAsync(long messageId, string newText, List<long>? fileIds, List<long>? fileIdsToRemove)
-        //{
-        //    var request = new {MessageId = messageId, MessageText = newText, FileAttachementIds = fileIds, FileIdsToRemove = fileIdsToRemove };
-        //    var response = await _httpClient.PutAsJsonAsync("api/messages/channel", request);
-        //    response.EnsureSuccessStatusCode();
-        //    return await response.Content.ReadFromJsonAsync<MessageDto>();
-        //}
+        public async Task<SyncChatResult> GetNewMessagesForSync(SyncChatRequest request)
+        {
+            var endpoint = "api/messages/sync";
+
+            _logger.LogInformation("Forwarding sync request to external API {Endpoint}", endpoint);
+
+            var response = await _httpClient.PostAsJsonAsync(endpoint, request);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("External API returned {Status}: {Body}", response.StatusCode, body);
+                throw new Exception($"External API failed: {response.StatusCode}");
+            }
+
+            return await response.Content.ReadFromJsonAsync<SyncChatResult>()
+                   ?? new SyncChatResult();
+        }
+
     }
 }
