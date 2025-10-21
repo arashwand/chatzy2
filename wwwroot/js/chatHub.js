@@ -1633,7 +1633,7 @@ window.chatApp = (function ($) {
         /**
          * پیام‌های کش‌شده را در UI رندر می‌کند
          */
-        renderMessages: function(messages, containerSelector) {
+        renderMessages: function (messages, containerSelector) {
             const container = $(containerSelector);
             container.empty(); // پاک کردن محتوای قبلی
 
@@ -1642,6 +1642,9 @@ window.chatApp = (function ($) {
                 container.html('<p class="text-center p-5">هیچ پیامی برای نمایش وجود ندارد.</p>');
                 return;
             }
+
+            // مرتب‌سازی پیام‌ها بر اساس زمان برای اطمینان از ترتیب صحیح
+            messages.sort((a, b) => new Date(a.messageDateTime || a.timestamp) - new Date(b.messageDateTime || b.timestamp));
 
             // گروه‌بندی پیام‌ها بر اساس تاریخ
             const grouped = {};
@@ -1655,17 +1658,24 @@ window.chatApp = (function ($) {
             for (const date in grouped) {
                 const dateId = `date-${date}`;
                 const persianDate = convertGregorianToJalaaliSimple(date);
-                let dateHtml = `<div class="message-day" data-message-date="${dateId}">
-                                    <div class="message-divider sticky-top pb-2" data-label="${persianDate}" id="${dateId}"></div>`;
+
+                // ساختار صحیح HTML را ایجاد می‌کنیم
+                // ابتدا یک h6 برای تاریخ، سپس یک ul برای پیام‌ها
+                let dateHtml = `<h6 class="fw-normal text-center heading chatInDateLabelClass" data-label="${persianDate}" id="${dateId}">${persianDate}</h6>`;
+                let messagesHtml = `<ul class="message-box-list" id="chatMessages-${date}">`;
 
                 grouped[date].forEach(msg => {
-                    dateHtml += createMessageHtmlBody(msg);
+                    messagesHtml += createMessageHtmlBody(msg);
                 });
 
-                dateHtml += `</div>`;
+                messagesHtml += `</ul>`;
+
+                // هر دو بخش را به کانتینر اصلی اضافه می‌کنیم
                 container.append(dateHtml);
+                container.append(messagesHtml);
             }
-             if (typeof init_iconsax === 'function') {
+
+            if (typeof init_iconsax === 'function') {
                 init_iconsax();
             }
         },
