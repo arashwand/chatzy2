@@ -1,7 +1,7 @@
 // نام پایگاه داده
 const DB_NAME = 'ChatzyDB';
 // نسخه پایگاه داده
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 // پیشوند نام آبجکت استورها
 const CHAT_STORE_PREFIX = 'chat_';
 

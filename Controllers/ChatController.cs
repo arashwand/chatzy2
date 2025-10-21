@@ -299,9 +299,14 @@ namespace Messenger.WebApp.Controllers
         }
 
 
-        [HttpPost("sync")]
-        public async Task<IActionResult> Sync([FromBody] SyncChatRequest request)
+        [HttpPost("SyncMessageHistory")]
+        public async Task<IActionResult> SyncMessageHistory([FromBody] SyncChatRequest request)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             try
             {
                 _logger.LogInformation("Received sync request for {GroupType}/{ChatId} from {SyncFrom} to {SyncTo}",

@@ -1673,78 +1673,66 @@ window.chatApp = (function ($) {
         syncChatHistory: async function (groupType, chatId) {
             console.log(`Starting smart history sync for ${groupType}/${chatId}...`);
             try {
-                // ۱. خواندن آخرین زمان فعالیت از localStorage
                 let lastSyncTimestamp = localStorage.getItem('lastActivityTimestamp');
 
                 if (!lastSyncTimestamp) {
-                    // اگر هیچ زمانی ذخیره نشده بود، به عنوان اولین بار، فقط ۲۴ ساعت گذشته را همگام‌سازی کن
                     const oneDayAgo = new Date();
                     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
                     lastSyncTimestamp = oneDayAgo.toISOString();
                     console.log("No last activity timestamp found. Defaulting to last 24 hours.");
                 }
 
-                // ۲. ایجاد بازه زمانی با حاشیه امن ۳ ساعته
                 const syncStartDate = new Date(lastSyncTimestamp);
                 syncStartDate.setHours(syncStartDate.getHours() - 3);
                 const syncEndDate = new Date().toISOString();
 
-                // ۳. دریافت تمام شناسه‌های پیام‌های موجود در کش در این بازه زمانی
                 const localMessageIds = await getAllMessageIdsAfter(groupType, chatId, syncStartDate.toISOString());
+                console.log(`Syncing from ${syncStartDate.toISOString()}. Found ${localMessageIds.length} local messages.`);
 
-                console.log(`Syncing from ${syncStartDate.toISOString()}. Found ${localMessageIds.length} local messages in this period.`);
-
-                // ۴. ارسال درخواست جامع به سرور
-                const response = await fetch('/api/Messages/sync', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                $.ajax({
+                    url: '/api/chat/SyncMessageHistory',
+                    type: 'POST',
+                    xhrFields: { withCredentials: true },
+                    contentType: 'application/json',
+                    data: JSON.stringify({
                         GroupType: groupType,
-                        ChatId: chatId,
+                        ChatId: chatId.toString(), // حتما string
                         ClientMessageIds: localMessageIds,
                         SyncFrom: syncStartDate.toISOString(),
                         SyncTo: syncEndDate
-                    })
-                });
+                    }),
+                    success: async function (response) {
+                        console.log('Sync successful:', response);
 
-                if (!response.ok) {
-                    throw new Error(`Sync request failed with status ${response.status}`);
-                }
+                        const syncResult = response;
 
-                const syncResult = await response.json();
+                        if (syncResult.deletedMessageIds?.length) {
+                            for (const msgId of syncResult.deletedMessageIds) {
+                                await deleteMessage(groupType, chatId, msgId.toString());
+                                $(`#message-${msgId}`).remove();
+                            }
+                        }
 
-                // ۵. پردازش نتایج همگام‌سازی
+                        if (syncResult.editedMessages?.length) {
+                            syncResult.editedMessages.forEach(handleEditedMessage);
+                        }
 
-                // الف) پردازش پیام‌های حذف شده
-                if (syncResult.deletedMessageIds && syncResult.deletedMessageIds.length > 0) {
-                    console.log(`Sync: Deleting ${syncResult.deletedMessageIds.length} messages.`);
-                    for (const msgId of syncResult.deletedMessageIds) {
-                        await deleteMessage(groupType, chatId, msgId.toString());
-                        $(`#message-${msgId}`).remove();
+                        if (syncResult.newMessages?.length) {
+                            syncResult.newMessages.forEach(displayMessage);
+                        }
+
+                        console.log("Smart history sync completed successfully.");
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Failed to sync chat history:', xhr.status, xhr.responseText || error);
                     }
-                }
-
-                // ب) پردازش پیام‌های ویرایش شده
-                if (syncResult.editedMessages && syncResult.editedMessages.length > 0) {
-                    console.log(`Sync: Updating ${syncResult.editedMessages.length} edited messages.`);
-                    // تابع handleEditedMessage پیام را در کش هم ذخیره می‌کند
-                    syncResult.editedMessages.forEach(handleEditedMessage);
-                }
-
-                // ج) پردازش پیام‌های جدید
-                if (syncResult.newMessages && syncResult.newMessages.length > 0) {
-                    console.log(`Sync: Adding ${syncResult.newMessages.length} new messages.`);
-                    // تابع displayMessage پیام‌ها را در UI نمایش داده و در کش ذخیره می‌کند
-                    syncResult.newMessages.forEach(displayMessage);
-                }
-
-
-                console.log("Smart history sync completed successfully.");
+                });
 
             } catch (error) {
                 console.error("Failed to sync chat history:", error);
             }
         }
+
     };
 
     // این آبجکت عمومی را برمی‌گردانیم تا window.chatApp به آن مقداردهی شود.

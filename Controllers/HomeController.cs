@@ -1,15 +1,11 @@
 ﻿using Messenger.DTOs;
-using Messenger.Models.Models;
 using Messenger.Tools;
 using Messenger.WebApp.Models;
 using Messenger.WebApp.Models.ViewModels;
-using Messenger.WebApp.ServiceHelper;
 using Messenger.WebApp.ServiceHelper.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json.Linq;
-using System.Net.Http;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -542,6 +538,7 @@ namespace Messenger.WebApp.Controllers
                 return StatusCode(500, "Internal server error while getting shared files.");
             }
         }
+
 
     }
 }
