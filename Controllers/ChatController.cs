@@ -317,6 +317,7 @@ namespace Messenger.WebApp.Controllers
                 _logger.LogError(ex, "Error while syncing chat history");
                 return StatusCode(500, new { error = "Failed to sync chat history" });
             }
+
         }
     }
 }

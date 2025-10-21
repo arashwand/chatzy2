@@ -122,6 +122,7 @@
                         object messageDetailsForEdit = new
                         {
                             messageText = message.MessageText?.MessageTxt,
+                            messageDateTime = message.MessageDateTime,
                             replyToMessageId = message.ReplyMessageId,
                             // فقط در صورتی که پاسخ وجود دارد، اطلاعات آن را اضافه کن
                             replyMessage = message.ReplyMessageId != null ? new

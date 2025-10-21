@@ -27,7 +27,8 @@
     <Folder Include="Areas\Manager\Data\" />
     <Folder Include="Areas\Manager\Models\" />
     <Folder Include="DTOs\" />
-    <Folder Include="Hubs\" /> <!-- Ensure Hubs folder is listed if WebAppChatHub.cs is in it -->
+    <Folder Include="Hubs\" />
+    <Folder Include="Services\" /> <!-- Ensure Hubs folder is listed if WebAppChatHub.cs is in it -->
   </ItemGroup>
 
   <ItemGroup>

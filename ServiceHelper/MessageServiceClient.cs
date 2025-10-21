@@ -254,7 +254,7 @@ namespace Messenger.WebApp.ServiceHelper
 
         public async Task<SyncChatResult> GetNewMessagesForSync(SyncChatRequest request)
         {
-            var endpoint = "api/messages/sync";
+            var endpoint = "api/messages/GetNewMessagesForSync";
 
             _logger.LogInformation("Forwarding sync request to external API {Endpoint}", endpoint);
 
