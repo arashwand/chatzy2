@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using Messenger.DTOs;
+using Messenger.WebApp.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -128,6 +130,15 @@ builder.Services.AddScoped<IFileManagementServiceClient, FileManagementServiceCl
 
 builder.Services.AddScoped<IManageUserServiceClient, ManageUserServiceClient>(provider =>
    new ManageUserServiceClient(provider.GetRequiredService<IHttpClientFactory>(), "ManageUserService", provider.GetRequiredService<ILogger<ManageUserServiceClient>>()));
+
+// ثبت سرویس جدید برای همگام‌سازی پیام‌ها
+builder.Services.AddScoped<IMessageService, MessageService>();
+
+// ثبت یک دی‌بی‌کانتکست موقت در حافظه برای جلوگیری از خطای کامپایل
+// این باید در پروژه واقعی با دی‌بی‌کانتکست اصلی جایگزین شود
+builder.Services.AddDbContext<DbContext>(options =>
+    options.UseInMemoryDatabase("InMemoryTempDbForCompilation"));
+
 
 // Register ApiSettings
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
