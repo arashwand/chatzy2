@@ -30,6 +30,48 @@ function openDB() {
 }
 
 /**
+ * آخرین شناسه پیام ذخیره شده برای یک چت را بازیابی می‌کند
+ * @param {string} groupType - نوع گروه
+ * @param {string} roomId - شناسه چت‌روم
+ * @returns {Promise<number|null>} - شناسه آخرین پیام یا null اگر پیامی یافت نشد
+ */
+async function getLastMessageId(groupType, roomId) {
+    const db = await openDB();
+    const storeName = `${CHAT_STORE_PREFIX}${groupType}_${roomId}`;
+
+    if (!db.objectStoreNames.contains(storeName)) {
+        db.close();
+        return null;
+    }
+
+    const transaction = db.transaction(storeName, 'readonly');
+    const store = transaction.objectStore(storeName);
+    const index = store.index('timestamp');
+
+    // از یک کرسر با جهت معکوس (prev) برای پیدا کردن آخرین آیتم استفاده می‌کنیم
+    const request = index.openCursor(null, 'prev');
+
+    return new Promise((resolve, reject) => {
+        request.onsuccess = (event) => {
+            const cursor = event.target.result;
+            db.close();
+            if (cursor) {
+                // cursor.value.id همان شناسه پیام است
+                resolve(cursor.value.id);
+            } else {
+                // هیچ پیامی در استور یافت نشد
+                resolve(null);
+            }
+        };
+        request.onerror = (event) => {
+            db.close();
+            console.error('خطا در بازیابی آخرین شناسه پیام:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+/**
  * تمام شناسه‌های پیام را بعد از یک تاریخ مشخص بازیابی می‌کند
  * @param {string} groupType - نوع گروه
  * @param {string} roomId - شناسه چت‌روم
