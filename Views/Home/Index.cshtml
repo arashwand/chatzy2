@@ -65,8 +65,29 @@
                 console.log("chatId selected = " + chatId + " and groupType : " + groupType);
                 ChatActivated(chatId, groupType);
 
-                // فراخوانی تابع یکپارچه جدید برای بارگذاری چت
-                window.chatApp.loadChat(groupType, chatId);
+                const chatPanel = $('#chat-details-panel');
+
+                // ابتدا ساختار پنل را از سرور بارگذاری می‌کنیم
+                $.ajax({
+                    url: '/Home/GetChatPanel',
+                    type: 'GET',
+                    data: { chatId: chatId, groupType: groupType },
+                    success: function (partialViewHtml) {
+                        // ساختار را در پنل قرار داده و آن را با انیمیشن نمایش می‌دهیم
+                        chatPanel.html(partialViewHtml).addClass('visible');
+
+                        // پس از نمایش پنل، پیام‌ها را بارگذاری می‌کنیم
+                        // یک تأخیر کوتاه برای اطمینان از رندر شدن DOM
+                        setTimeout(() => {
+                            window.chatApp.loadChat(groupType, chatId);
+                        }, 100);
+                    },
+                    error: function (error) {
+                        console.error("Error fetching chat panel skeleton:", error);
+                        // نمایش خطا در پنل اصلی در صورت عدم بارگذاری ساختار
+                        $('#main-content-body').prepend('<div class="alert alert-danger">خطا در بارگذاری چت. لطفاً دوباره تلاش کنید.</div>');
+                    }
+                });
             };
 
             function createChatPanelSkeleton() {

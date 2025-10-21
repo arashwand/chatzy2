@@ -138,6 +138,18 @@ namespace Messenger.WebApp.Controllers
         /// <param name="pageNumber"></param>
         /// <param name="pageSize"></param>
         /// <returns></returns>
+        public IActionResult GetChatPanel(int chatId, string groupType)
+        {
+            // This action only returns the panel structure with necessary hidden fields populated.
+            // Messages will be loaded dynamically by chatHub.js.
+            ViewData["classGroupId"] = chatId;
+            ViewData["chatType"] = groupType;
+            ViewData["baseUrl"] = _baseUrl;
+
+            // Pass a null or empty list as the model, since we are only loading the skeleton.
+            return PartialView("_ChatMessageBody", new List<MessageDto>());
+        }
+
         public async Task<IActionResult> GetChatMessages(int chatId, string groupType, int pageNumber = 1, int pageSize = 50, long messageId = 0)
         {
             try
