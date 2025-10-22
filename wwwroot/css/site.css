@@ -15,7 +15,6 @@ body {
     position: relative;
     background-position: top left;
     background-size: 44%;
-   
 }
 
 /* --- Message Bubbles & Layout --- */
@@ -119,6 +118,7 @@ body {
     border-radius: 8px;
     z-index: 1050;
     text-align: right;
+    font-size: 12px;
 }
 
 .dropdown-menu .dropdown-item {
@@ -499,23 +499,24 @@ body {
 }
 
 /*.message-send-btn {*/
-    /*background: #25D366 !important;*//*#e5f6f3*/
-    /*width: 44px;
+/*background: #25D366 !important;*/ /*#e5f6f3*/
+/*width: 44px;
     height: 44px;
 }*/
 
-    .message-send-btn:hover {
-        background: #e7e7e7 !important;
-    }
+.message-send-btn:hover {
+    background: #e7e7e7 !important;
+}
 
-    .message-send-btn svg {
-        filter: brightness(0) invert(1);
-    }
+.message-send-btn svg {
+    filter: brightness(0) invert(1);
+}
 
 
- .message-inputarea svg path {
+.message-inputarea svg path {
     stroke: #5c5c5c !important; /* سبز واتساپ */
 }
+
 .chat-list-image svg path {
     stroke: #e9ecef !important; /* سبز واتساپ */
 }
@@ -946,7 +947,7 @@ body {
     /* حذف افکت بلور پس‌زمینه که دیگر کاربردی ندارد */
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
-    margin:unset;
+    margin: unset;
 }
 
 /* ========================================================= */
@@ -972,7 +973,7 @@ body {
     max-height: 80vh;
     /* اسکرول را به خود پنل اصلی منتقل می‌کنیم */
     overflow-y: auto;
-    height:auto;
+    height: auto;
 }
 
 .action-banners-container {
@@ -1023,7 +1024,7 @@ body {
     max-height: 120px !important;
     overflow: hidden;
     border-radius: 5px;
-    padding : 2px 2px;
+    padding: 2px 2px;
 }
 
 /* بقیه استایل‌ها برای textarea و ... بدون تغییر باقی می‌مانند */
@@ -1038,7 +1039,7 @@ body {
     min-height: 40px;
     max-height: 150px; /* پس از این ارتفاع، اسکرول داخلی فعال می‌شود */
     overflow-y: auto;
-    box-shadow : none;
+    box-shadow: none;
 }
 
 
@@ -1128,26 +1129,33 @@ body {
     pointer-events: none;
 }
 
-.lightbox-image.active {
-    opacity: 1;
-    pointer-events: auto;
+    .lightbox-image.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .lightbox-image.slide-in-left {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+
+    .lightbox-image.slide-in-right {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    .lightbox-image.slide-center {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+
+.message-box-list li.new .message-box .message-box-details {
+    background-color: rgb(223 223 223);
 }
-
-.lightbox-image.slide-in-left {
-    transform: translateX(-100%);
-    opacity: 0;
-}
-
-.lightbox-image.slide-in-right {
-    transform: translateX(100%);
-    opacity: 0;
-}
-
-.lightbox-image.slide-center {
-    transform: translateX(0);
-    opacity: 1;
-}
-
-
-
 /***********************************************/
+.chat-section .chat-list li .chat-list-box .chat-details .content .count {
+    width: 25px;
+    height: 25px;
+    padding:3px;
+}

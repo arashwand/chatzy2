@@ -44,7 +44,7 @@
                             <p dir="rtl" class="text-truncate is-rtl" id="chatText_@(ConstChat.ClassGroup + item.ClassId)">
                                 <span>@item.LastMessage?.SenderName:</span> @item.LastMessage?.Text
                             </p>
-                            <div class="badge badge-rounded badge-primary ml-1 @(item.UnreadCount == 0 ? "d-none" : "")" id="unreadCountBadge_@(ConstChat.ClassGroup + item.ClassId)">
+                            <div class="count @(item.UnreadCount == 0 ? "d-none" : "")" id="unreadCountBadge_@(ConstChat.ClassGroup + item.ClassId)">
                                 @item.UnreadCount
                             </div>
                         </div>
@@ -85,7 +85,7 @@
                                     @item.LastMessage?.Text
                                 }
                             </p>
-                            <div class="badge badge-rounded badge-primary ml-1 @(item.UnreadCount == 0 ? "d-none" : "")" id="unreadCountBadge_@(ConstChat.ChannelGroup + item.ChannelId)">
+                            <div class="count @(item.UnreadCount == 0 ? "d-none" : "")" id="unreadCountBadge_@(ConstChat.ChannelGroup + item.ChannelId)">
                                 @item.UnreadCount
                             </div>
                         </div>

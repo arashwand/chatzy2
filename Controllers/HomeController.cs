@@ -556,6 +556,7 @@ namespace Messenger.WebApp.Controllers
         /// <returns>شناسه آخرین پیام خوانده شده</returns>
         private async Task<long> GetLastReadMessageIdPlaceholderAsync(int chatId, string groupType, long userId)
         {
+            //TODO این مقدار را از redis  فراخوانی کنم
             // در پیاده‌سازی واقعی، این متد باید یک سرویس را فراخوانی کند
             // await _messageService.GetLastReadMessageIdAsync(chatId, groupType, userId);
             return await Task.FromResult(0L); // بازگرداندن مقدار ثابت به صورت موقت
