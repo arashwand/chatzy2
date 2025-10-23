@@ -61,14 +61,15 @@
             GetUserChats();
 
             // When a chat is selected
-            window.GetSelectedChatMessages = function(chatId, groupType) {
+            window.GetSelectedChatMessages = function(chatId, groupType,lastReadMessageId) {
                 console.log("chatId selected = " + chatId + " and groupType : " + groupType);
                 ChatActivated(chatId, groupType);
-
+                //var lastReadMessageId = $(this).closest('#LastReadMessageIdOnChatList').val();
+                console.log('select chat and get closest id : LastReadMessageIdOnChatList value is : ' + lastReadMessageId);
                 $.ajax({
                     url: '/Home/GetChatMessages',
                     type: 'GET',
-                    data: { chatId: chatId, groupType: groupType },
+                    data: { chatId: chatId, groupType: groupType, messageId: lastReadMessageId },
                     success: function (data) {
                         $('#chat-details-panel').html(data).addClass('visible');
 

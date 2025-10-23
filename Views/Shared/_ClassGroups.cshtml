@@ -29,9 +29,10 @@
 {
     foreach (var item in classGroups)
     {
-        <input type="hidden" value="@item.LastReadMessageId"/>
+       
         <li id="@(ConstChat.ClassGroup + item.ClassId)">
-            <a class="chat-list-box" onclick="GetSelectedChatMessages(@item.ClassId, '@ConstChat.ClassGroupType')" style="cursor: pointer;">
+            <a class="chat-list-box" onclick="GetSelectedChatMessages(@item.ClassId, '@ConstChat.ClassGroupType', @item.LastReadMessageId)" style="cursor: pointer;">
+                <input type="hidden" value="@item.LastReadMessageId" id="LastReadMessageIdOnChatList" />
                 <div class="chat-list-image">
                     <i class="iconsax icon-btn" data-icon="group-icon"> </i>
                 </div>

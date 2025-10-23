@@ -142,7 +142,8 @@ namespace Messenger.WebApp.Controllers
         /// <param name="pageNumber"></param>
         /// <param name="pageSize"></param>
         /// <returns></returns>
-        public async Task<IActionResult> GetChatMessages(int chatId, string groupType, int pageNumber = 1, int pageSize = 50, long messageId = 0)
+        public async Task<IActionResult> GetChatMessages(int chatId, string groupType, int pageNumber = 1, int pageSize = 50,
+            long messageId = 0, bool loadOlder = false)
         {
             try
             {
@@ -153,11 +154,11 @@ namespace Messenger.WebApp.Controllers
                 }
 
                 var messages = groupType == ConstChat.ClassGroupType ?
-                    await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId) :
-                    await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId);
+                    await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder) :
+                    await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder);
 
-                var lastReadMessageId = await GetLastReadMessageIdPlaceholderAsync(chatId, groupType, long.Parse(userId));
-                ViewData["LastReadMessageId"] = lastReadMessageId;
+                //var lastReadMessageId = await GetLastReadMessageIdPlaceholderAsync(chatId, groupType, long.Parse(userId));
+                ViewData["LastReadMessageId"] = messageId;
                 ViewData["classGroupId"] = chatId;
                 ViewData["baseUrl"] = _baseUrl;
                 ViewData["chatType"] = groupType;

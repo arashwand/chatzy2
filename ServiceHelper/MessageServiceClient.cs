@@ -51,7 +51,7 @@ namespace Messenger.WebApp.ServiceHelper
             return response ?? new List<MessageDto>();
         }
 
-        public async Task<IEnumerable<MessageDto>> GetChannelMessagesAsync(int channelId, int pageNumber, int pageSize, long messageId)
+        public async Task<IEnumerable<MessageDto>> GetChannelMessagesAsync(int channelId, int pageNumber, int pageSize, long messageId, bool loadOlder)
         {
             var response = await _httpClient.GetFromJsonAsync<IEnumerable<MessageDto>>(
                 $"api/messages/channel/{channelId}?pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}");
@@ -59,7 +59,7 @@ namespace Messenger.WebApp.ServiceHelper
             return response ?? new List<MessageDto>();
         }
 
-        public async Task<IEnumerable<MessageDto>> GetClassGroupMessagesAsync(int classId, int pageNumber, int pageSize, long messageId)
+        public async Task<IEnumerable<MessageDto>> GetClassGroupMessagesAsync(int classId, int pageNumber, int pageSize, long messageId, bool loadOlder)
         {
             try
             {

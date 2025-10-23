@@ -74,7 +74,7 @@ window.chatApp = (function ($) {
         if (hasMoreMessages && !getOldDataRunning) {
 
             getOldDataRunning = true;
-            var lastmessageId = $('#lastMessageIdLoad').val();
+            var lastmessageId = $('#lastMessageIdLoad').val();//قدیمی ترین پیام دریافت شده
             if (lastmessageId == 0) {
                 return;
             }
@@ -83,9 +83,9 @@ window.chatApp = (function ($) {
             const chatId = parseInt($('#current-group-id-hidden-input').val());
             const currentGroupType = $('#current-group-type-hidden-input').val();
             $.ajax({
-                url: '/Home/GetOldMessage',
+                url: '/Home/GetChatMessages',
                 type: 'POST',
-                data: { chatId: chatId, groupType: currentGroupType, messageId: lastmessageId },
+                data: { chatId: chatId, groupType: currentGroupType, messageId: lastmessageId, loadOlder: true },
                 success: function (response) {
                     if (response.success) {
 
@@ -237,7 +237,7 @@ window.chatApp = (function ($) {
                               <img src="/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
                               <span>ذخیره</span>
                           </a>`;
-        
+
         dropdownHtml += `</div></div>`;
 
         let replyPreviewHtml = '';
@@ -617,7 +617,7 @@ window.chatApp = (function ($) {
                 }
             }
 
-            
+
 
             // مدیریت اسکرول خودکار یا نمایش اعلان "پیام جدید"
             if (isSelf || wasAtBottom) {
@@ -956,7 +956,7 @@ window.chatApp = (function ($) {
             } else {
                 console.log('timingElement not found!');
             }
-            
+
 
             //  بروزرسانی نام فرستنده
             const messageSenderElement = messageElement.find('.message-sender-name').last();
@@ -1214,7 +1214,7 @@ window.chatApp = (function ($) {
             signalRConnection.on("UserDeleteMessage", handleDeleteMessage);
             signalRConnection.on("UserSaveMessage", handleUserSaveMessage);
 
-            signalRConnection.on("ReceiveVoiceMessageResult", function(data) {
+            signalRConnection.on("ReceiveVoiceMessageResult", function (data) {
                 console.log("ReceiveVoiceMessageResult received:", data);
 
                 if (data.success && data.recordingId === recordingId) {
@@ -1849,7 +1849,7 @@ $(document).ready(function () {
             if (navigator.sendBeacon) {
                 navigator.sendBeacon('/api/Chat/UploadAudioChunk', formData);
             } else {
-                 $.ajax({
+                $.ajax({
                     url: '/api/Chat/UploadAudioChunk',
                     type: 'POST',
                     data: formData,
@@ -1946,9 +1946,9 @@ $(document).ready(function () {
     });
 
     $(document).on('click', '.stop-recording-btn', function () {
-       
-            stopRecording();
-        
+
+        stopRecording();
+
     });
 
     // کلیک روی دکمه حذف پیش‌نمایش
@@ -2555,7 +2555,7 @@ $(document).ready(function () {
 
     }
 
- 
+
     // رویداد کلیک روی اعلان پیام جدید و رفتن به جدید ترین پیام
     $(document).off('click', '#newMessagesNotice').on('click', '#newMessagesNotice', function () {
         const chatFinished = $('#chat-finished');
