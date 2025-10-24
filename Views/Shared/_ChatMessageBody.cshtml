@@ -117,9 +117,13 @@
                    
                     @foreach (var message in group)
                     {
-                        var isSelf = message.SenderUserId == selfUserId;
-                        var hasRecorderFile = message.MessageFiles?.Any(f => f.FileExtension.Extension == ".webm") ?? false;
-                        var isRead = message.IsReadByCurrentUser;
+                        bool isSelf = message.SenderUserId == selfUserId;
+                        bool hasRecorderFile = message.MessageFiles?.Any(f => f.FileExtension.Extension == ".webm") ?? false;
+                        bool isRead = message.IsReadByCurrentUser;
+                        if (isSelf)
+                        {
+                            isRead = true;
+                        }
 
                         object messageDetailsForEdit = new
                         {

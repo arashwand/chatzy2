@@ -122,8 +122,10 @@ namespace Messenger.WebApp.Controllers
 
             //اگر مدیر باشد همه گروه ها و کانالها را نمایش میدهیم
             //TODO :  این سناریو موقتی است و درواقع لازم است کلاسها توسط نقش پرسنل مدیریت شوند و باید به این گروهها یا کانالها جوین شوند
-            var userGroups = userRole == ConstRoles.Manager ? await _classGroupServiceClient.GetAllClassGroupsAsync() :
-                await _classGroupServiceClient.GetUserClassGroupsAsync(userId);
+            //var userGroups = userRole == ConstRoles.Manager ? await _classGroupServiceClient.GetAllClassGroupsAsync() :
+            //    await _classGroupServiceClient.GetUserClassGroupsAsync(userId);
+
+            var userGroups = await _classGroupServiceClient.GetUserClassGroupsAsync(userId);
 
 
             var userChannels = await _channelServiceClient.GetUserChannelsAsync(userId);
@@ -179,7 +181,9 @@ namespace Messenger.WebApp.Controllers
         /// <param name="pageNumber"></param>
         /// <param name="pageSize"></param>
         /// <returns></returns>
-        public async Task<IActionResult> GetOldMessage(int chatId, string groupType, int pageNumber = 1, int pageSize = 50, long messageId = 0)
+        public async Task<IActionResult> GetOldMessage(int chatId, string groupType, int pageNumber = 1, int pageSize = 50
+            ,long messageId = 0
+            , bool loadOlder = false)
         {
             try
             {

@@ -83,7 +83,7 @@ window.chatApp = (function ($) {
             const chatId = parseInt($('#current-group-id-hidden-input').val());
             const currentGroupType = $('#current-group-type-hidden-input').val();
             $.ajax({
-                url: '/Home/GetChatMessages',
+                url: '/Home/GetOldMessage',
                 type: 'POST',
                 data: { chatId: chatId, groupType: currentGroupType, messageId: lastmessageId, loadOlder: true },
                 success: function (response) {
