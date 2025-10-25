@@ -86,7 +86,7 @@ namespace Messenger.WebApp.Controllers
             {
                 ViewData["userProfilePic"] = userId.ToString();
             }
-
+            //ViewData["userProfilePic"] = "UserIcon.png";
             //ViewData["userProfilePic"] = userId.ToString();
             ViewData["baseUrl"] = _baseUrl;
             ViewData["allowedImagesExtention"] = _allowedImageExtentions;
