@@ -1735,7 +1735,10 @@ $(document).ready(function () {
 
                 // داده‌های صوتی را جمع‌آوری کن
                 mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
+                    if (e.data.size > 0) {
+                        audioChunks.push(e.data);
+                        sendAudioChunk(e.data, false); // ارسال فوری هر تکه به سرور
+                    }
                 };
 
                 // وقتی ضبط متوقف شد، آخرین قطعه را پردازش و ارسال کن
@@ -1744,10 +1747,7 @@ $(document).ready(function () {
                     processAndSendFinalChunk();
                 };
 
-                mediaRecorder.start(); // شروع ضبط
-
-                // هر 1 ثانیه، قطعات جمع‌آوری شده را ارسال کن
-                recordingChunkerInterval = setInterval(processAndSendIntermediateChunks, 1000);
+                mediaRecorder.start(5000); //  رویداد ondataavailable هر 5 ثانیه یکبار فعال میشود
 
             } catch (err) {
                 console.error("خطا در ایجاد MediaRecorder:", err);
@@ -1781,30 +1781,14 @@ $(document).ready(function () {
         }
     }
 
-    // قطعات میانی را پردازش و ارسال می‌کند
-    function processAndSendIntermediateChunks() {
-        if (audioChunks.length === 0) return;
-
-        // یک Blob از تمام قطعات موجود بساز
-        const chunkBlob = new Blob(audioChunks, { type: currentMimeType });
-        audioChunks = []; // آرایه را برای قطعات بعدی خالی کن
-
-        sendAudioChunk(chunkBlob, false); // ارسال به عنوان قطعه میانی
-    }
-
     // آخرین قطعه را پردازش و ارسال می‌کند
     function processAndSendFinalChunk() {
         const finalBlob = new Blob(audioChunks, { type: currentMimeType });
         audioChunks = [];
 
-        if (finalBlob.size > 0) {
-            // آخرین قطعه را برای استفاده در پیش‌نمایش پس از دریافت پاسخ SignalR ذخیره کن
-            window.lastRecordedBlob = finalBlob;
-            sendAudioChunk(finalBlob, true); // ارسال به عنوان آخرین قطعه
-        } else {
-            console.warn("آخرین قطعه صدا خالی بود. چیزی برای ارسال وجود ندارد.");
-            cleanupVoiceState();
-        }
+        window.lastRecordedBlob = finalBlob;
+        // ارسال یک قطعه خالی به عنوان سیگنال پایان ضبط
+        sendAudioChunk(new Blob([], { type: currentMimeType }), true);
     }
 
     // تابع اصلی برای ارسال هر قطعه به سرور
