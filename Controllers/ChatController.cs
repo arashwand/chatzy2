@@ -188,10 +188,7 @@ namespace Messenger.WebApp.Controllers
                 return Unauthorized("Auth token not found.");
 
             // کانشکشن هاب کلاینت با هاب وبسرویس
-            var connectionId = _hubBridgeService.ClientConnectionId;
-            if (connectionId == null)
-                return Unauthorized("connectinId not found!. client hub disconnected from api hub");
-
+           
             try
             {
                 // 2. Create the multipart form data content to forward
@@ -207,7 +204,6 @@ namespace Messenger.WebApp.Controllers
                 multipartFormContent.Add(new StringContent(chunkIndex.ToString()), name: "chunkIndex");
                 multipartFormContent.Add(new StringContent(isLastChunk.ToString().ToLower()), name: "isLastChunk");
 
-              //  multipartFormContent.Add(new StringContent(connectionId), name: "connectionId");
 
                 // 3. Create the HTTP request to the external web service
                 var url = $"{_baseUrl}/api/FileManagement/UploadAudioChunk"; // Corrected URL
@@ -218,14 +214,42 @@ namespace Messenger.WebApp.Controllers
                 // 4. Forward the request and get the response
                 using var response = await _httpClient.SendAsync(requestMessage);
 
-                // 5. Return the response from the external service directly to the client
-                var responseBody = await response.Content.ReadAsStringAsync();
-                return new ContentResult
+
+                // 3. در صورت موفقیت سرویس خارجی:
+                // اگر isLastChunk درست بود، پاسخ نهایی سرویس خارجی را به کلاینت برگردان.
+                if (response.IsSuccessStatusCode)
                 {
-                    Content = responseBody,
-                    ContentType = response.Content.Headers.ContentType?.ToString(),
-                    StatusCode = (int)response.StatusCode
-                };
+                    if (isLastChunk)
+                    {
+                        // **برای آخرین تکه: بازگرداندن پاسخ باینری به صورت خام**
+                        var responseStream = await response.Content.ReadAsStreamAsync();
+                        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+
+                        // استفاده از FileStreamResult برای انتقال درست محتوای فایل صوتی (Blob)
+                        return new FileStreamResult(responseStream, contentType);
+                    }
+                    else
+                    {
+                        // برای تکه‌های میانی: یک تأییدیه ساده برگردان
+                        return Ok();
+                    }
+                }
+                else
+                {
+                    // در صورت شکست در سرویس خارجی، پیام خطا را به کلاینت برگردان
+                    var responseBody = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("External service failed to process audio chunk: {StatusCode} {Body}", response.StatusCode, responseBody);
+                    return StatusCode((int)response.StatusCode, $"External service error: {response.ReasonPhrase}");
+                }
+
+                //// 5. Return the response from the external service directly to the client
+                //var responseBody = await response.Content.ReadAsStringAsync();
+                //return new ContentResult
+                //{
+                //    Content = responseBody,
+                //    ContentType = response.Content.Headers.ContentType?.ToString(),
+                //    StatusCode = (int)response.StatusCode
+                //};
             }
             catch (Exception ex)
             {
