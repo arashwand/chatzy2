@@ -1767,76 +1767,71 @@ $(document).ready(function () {
         }
     }
 
-    // تابع اصلی و اصلاح شده برای ارسال هر قطعه به سرور
-    function sendAudioChunk(audioBlob, isLastChunk) {
+    // تابع اصلی و اصلاح شده برای ارسال هر قطعه به سرور با استفاده از Fetch API
+    async function sendAudioChunk(audioBlob, isLastChunk) {
         if (!recordingId) {
             console.error("شناسه ضبط وجود ندارد. ارسال قطعه لغو شد.");
             if (isLastChunk) cleanupVoiceState();
             return;
         }
 
-        // **اصلاح کلیدی:** همیشه یک Blob جدید با MIME Type ساده بسازید
         const correctedBlob = new Blob([audioBlob], { type: 'audio/webm' });
-
         const formData = new FormData();
-        // از Blob اصلاح شده استفاده کنید
         formData.append('file', correctedBlob, `chunk.webm`);
         formData.append('recordingId', recordingId);
         formData.append('chunkIndex', chunkIndex);
         formData.append('isLastChunk', isLastChunk);
 
-        // **اصلاح کلیدی:** برای تمام قطعات از AJAX استفاده کنید
-        $.ajax({
-            url: '/api/Chat/UploadAudioChunk',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function (response) {
-                // فقط در صورتی که آخرین قطعه باشد، پاسخ را پردازش کن
-                if (isLastChunk) {
-                    console.log("آخرین قطعه با موفقیت ارسال و پردازش شد:", response);
-                    isProcessing = false; // پردازش تمام شد
-                    if (response && response.success) {
-                        // **اصلاح کلیدی:** داده‌ها را مستقیماً از پاسخ HTTP بخوان
-                        pendingVoiceFileId = response.fileId;
+        try {
+            const response = await fetch('/api/Chat/UploadAudioChunk', {
+                method: 'POST',
+                body: formData
+                // Headers are not needed; browser sets multipart/form-data with boundary
+            });
 
-                        if (window.lastRecordedBlob) {
-                            pendingVoiceUrl = URL.createObjectURL(window.lastRecordedBlob);
-                            pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
-                            addFileIdToHiddenInput(response.fileId, '#uploadedFileIds');
+            // بررسی خطاهای HTTP مانند 500, 404, etc.
+            if (!response.ok) {
+                const errorText = await response.text();
+                // ایجاد یک خطا برای گرفتن توسط بلوک catch
+                throw new Error(`Server responded with ${response.status}: ${errorText}`);
+            }
 
-                            updateChatInputUI('preview', {
-                                duration: response.duration,
-                                durationFormatted: response.durationFormatted
-                            });
-                        } else {
-                            console.error("Last recorded blob was not found for creating a preview.");
-                            cleanupVoiceState();
-                        }
+            // اگر پاسخ موفقیت آمیز بود، JSON را بخوان
+            const result = await response.json();
+
+            // پردازش پاسخ موفقیت آمیز
+            if (isLastChunk) {
+                console.log("آخرین قطعه با موفقیت ارسال و پردازش شد:", result);
+                isProcessing = false; // پردازش تمام شد
+                if (result && result.success) {
+                    pendingVoiceFileId = result.fileId;
+                    if (window.lastRecordedBlob) {
+                        pendingVoiceUrl = URL.createObjectURL(window.lastRecordedBlob);
+                        pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
+                        addFileIdToHiddenInput(result.fileId, '#uploadedFileIds');
+                        updateChatInputUI('preview', {
+                            duration: result.duration,
+                            durationFormatted: result.durationFormatted
+                        });
                     } else {
-                        alert('خطا در پردازش فایل صوتی در سرور: ' + (response ? response.message : 'پاسخ نامعتبر'));
+                        console.error("Last recorded blob not found for preview.");
                         cleanupVoiceState();
                     }
                 } else {
-                    console.log(`قطعه ${chunkIndex} با موفقیت ارسال شد.`);
+                    alert('خطا در پردازش فایل صوتی در سرور: ' + (result ? result.message : 'پاسخ نامعتبر'));
+                    cleanupVoiceState();
                 }
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                isProcessing = false; // پردازش در هر صورت تمام شده
-                // **اصلاح کلیدی:** لاگ کردن جزئیات کامل خطا
-                console.error(`خطای ارتباطی در ارسال قطعه ${chunkIndex}:`, {
-                    status: jqXHR.status,
-                    statusText: jqXHR.statusText,
-                    responseText: jqXHR.responseText,
-                    textStatus: textStatus,
-                    errorThrown: errorThrown
-                });
-                // **اصلاح کلیدی:** توقف فوری فرآیند در صورت بروز هر خطایی
-                alert(`خطا در آپلود فایل صوتی (کد: ${jqXHR.status}). لطفاً دوباره تلاش کنید.`);
-                cleanupVoiceState(); // پاکسازی و بازگشت به حالت اولیه
+            } else {
+                console.log(`قطعه ${chunkIndex} با موفقیت ارسال شد.`);
             }
-        });
+
+        } catch (error) {
+            // مدیریت خطاهای شبکه یا خطاهای پرتاب شده از response.ok
+            isProcessing = false;
+            console.error(`خطای ارتباطی در ارسال قطعه ${chunkIndex}:`, error);
+            alert(`خطا در آپلود فایل صوتی. لطفاً دوباره تلاش کنید. جزئیات بیشتر در کنسول موجود است.`);
+            cleanupVoiceState();
+        }
 
         chunkIndex++;
     }
