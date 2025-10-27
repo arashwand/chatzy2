@@ -1785,8 +1785,10 @@ $(document).ready(function () {
         try {
             const response = await fetch('/api/Chat/UploadAudioChunk', {
                 method: 'POST',
-                body: formData
-                // Headers are not needed; browser sets multipart/form-data with boundary
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
             });
 
             // بررسی خطاهای HTTP مانند 500, 404, etc.
