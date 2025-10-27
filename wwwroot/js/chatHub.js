@@ -1564,6 +1564,7 @@ $(document).ready(function () {
     let currentMimeType = 'audio/webm'; // متغیر جدید برای ذخیره فرمت پشتیبانی شده
     let isAudioProcessing = false;
     let isAjaxProcessing = false;
+    let isStopping = false;
     // ======================================================================
     //             VOICE RECORDING EVENT HANDLERS
     // ======================================================================
@@ -1691,6 +1692,7 @@ $(document).ready(function () {
             audioChunks = [];
             recordingId = crypto.randomUUID();
             chunkIndex = 0;
+            isStopping = false; // پرچم توقف را ریست کن
 
             let seconds = 0;
             const timerSpan = $('.recording-timer');
@@ -1704,18 +1706,30 @@ $(document).ready(function () {
             try {
                 mediaRecorder = new MediaRecorder(stream, { mimeType: currentMimeType });
 
-                // داده‌های صوتی را جمع‌آوری کن
-                mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) {
-                        audioChunks.push(e.data);
-                        sendAudioChunk(e.data, false); // ارسال فوری هر تکه به سرور
+                // مدیریت رویداد ondataavailable
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        audioChunks.push(event.data); // برای پیش‌نمایش نهایی
+                        // اگر در حال توقف هستیم، این آخرین قطعه است
+                        sendAudioChunk(event.data, isStopping);
                     }
                 };
 
-                // وقتی ضبط متوقف شد، آخرین قطعه را پردازش و ارسال کن
+                // مدیریت رویداد onstop
                 mediaRecorder.onstop = () => {
-                    stream.getTracks().forEach(track => track.stop());
-                    processAndSendFinalChunk();
+                    // isProcessing = false; // پردازش شبکه تمام شده - This is handled in AJAX success/error
+                    stream.getTracks().forEach(track => track.stop()); // استریم را ببند
+
+                    // حالا که آخرین قطعه ارسال شده، UI پیش‌نمایش را آماده کن
+                    // (منطق UI از پاسخ آخرین AJAX فراخوانی می‌شود)
+                    const finalBlob = new Blob(audioChunks, { type: currentMimeType });
+                    window.lastRecordedBlob = finalBlob;
+
+                    // اگر به هر دلیلی پاسخ ایجکس دریافت نشد، اینجا یک راه بازگشت داریم
+                    if (isProcessing && !$('#voice-ui-container').hasClass('preview-state')) {
+                         console.warn("UI preview was not set by AJAX response, cleaning up.");
+                         cleanupVoiceState();
+                    }
                 };
 
                 mediaRecorder.start(5000); //  رویداد ondataavailable هر 5 ثانیه یکبار فعال میشود
@@ -1734,32 +1748,23 @@ $(document).ready(function () {
     }
 
     function stopRecording() {
-        if (!isRecording) return;
-        isRecording = false;
-        isProcessing = true; // وارد حالت پردازش شو
+        if (!isRecording || !mediaRecorder) return;
 
-        clearInterval(recordingTimerInterval);
-        clearInterval(recordingChunkerInterval); // تایمر ارسال قطعات را متوقف کن
+        // اگر ریکوردر در حال ضبط است
+        if (mediaRecorder.state === "recording") {
+            isStopping = true; // 1. پرچم را برای ارسال آخرین قطعه تنظیم کن
+            isRecording = false;
+            isProcessing = true;
 
-        changeIcon($('.btn-record-voice'), 'microphone');
-        updateChatInputUI('processing');
+            clearInterval(recordingTimerInterval);
+            changeIcon($('.btn-record-voice'), 'microphone');
+            updateChatInputUI('processing');
 
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop(); // این کار رویداد onstop را فعال می‌کند
+            mediaRecorder.stop(); // 2. این کار ابتدا ondataavailable و سپس onstop را فعال می‌کند
         } else {
-            console.warn('MediaRecorder در حالت ضبط نبود. در حال ریست وضعیت.');
+            console.warn('Stop called but mediaRecorder was not recording.');
             cleanupVoiceState();
         }
-    }
-
-    // آخرین قطعه را پردازش و ارسال می‌کند
-    function processAndSendFinalChunk() {
-        const finalBlob = new Blob(audioChunks, { type: currentMimeType });
-        audioChunks = [];
-
-        window.lastRecordedBlob = finalBlob;
-        // ارسال یک قطعه خالی به عنوان سیگنال پایان ضبط
-        sendAudioChunk(new Blob([], { type: currentMimeType }), true);
     }
 
     // تابع اصلی و اصلاح شده برای ارسال هر قطعه به سرور
@@ -1791,6 +1796,7 @@ $(document).ready(function () {
                 // فقط در صورتی که آخرین قطعه باشد، پاسخ را پردازش کن
                 if (isLastChunk) {
                     console.log("آخرین قطعه با موفقیت ارسال و پردازش شد:", response);
+                    isProcessing = false; // پردازش تمام شد
                     if (response && response.success) {
                         // **اصلاح کلیدی:** داده‌ها را مستقیماً از پاسخ HTTP بخوان
                         pendingVoiceFileId = response.fileId;
@@ -1800,7 +1806,6 @@ $(document).ready(function () {
                             pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
                             addFileIdToHiddenInput(response.fileId, '#uploadedFileIds');
 
-                            isProcessing = false;
                             updateChatInputUI('preview', {
                                 duration: response.duration,
                                 durationFormatted: response.durationFormatted
@@ -1818,6 +1823,7 @@ $(document).ready(function () {
                 }
             },
             error: function (jqXHR, textStatus, errorThrown) {
+                isProcessing = false; // پردازش در هر صورت تمام شده
                 // **اصلاح کلیدی:** لاگ کردن جزئیات کامل خطا
                 console.error(`خطای ارتباطی در ارسال قطعه ${chunkIndex}:`, {
                     status: jqXHR.status,
