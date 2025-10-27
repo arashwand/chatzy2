@@ -1818,12 +1818,17 @@ $(document).ready(function () {
                 }
             },
             error: function (jqXHR, textStatus, errorThrown) {
-                console.error(`خطای ارتباطی در ارسال قطعه ${chunkIndex}:`, textStatus, errorThrown);
-                // فقط در صورت خطا در ارسال آخرین قطعه، به کاربر هشدار بده
-                if (isLastChunk) {
-                    alert('خطای ارتباط با سرور هنگام ارسال قطعه صوتی.');
-                    cleanupVoiceState();
-                }
+                // **اصلاح کلیدی:** لاگ کردن جزئیات کامل خطا
+                console.error(`خطای ارتباطی در ارسال قطعه ${chunkIndex}:`, {
+                    status: jqXHR.status,
+                    statusText: jqXHR.statusText,
+                    responseText: jqXHR.responseText,
+                    textStatus: textStatus,
+                    errorThrown: errorThrown
+                });
+                // **اصلاح کلیدی:** توقف فوری فرآیند در صورت بروز هر خطایی
+                alert(`خطا در آپلود فایل صوتی (کد: ${jqXHR.status}). لطفاً دوباره تلاش کنید.`);
+                cleanupVoiceState(); // پاکسازی و بازگشت به حالت اولیه
             }
         });
 
