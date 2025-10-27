@@ -1214,35 +1214,6 @@ window.chatApp = (function ($) {
             signalRConnection.on("UserDeleteMessage", handleDeleteMessage);
             signalRConnection.on("UserSaveMessage", handleUserSaveMessage);
 
-            signalRConnection.on("ReceiveVoiceMessageResult", function (data) {
-                console.log("ReceiveVoiceMessageResult received:", data);
-
-                if (data.success && data.recordingId === recordingId) {
-
-                    if (window.voiceUploadTimeout) {
-                        clearTimeout(window.voiceUploadTimeout);
-                        window.voiceUploadTimeout = null;
-                    }
-
-                    pendingVoiceFileId = data.fileId;
-
-                    if (window.lastRecordedBlob) {
-                        pendingVoiceUrl = URL.createObjectURL(window.lastRecordedBlob);
-                        pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
-                        addFileIdToHiddenInput(data.fileId, '#uploadedFileIds');
-
-                        isProcessing = false;
-                        updateChatInputUI('preview', {
-                            duration: data.duration,
-                            durationFormatted: data.durationFormatted
-                        });
-                    } else {
-                        console.error("Last recorded blob was not found for creating a preview.");
-                        cleanupVoiceState();
-                    }
-                }
-            });
-
             // مدیریت خطا در ارسال پیام
             signalRConnection.on("SendMessageError", function (errorMessage) {
                 console.error("Server returned an error for sending message:", errorMessage);
@@ -1791,7 +1762,7 @@ $(document).ready(function () {
         sendAudioChunk(new Blob([], { type: currentMimeType }), true);
     }
 
-    // تابع اصلی برای ارسال هر قطعه به سرور
+    // تابع اصلی و اصلاح شده برای ارسال هر قطعه به سرور
     function sendAudioChunk(audioBlob, isLastChunk) {
         if (!recordingId) {
             console.error("شناسه ضبط وجود ندارد. ارسال قطعه لغو شد.");
@@ -1799,50 +1770,62 @@ $(document).ready(function () {
             return;
         }
 
+        // **اصلاح کلیدی:** همیشه یک Blob جدید با MIME Type ساده بسازید
+        const correctedBlob = new Blob([audioBlob], { type: 'audio/webm' });
+
         const formData = new FormData();
-        formData.append('file', audioBlob, `chunk.webm`);
+        // از Blob اصلاح شده استفاده کنید
+        formData.append('file', correctedBlob, `chunk.webm`);
         formData.append('recordingId', recordingId);
         formData.append('chunkIndex', chunkIndex);
         formData.append('isLastChunk', isLastChunk);
 
-        if (isLastChunk) {
-            $.ajax({
-                url: '/api/Chat/UploadAudioChunk',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (response) {
-                    // پاسخ HTTP فقط یک تاییدیه است. داده‌های اصلی از طریق SignalR می‌آید.
-                    console.log("آخرین قطعه با موفقیت ارسال شد. منتظر پاسخ SignalR...");
+        // **اصلاح کلیدی:** برای تمام قطعات از AJAX استفاده کنید
+        $.ajax({
+            url: '/api/Chat/UploadAudioChunk',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                // فقط در صورتی که آخرین قطعه باشد، پاسخ را پردازش کن
+                if (isLastChunk) {
+                    console.log("آخرین قطعه با موفقیت ارسال و پردازش شد:", response);
+                    if (response && response.success) {
+                        // **اصلاح کلیدی:** داده‌ها را مستقیماً از پاسخ HTTP بخوان
+                        pendingVoiceFileId = response.fileId;
 
-                    // یک تایم‌اوت تنظیم کن تا اگر پاسخ SignalR نرسید، خطا نمایش داده شود
-                    window.voiceUploadTimeout = setTimeout(() => {
-                        alert("پاسخی از سرور برای پردازش فایل صوتی دریافت نشد. لطفاً دوباره تلاش کنید.");
+                        if (window.lastRecordedBlob) {
+                            pendingVoiceUrl = URL.createObjectURL(window.lastRecordedBlob);
+                            pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
+                            addFileIdToHiddenInput(response.fileId, '#uploadedFileIds');
+
+                            isProcessing = false;
+                            updateChatInputUI('preview', {
+                                duration: response.duration,
+                                durationFormatted: response.durationFormatted
+                            });
+                        } else {
+                            console.error("Last recorded blob was not found for creating a preview.");
+                            cleanupVoiceState();
+                        }
+                    } else {
+                        alert('خطا در پردازش فایل صوتی در سرور: ' + (response ? response.message : 'پاسخ نامعتبر'));
                         cleanupVoiceState();
-                    }, 20000); // 20 ثانیه
-                },
-                error: function (jqXHR, textStatus, errorThrown) {
-                    console.error('خطای ارتباطی در ارسال آخرین قطعه:', textStatus, errorThrown);
-                    alert('خطای ارتباط با سرور هنگام ارسال آخرین قطعه صوتی.');
+                    }
+                } else {
+                    console.log(`قطعه ${chunkIndex} با موفقیت ارسال شد.`);
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.error(`خطای ارتباطی در ارسال قطعه ${chunkIndex}:`, textStatus, errorThrown);
+                // فقط در صورت خطا در ارسال آخرین قطعه، به کاربر هشدار بده
+                if (isLastChunk) {
+                    alert('خطای ارتباط با سرور هنگام ارسال قطعه صوتی.');
                     cleanupVoiceState();
                 }
-            });
-        } else {
-            // برای قطعات میانی از sendBeacon استفاده کن
-            if (navigator.sendBeacon) {
-                navigator.sendBeacon('/api/Chat/UploadAudioChunk', formData);
-            } else {
-                $.ajax({
-                    url: '/api/Chat/UploadAudioChunk',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    async: true
-                });
             }
-        }
+        });
 
         chunkIndex++;
     }
