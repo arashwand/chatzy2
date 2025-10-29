@@ -516,11 +516,8 @@ window.chatApp = (function ($) {
         const chatTextElement = document.getElementById(`chatText_${message.groupType}_${message.groupId}`);
         const chatTimeElement = document.getElementById(`chatTime_${message.groupType}_${message.groupId}`);
         if (chatTextElement && chatTimeElement) {
-            //chatTextElement.innerHTML = `<span>${message.senderUserName}:</span> ${message.messageText}`;
             const previewText = createMessagePreviewText(message);
-
             chatTextElement.innerHTML = `<span>${message.senderUserName}:</span> ${previewText}`;
-
             chatTimeElement.innerText = convertDateTohhmm(message.messageDateTime);
             const listItem = document.getElementById(`chatListItem_${message.groupId}`);
             if (listItem) {
@@ -533,16 +530,55 @@ window.chatApp = (function ($) {
             console.log('message.groupId === activeGroupId');
             const chat_content = $('#chat_content');
 
-            const messageDate = new Date(message.messageDateTime);
-            const dateStr = formatDate(messageDate);
+            const messageDate = new Date(message.messageDate);
+            console.log('message date is : ' + messageDate);
+            const dateStr = formatDate(messageDate); // خروجی: "YYYY-MM-DD"
+            console.log('dateStr is : '+ dateStr);
             let messageList = $(`#chatMessages-${dateStr}`);
 
+            // <<<< شروع تغییرات >>>>
+            // اگر کانتینر پیام برای این تاریخ وجود نداشت، آن را بساز
             if (!messageList.length) {
-                const persianDate = new Date(message.messageDateTime).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
-                const newDayHtml = `<h6 class="fw-normal text-center heading chatInDateLabelClass">${persianDate}</h6>
-                                    <ul class="message-box-list" id="chatMessages-${dateStr}"></ul>`;
+
+                // 1. تعریف تاریخ امروز و دیروز برای مقایسه
+                const today = new Date();
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                const todayStr = formatDate(today);
+                const yesterdayStr = formatDate(yesterday);
+
+                let dateLabel = '';
+
+                // 2. انتخاب هوشمندانه برچسب تاریخ
+                switch (dateStr) {
+                    case todayStr:
+                        dateLabel = "امروز";
+                        break;
+                    case yesterdayStr:
+                        dateLabel = "دیروز";
+                        break;
+                    default:
+                        // استفاده از toLocaleDateString برای نمایش تاریخ کامل فارسی
+                        dateLabel = messageDate.toLocaleDateString('fa-IR', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                        break;
+                }
+
+                // 3. ساخت HTML صحیح با برچسب جدید و شناسه یکتا برای هدر
+                const headerId = `date-${dateStr}`; // شناسه برای تگ h6
+                const newDayHtml = `
+                <h6 class="fw-normal text-center heading chatInDateLabelClass" data-label="${dateLabel}" id="${headerId}">${dateLabel}</h6>
+                <ul class="message-box-list" id="chatMessages-${dateStr}"></ul>`;
+
+                // <<<< پایان تغییرات >>>>
+
                 $('#Message_Days').append(newDayHtml);
-                messageList = $(`#chatMessages-${dateStr}`);
+                messageList = $(`#chatMessages-${dateStr}`); // انتخاب مجدد لیست تازه ایجاد شده
             }
 
             if (!chat_content.length || !messageList.length) {
@@ -912,6 +948,19 @@ window.chatApp = (function ($) {
 
 
     /**
+     * تاریخ و زمان کامل میگیره و ساعت و دقیقه بر میگردونه
+     * @param {any} isoString
+     * @returns
+     */
+    function extractTime(isoString) {
+        const date = new Date(isoString);
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+    }
+
+
+    /**
   * وضعیت یک پیام موجود در UI را به‌روز می‌کند.
   * @param {string} clientMessageId - شناسه موقتی که در کلاینت ایجاد شده بود.
   * @param {object} savedMessage - آبجکت کامل پیام که از سرور برگشته است.
@@ -946,10 +995,12 @@ window.chatApp = (function ($) {
 
             console.log('**********************************End for update json details  ********************************** ');
 
+            const time = extractTime(savedMessage.messageDateTime);
 
             // تغییر آیکون وضعیت از "ساعت" به "تیک"  
             if (timingElement.length) {
                 timingElement.html(`
+                    <h6>${time}</h6>    
                     <img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: inline;">
                     <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: none;">
                 `);
@@ -1747,7 +1798,7 @@ $(document).ready(function () {
                 mediaRecorder.start(); // شروع ضبط
 
                 // هر 1 ثانیه، قطعات جمع‌آوری شده را ارسال کن
-                recordingChunkerInterval = setInterval(processAndSendIntermediateChunks, 1000);
+                recordingChunkerInterval = setInterval(processAndSendIntermediateChunks, 5000);
 
             } catch (err) {
                 console.error("خطا در ایجاد MediaRecorder:", err);
@@ -1810,7 +1861,7 @@ $(document).ready(function () {
     // تابع اصلی برای ارسال هر قطعه به سرور
     function sendAudioChunk(audioBlob, isLastChunk) {
         if (!recordingId) {
-            console.error("شناسه ضبط وجود ندارد. ارسال قطعه لغو شد.");
+            console.error("شناسه ضبط وجود ندارد.");
             if (isLastChunk) cleanupVoiceState();
             return;
         }
@@ -1822,30 +1873,54 @@ $(document).ready(function () {
         formData.append('isLastChunk', isLastChunk);
 
         if (isLastChunk) {
+            // ارسال آخرین قطعه و انتظار برای پاسخ نهایی
             $.ajax({
                 url: '/api/Chat/UploadAudioChunk',
                 type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
-                success: function (response) {
-                    // پاسخ HTTP فقط یک تاییدیه است. داده‌های اصلی از طریق SignalR می‌آید.
-                    console.log("آخرین قطعه با موفقیت ارسال شد. منتظر پاسخ SignalR...");
+                dataType: 'json', // انتظار دریافت JSON داریم
+                success: function (data) {
+                    console.log("پاسخ نهایی سرور دریافت شد:", data);
 
-                    // یک تایم‌اوت تنظیم کن تا اگر پاسخ SignalR نرسید، خطا نمایش داده شود
-                    window.voiceUploadTimeout = setTimeout(() => {
-                        alert("پاسخی از سرور برای پردازش فایل صوتی دریافت نشد. لطفاً دوباره تلاش کنید.");
+                    // استفاده از camelCase مطابق با کد جدید C#
+                    if (data && data.success && data.recordingId === recordingId) {
+                        pendingVoiceFileId = data.fileId;
+
+                        if (window.lastRecordedBlob) {
+                            pendingVoiceUrl = URL.createObjectURL(window.lastRecordedBlob);
+                            pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
+
+                            // اضافه کردن شناسه فایل به لیست فایل‌های آماده ارسال
+                            addFileIdToHiddenInput(data.fileId, '#uploadedFileIds');
+
+                            isProcessing = false;
+
+                            // بروزرسانی UI به حالت پیش‌نمایش
+                            updateChatInputUI('preview', {
+                                duration: data.duration,
+                                durationFormatted: data.durationFormatted
+                            });
+                        } else {
+                            console.error("Blob فایل نهایی یافت نشد.");
+                            cleanupVoiceState();
+                        }
+                    } else {
+                        console.error("پاسخ سرور نامعتبر بود:", data);
+                        alert("خطا در پردازش فایل صوتی.");
                         cleanupVoiceState();
-                    }, 20000); // 20 ثانیه
+                    }
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
-                    console.error('خطای ارتباطی در ارسال آخرین قطعه:', textStatus, errorThrown);
-                    alert('خطای ارتباط با سرور هنگام ارسال آخرین قطعه صوتی.');
+                    // مدیریت خطاهای شبکه یا سرور (500, 404, Timeout, etc.)
+                    console.error('خطا در ارسال آخرین قطعه:', textStatus, errorThrown);
+                    alert('خطای ارتباط با سرور. لطفاً دوباره تلاش کنید.');
                     cleanupVoiceState();
                 }
             });
         } else {
-            // برای قطعات میانی از sendBeacon استفاده کن
+            // ارسال قطعات میانی (بدون نیاز به انتظار برای پاسخ)
             if (navigator.sendBeacon) {
                 navigator.sendBeacon('/api/Chat/UploadAudioChunk', formData);
             } else {
@@ -1855,14 +1930,13 @@ $(document).ready(function () {
                     data: formData,
                     processData: false,
                     contentType: false,
-                    async: true
+                    async: true // غیرهمزمان واقعی، نیازی به منتظر ماندن نیست
                 });
             }
         }
 
         chunkIndex++;
     }
-
 
     /**
      * ریست متغیر های ایجاد شده در هنگام ضبط صده
@@ -2268,6 +2342,7 @@ $(document).ready(function () {
             groupType: groupType,
             messageText: messageText,
             messageDateTime: new Date().toISOString(),
+            messageDate: new Date().toISOString(),
             senderUserId: parseInt($('#userId').val()),
             senderUserName: userNameFamily,
             profilePicName: userProfilePic,

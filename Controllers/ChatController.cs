@@ -214,7 +214,7 @@ namespace Messenger.WebApp.Controllers
                 // 4. Forward the request and get the response
                 using var response = await _httpClient.SendAsync(requestMessage);
 
-
+                
                 // 3. در صورت موفقیت سرویس خارجی:
                 // اگر isLastChunk درست بود، پاسخ نهایی سرویس خارجی را به کلاینت برگردان.
                 if (response.IsSuccessStatusCode)
@@ -222,11 +222,14 @@ namespace Messenger.WebApp.Controllers
                     if (isLastChunk)
                     {
                         // **برای آخرین تکه: بازگرداندن پاسخ باینری به صورت خام**
-                        var responseStream = await response.Content.ReadAsStreamAsync();
-                        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+                        //var responseStream = await response.Content.ReadAsStreamAsync();
+                        //var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
 
                         // استفاده از FileStreamResult برای انتقال درست محتوای فایل صوتی (Blob)
-                        return new FileStreamResult(responseStream, contentType);
+                        //return new FileStreamResult(responseStream, contentType);
+
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        return Content(responseBody, "application/json");
                     }
                     else
                     {

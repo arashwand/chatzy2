@@ -251,6 +251,7 @@ namespace Messenger.WebApp.ServiceHelper
                         groupId = messageDto.ClassGroupId,
                         groupType = chatType,
                         messageDateTime = messageDto.MessageDateTime.ToString("HH:mm"),
+                        messageDate = messageDto.MessageDateTime,
                         profilePicName = messageDto.SenderUser?.ProfilePicName,
                         messageId = messageDto.MessageId,
                         replyToMessageId = messageDto.ReplyMessageId,
