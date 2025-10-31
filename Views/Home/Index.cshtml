@@ -60,6 +60,11 @@
         $(function () {
             GetUserChats();
 
+            // بعد از دریافت لیست چت، اطلاعات تعداد چت خوانده نشده را میگیریم
+            // همچنین میتونیم اخرین ایدی پیام خوانده شده کاربر در هر چت را بگیریم و درج کنیم.
+           // UpdateUnreadUserChats();
+
+
             // When a chat is selected
             window.GetSelectedChatMessages = function(chatId, groupType,lastReadMessageId) {
                 console.log("chatId selected = " + chatId + " and groupType : " + groupType);
@@ -130,6 +135,8 @@
                 }
             });
         };
+
+        
 
         function ChatActivated(chatId, groupType) {
              console.log(`chat Id and group type is : ${chatId} and ${groupType}`);

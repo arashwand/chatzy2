@@ -83,7 +83,7 @@ $(document).ready(function () {
         item.data('fileObject', file);
 
         const fileExtension = file.name.split('.').pop().toLowerCase();
-        updateFileStatus(elementId, "Preparing...", false, null, true, 0);
+        updateFileStatus(elementId, "آماده سازی...", false, null, true, 0);
 
         if (!window.chatApp || window.chatApp.ALLOWED_IMAGES.length === 0) {
             await window.chatApp.callAlloewExtentions();
@@ -91,18 +91,18 @@ $(document).ready(function () {
 
         if (window.chatApp.ALLOWED_IMAGES.includes(fileExtension)) {
             try {
-                updateFileStatus(elementId, 'Compressing...', false, null, true, 0);
+                updateFileStatus(elementId, 'فشرده سازی...', false, null, true, 0);
                 const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
                 const compressedFile = await imageCompression(file, options);
                 // After compression, we start the chunked upload
                 startChunkedUpload(compressedFile, elementId, file.name);
             } catch (error) {
-                updateFileStatus(elementId, 'Compression failed!', true);
+                updateFileStatus(elementId, 'خطا در فشرده سازی!', true);
             }
         } else if (window.chatApp.ALLOWED_DOCS.includes(fileExtension) || window.chatApp.ALLOWED_AUDIO.includes(fileExtension)) {
             startChunkedUpload(file, elementId, file.name);
         } else {
-            updateFileStatus(elementId, 'File type not allowed!', true);
+            updateFileStatus(elementId, 'فرمت فایل مجاز نیست!', true);
         }
     }
 
@@ -115,7 +115,7 @@ $(document).ready(function () {
         item.data('totalChunks', totalChunks);
         item.data('originalFileName', originalFileName);
 
-        updateFileStatus(elementId, `Uploading 0%`, false, null, true, 0);
+        updateFileStatus(elementId, `در حال بارگذاری 0%`, false, null, true, 0);
         uploadChunk(file, uploadId, 0, totalChunks, elementId, originalFileName);
     }
 
@@ -140,7 +140,7 @@ $(document).ready(function () {
             if (e.lengthComputable) {
                 const chunkPercent = e.loaded / e.total;
                 const totalPercent = ((chunkIndex + chunkPercent) / totalChunks) * 100;
-                updateFileStatus(elementId, `Uploading ${Math.round(totalPercent)}%`, false, null, true, totalPercent);
+                updateFileStatus(elementId, `بارگذاری... ${Math.round(totalPercent)}%`, false, null, true, totalPercent);
             }
         };
 
@@ -151,7 +151,7 @@ $(document).ready(function () {
 
                 if (isLastChunk) {
                     if (response.success) {
-                        updateFileStatus(elementId, 'Success', false, response.fileId, false, 100);
+                        updateFileStatus(elementId, 'موفق', false, response.fileId, false, 100);
                         addFileIdToHiddenInput(response.fileId.toString(), '#uploadedFileIds');
                         delete activeUploads[elementId];
                     } else {
@@ -174,7 +174,7 @@ $(document).ready(function () {
         };
 
         xhr.onerror = function () {
-            updateFileStatus(elementId, 'Network error', true);
+            updateFileStatus(elementId, 'خطای شبکه', true);
             delete activeUploads[elementId];
         };
 

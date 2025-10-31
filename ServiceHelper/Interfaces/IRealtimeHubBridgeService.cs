@@ -90,5 +90,14 @@ namespace Messenger.WebApp.ServiceHelper.Interfaces
         /// <returns></returns>
         Task AnnounceUserDepartureAsync(long userId);
 
+
+        /// <summary>
+        /// درخواست محاسبه تعداد پیامهای خوانده نشده هر چت برای این کاربر و ارسال نتیجه از طریق سیگنال آر
+        /// درواقع این درخواست، متد مربوطه را در وبسرویس فعال میکند و به راه می اندازد
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        Task RequestUnreadCounts(long userId);
+
     }
 }

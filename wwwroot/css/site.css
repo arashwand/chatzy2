@@ -1159,3 +1159,7 @@ body {
     height: 25px;
     padding:3px;
 }
+
+#close-group-info-panel-btn{
+    margin-left : 20px;
+}

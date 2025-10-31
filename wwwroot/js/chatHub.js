@@ -54,6 +54,7 @@ window.chatApp = (function ($) {
         }
     }
 
+
     // تابع برای ارسال Heartbeat
     // جهت اعلام انلاین بودن کاربر هر 90 ثانیه
     function sendHeartbeatSignal() {
@@ -126,6 +127,7 @@ window.chatApp = (function ($) {
 
     // تبدیل تاریخ به ساعت و دقیقه 
     function convertDateTohhmm(dateTime) {
+        console.log('input datetime is : ' + dateTime);
         const newDate = new Date(dateTime);
 
         if (isNaN(newDate)) {
@@ -908,7 +910,8 @@ window.chatApp = (function ($) {
             console.log('inside makeJsonObjectForMessateDetails ******************************' + message)
             // بررسی وجود آبجکت message و خواص اصلی آن
             if (!message || !message.messageText) {
-                throw new Error("Invalid message object: messageText is missing.");
+                // throw new Error("Invalid message object: messageText is missing.");
+                console.log('پیام حاوی متن نیست.درنتیجه احتمالا فایل صوتی است و یا فالهای دیگر')
             }
 
             const messageDetails = {
@@ -1309,6 +1312,14 @@ window.chatApp = (function ($) {
                     //  پس از اتصال موفق به هاب داخلی، حضور کاربر را به سرور اصلی اعلام می‌کنیم
                     //========================================================================
                     announceUserPresence();
+
+
+
+                    // گام ۳ (جدید): از سرور میخواهیم تا تعداد پیام‌های خوانده نشده را برای ما بفرستد
+                    console.log("Requesting unread counts from server...");
+                    signalRConnection.invoke("RequestUnreadCounts")
+                        .catch(err => console.error("Error requesting unread counts: ", err));
+
 
                     // فعال کردن لیسنر اسکرول هنگام شروع برنامه
                     publicApi.setScrollListenerActive(true); // لیسنر اسکرول را در ابتدا فعال کن
@@ -2136,6 +2147,7 @@ $(document).ready(function () {
                 groupType: groupType,
                 messageText: "", // پیام صوتی متن ندارد
                 messageDateTime: new Date().toISOString(),
+                messageDate: new Date().toISOString(),
                 senderUserId: parseInt($('#userId').val()),
                 senderUserName: $('#fullName').val(),
                 profilePicName: $('#userProfilePic').val(),

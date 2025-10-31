@@ -69,7 +69,7 @@ namespace Messenger.WebApp.Controllers
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error in DeleteMessage action.");
+                _logger.LogError(ex, "Error in downloadFileById.");
                 return StatusCode(500, "Internal server error deleting message.");
             }
         }

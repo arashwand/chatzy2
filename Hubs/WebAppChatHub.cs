@@ -88,12 +88,24 @@ namespace Messenger.WebApp.Hubs
             }
             await _hubBridgeService.SendHeartbeatAsync(userId);
 
-            //var userId = long.Parse(Context.UserIdentifier);
-            //if (userId <= 0)
-            //{
-            //    return;
-            //}
-            //await _hubBridgeService.SendHeartbeatAsync(userId);
+        }
+
+
+        public async Task RequestUnreadCounts()
+        {
+            var userId = long.Parse(Context.UserIdentifier);
+            if (userId <= 0)
+            {
+                return;
+            }
+            if (!_hubBridgeService.IsConnected) // اضافه کردن این بررسی
+            {
+                _logger.LogWarning($"Heartbeat not sent. Hub bridge service is not connected for user {userId}.");
+                // می‌توانید اینجا یک پیام خطا به کلاینت بفرستید یا فقط لاگ کنید
+                return;
+            }
+            await _hubBridgeService.RequestUnreadCounts(userId);
+
         }
 
 

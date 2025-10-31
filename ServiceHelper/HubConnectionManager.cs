@@ -188,6 +188,16 @@ namespace Messenger.WebApp.ServiceHelper
         public Task MarkAllMessagesAsReadAsync(long userId, int groupId, string groupType)
             => InvokeHubMethodAsync("MarkAllMessagesAsRead", userId, groupId, groupType);
 
+        /// <summary>
+        /// درخواست محاسبه پیامهای خوانده نشده هر چت
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        public Task RequestUnreadCounts(long userId)
+            => InvokeHubMethodAsync("RequestUnreadCounts", userId);
+
+
+
 
         #region Private Methods 
 
