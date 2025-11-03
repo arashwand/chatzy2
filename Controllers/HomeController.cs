@@ -9,13 +9,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
+using System.Net.Http;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Messenger.WebApp.Controllers
 {
     [Authorize]
     public class HomeController : Controller
     {
+        private readonly HttpClient _httpClient;
         private readonly ILogger<HomeController> _logger;
         private readonly IUserServiceClient _redisUserService;
         private readonly IClassGroupServiceClient _classGroupServiceClient;
@@ -37,7 +40,7 @@ namespace Messenger.WebApp.Controllers
             IClassGroupServiceClient classGroupServiceClient, IMessageServiceClient messageService,
             IFileManagementServiceClient fileManagementServiceClient, IChannelServiceClient channelServiceClient,
             IUserServiceClient userServiceClient, IOptions<ApiSettings> apiSettings,
-            IOptions<FileConfigSetting> fileConfigSettings, IManageUserServiceClient manageUserServiceClient)
+            IOptions<FileConfigSetting> fileConfigSettings, IManageUserServiceClient manageUserServiceClient, HttpClient httpClient)
         {
             _logger = logger;
             _redisUserService = redisUserServiceClient;
@@ -51,6 +54,7 @@ namespace Messenger.WebApp.Controllers
             _allowedDocExtentions = fileConfigSettings.Value.AllowedExtensions;
             _allowedAudioExtentions = fileConfigSettings.Value.AllowedAudioExtentions;
             _manageUserServiceClient = manageUserServiceClient;
+            _httpClient = httpClient;
         }
 
         public async Task<IActionResult> Index()
@@ -67,9 +71,9 @@ namespace Messenger.WebApp.Controllers
 
             var user = await _userService.GetUserByIdAsync(userId);
 
-            if (user !=null)
+            if (user != null)
             {
-                if (user.NameFamily !=null && user.NameFamily != "")
+                if (user.NameFamily != null && user.NameFamily != "")
                 {
                     ViewData["userProfilePic"] = user.ProfilePicName;
                 }
@@ -82,7 +86,7 @@ namespace Messenger.WebApp.Controllers
             {
                 ViewData["userProfilePic"] = userId.ToString();
             }
-
+            //ViewData["userProfilePic"] = "UserIcon.png";
             //ViewData["userProfilePic"] = userId.ToString();
             ViewData["baseUrl"] = _baseUrl;
             ViewData["allowedImagesExtention"] = _allowedImageExtentions;
@@ -118,8 +122,10 @@ namespace Messenger.WebApp.Controllers
 
             //اگر مدیر باشد همه گروه ها و کانالها را نمایش میدهیم
             //TODO :  این سناریو موقتی است و درواقع لازم است کلاسها توسط نقش پرسنل مدیریت شوند و باید به این گروهها یا کانالها جوین شوند
-            var userGroups = userRole == ConstRoles.Manager ? await _classGroupServiceClient.GetAllClassGroupsAsync() :
-                await _classGroupServiceClient.GetUserClassGroupsAsync(userId);
+            //var userGroups = userRole == ConstRoles.Manager ? await _classGroupServiceClient.GetAllClassGroupsAsync() :
+            //    await _classGroupServiceClient.GetUserClassGroupsAsync(userId);
+
+            var userGroups = await _classGroupServiceClient.GetUserClassGroupsAsync(userId);
 
 
             var userChannels = await _channelServiceClient.GetUserChannelsAsync(userId);
@@ -138,7 +144,8 @@ namespace Messenger.WebApp.Controllers
         /// <param name="pageNumber"></param>
         /// <param name="pageSize"></param>
         /// <returns></returns>
-        public async Task<IActionResult> GetChatMessages(int chatId, string groupType, int pageNumber = 1, int pageSize = 50, long messageId = 0)
+        public async Task<IActionResult> GetChatMessages(int chatId, string groupType, int pageNumber = 1, int pageSize = 50,
+            long messageId = 0, bool loadOlder = false)
         {
             try
             {
@@ -149,9 +156,11 @@ namespace Messenger.WebApp.Controllers
                 }
 
                 var messages = groupType == ConstChat.ClassGroupType ?
-                    await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId) :
-                    await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId);
+                    await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder) :
+                    await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder);
 
+                //var lastReadMessageId = await GetLastReadMessageIdPlaceholderAsync(chatId, groupType, long.Parse(userId));
+                ViewData["LastReadMessageId"] = messageId;
                 ViewData["classGroupId"] = chatId;
                 ViewData["baseUrl"] = _baseUrl;
                 ViewData["chatType"] = groupType;
@@ -172,7 +181,9 @@ namespace Messenger.WebApp.Controllers
         /// <param name="pageNumber"></param>
         /// <param name="pageSize"></param>
         /// <returns></returns>
-        public async Task<IActionResult> GetOldMessage(int chatId, string groupType, int pageNumber = 1, int pageSize = 50, long messageId = 0)
+        public async Task<IActionResult> GetOldMessage(int chatId, string groupType, int pageNumber = 1, int pageSize = 50
+            ,long messageId = 0
+            , bool loadOlder = false)
         {
             try
             {
@@ -248,11 +259,50 @@ namespace Messenger.WebApp.Controllers
         }
 
         /// <summary>
+        /// A helper method to fetch detailed information for a chat (group or channel),
+        /// including its name, description, and file counts.
+        /// </summary>
+        /// <param name="chatId">The ID of the chat.</param>
+        /// <param name="groupType">The type of the chat ('ClassGroup' or 'Channel').</param>
+        /// <returns>A tuple containing the chat's name, description, and file counts.</returns>
+        private async Task<(string Name, string Description, CountSharedContentDto FileCounts)> GetChatDetailsAsync(int chatId, string groupType)
+        {
+            string name = "نام یافت نشد";
+            string description = "";
+            CountSharedContentDto fileCounts;
+
+            // Fetch name and description based on chat type
+            if (groupType == ConstChat.ClassGroupType)
+            {
+                var group = await _classGroupServiceClient.GetClassGroupByIdAsync(chatId);
+                if (group != null)
+                {
+                    name = group.LevelName;
+                    description = group.ClassTiming;//.Description;
+                }
+            }
+            else
+            {
+                var channel = await _channelServiceClient.GetChannelByIdAsync(chatId);
+                if (channel != null)
+                {
+                    name = channel.ChannelName;
+                    description = channel.ChannelTitle;
+                }
+            }
+
+            // Fetch file counts from the dedicated service, handling potential nulls
+            fileCounts = await _fileManagementServiceClient.GetFileCountsForChatAsync(chatId, groupType);
+
+            return (name, description, fileCounts);
+        }
+
+        /// <summary>
         /// گرفتن اعضای یک گروه
         /// </summary>
         /// <param name="chatId"></param>
         /// <returns></returns>
-        public async Task<IActionResult> GetChatMembers(int chatId, string groupType)
+        public async Task<IActionResult> GetChatDetails(int chatId, string groupType)
         {
             var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
             if (userId == null)
@@ -260,19 +310,44 @@ namespace Messenger.WebApp.Controllers
                 return BadRequest("User ID not found in claims.");
             }
 
-            var members = groupType == ConstChat.ClassGroupType ?
-               await _classGroupServiceClient.GetClassGroupMembersAsync(chatId) :
-               await _channelServiceClient.GetChannelMembersAsync(chatId);
+            // Fetch members in parallel with chat details for better performance
+            var membersTask = groupType == ConstChat.ClassGroupType ?
+               _classGroupServiceClient.GetClassGroupMembersAsync(chatId) :
+               _channelServiceClient.GetChannelMembersAsync(chatId);
 
-            var modelForView = new ChatViewModel
+            var chatDetailsTask = GetChatDetailsAsync(chatId, groupType);
+
+            var chatfileCount = 1;
+
+            // Await both tasks
+            await Task.WhenAll(membersTask, chatDetailsTask);
+
+            var membersDto = await membersTask;
+            var chatDetails = await chatDetailsTask;
+
+            bool isAdmin = User.IsInRole(ConstRoles.Manager);
+            // Map DTOs to ViewModel
+            var memberViewModels = membersDto.Select(m => new ChatMemberViewModel
             {
-                ClassGroupId = chatId,
-                ClassGroupName = chatId.ToString(),
-                GroupType = ConstChat.ClassGroupType,
-                MemberCount = members.Count(),
-                Members = members
+                UserId = m.UserId,
+                FullName = m.NameFamily,
+                Status = "Offline", // Default status, will be updated by SignalR on the client
+                //ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/assets/media/avatar/UserIcon.png" : $"{_baseUrl}/{m.ProfilePicName}",
+                ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/assets/media/avatar/UserIcon.png" : $"/{m.ProfilePicName}",
+                RoleName = m.RoleName//m.IsAdmin
+            }).ToList();
+
+            var chatDetailsViewModel = new ChatDetailsViewModel
+            {
+                GroupName = chatDetails.Name,
+                GroupDescription = chatDetails.Description,
+                Members = memberViewModels,
+                MediaFilesCount = chatDetails.FileCounts.MediaFilesCount,
+                DocumentFilesCount = chatDetails.FileCounts.DocumentFilesCount,
+                LinkFilesCount = chatDetails.FileCounts.LinkFilesCount
             };
-            return PartialView("_ChatInfoBody", modelForView);
+
+            return PartialView("~/Views/Shared/_ChatMembersPanel.cshtml", chatDetailsViewModel);
         }
 
         [HttpPost]
@@ -316,7 +391,7 @@ namespace Messenger.WebApp.Controllers
             catch (Exception ex)
             {
                 // لاگ کردن خطا برای بررسی‌های بعدی بسیار مهم است
-                // Log.Error(ex, "An error occurred while uploading file."); 
+                // Log.Error(ex, "An error occurred while uploading file.");
                 return Json(new { success = false, message = "خطا در آپلود فایل: " + ex.Message });
             }
         }
@@ -425,5 +500,71 @@ namespace Messenger.WebApp.Controllers
             });
         }
 
+
+        [HttpGet]
+        public IActionResult GetBaseURL()
+        {
+            return Ok(new { baseUrl = _baseUrl });
+        }
+
+        //[HttpGet("GetGroupSharedFilesPartial")]
+        public async Task<IActionResult> GetGroupSharedFilesPartial(int chatId, string groupType, string activeTab = "media-tab")
+        {
+            if (chatId <= 0 || string.IsNullOrEmpty(groupType))
+                return BadRequest("Invalid chat ID or group type.");
+
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+                return Unauthorized("Auth token not found.");
+
+            try
+            {
+                var url = $"{_baseUrl}api/FileManagement/GetSharedFiles?chatId={chatId}&groupType={groupType}";
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
+                requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                using var response = await _httpClient.SendAsync(requestMessage);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    // اگر سرویس با خطا مواجه شد، یک پیام مناسب در Partial View نمایش می‌دهیم
+                    return PartialView("_GroupFilesSharedContent", new SharedContentDto());
+                }
+
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                // Deserialize کردن JSON به ViewModel
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var viewModel = JsonSerializer.Deserialize<SharedContentDto>(responseBody, options);
+
+                viewModel.ActiveTab = activeTab;
+                viewModel.BaseUrl = _baseUrl;
+
+                // بازگرداندن Partial View به همراه مدل
+                return PartialView("_GroupFilesSharedContent", viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting shared files for chatId {ChatId}", chatId);
+                return StatusCode(500, "Internal server error while getting shared files.");
+            }
+        }
+
+        /// <summary>
+        /// شبیه‌ساز برای دریافت شناسه آخرین پیام خوانده شده.
+        /// TODO: این یک پیاده‌سازی موقت است. منطق واقعی باید در سرویس پیام پیاده‌سازی شود
+        /// و از اینجا فراخوانی گردد تا آخرین پیام خوانده شده توسط کاربر در این چت مشخص شود.
+        /// </summary>
+        /// <param name="chatId">شناسه چت (گروه یا کانال)</param>
+        /// <param name="groupType">نوع چت</param>
+        /// <param name="userId">شناسه کاربر</param>
+        /// <returns>شناسه آخرین پیام خوانده شده</returns>
+        private async Task<long> GetLastReadMessageIdPlaceholderAsync(int chatId, string groupType, long userId)
+        {
+            //TODO این مقدار را از redis  فراخوانی کنم
+            // در پیاده‌سازی واقعی، این متد باید یک سرویس را فراخوانی کند
+            // await _messageService.GetLastReadMessageIdAsync(chatId, groupType, userId);
+            return await Task.FromResult(0L); // بازگرداندن مقدار ثابت به صورت موقت
+        }
     }
 }
