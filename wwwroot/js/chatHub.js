@@ -23,13 +23,68 @@ window.chatApp = (function ($) {
 
     let heartbeatTimer = null; // متغیر برای نگهداری تایمر Heartbeat
     const HEARTBEAT_INTERVAL = 180 * 1000; // ارسال Heartbeat هر 90 ثانیه (90000 میلی‌ثانیه)
-
+    let hasMoreMessages = true; 
 
 
     // =================================================
     //               PRIVATE METHODS
     // =================================================
     // این توابع، عملیات داخلی ماژول را انجام می‌دهند.
+
+
+    /**
+    * یک پیام را به صورت بصری به چت اضافه می‌کند.
+    * این تابع مسئول ایجاد کانتینر تاریخ در صورت نیاز است.
+    * @param {object} message - شیء کامل پیام.
+    * @param {boolean} prepend - اگر true باشد، پیام به ابتدای لیست اضافه می‌شود (برای پیام‌های قدیمی).
+    * @returns {jQuery} - عنصر jQuery پیام که به DOM اضافه شده است.
+    */
+    function addMessageToUI(message, prepend = false) {
+        const chatContent = $('#Message_Days');
+        if (!chatContent.length) {
+            console.error("Main message container (#Message_Days) not found.");
+            return null;
+        }
+
+        const messageDate = new Date(message.messageDateTime); // یا messageDate
+        const dateStr = formatDate(messageDate);
+        const dateId = `date-${dateStr}`;
+
+        let dateContainer = chatContent.find(`.message-box-list[data-message-date="${dateId}"]`);
+
+        // اگر کانتینر برای این تاریخ وجود نداشت، هدر و کانتینر پیام را بساز
+        if (!dateContainer.length) {
+            const persianDate = convertGregorianToJalaaliSimple(dateStr); // فرض بر وجود این تابع است
+            const newDateHeaderHtml = `<h6 class="fw-normal text-center heading chatInDateLabelClass" data-label="${persianDate}" id="${dateId}">${persianDate}</h6>`;
+            const newDateContainerHtml = `<div class="message-box-list" data-message-date="${dateId}"></div>`;
+
+            // اگر پیام قدیمی است (prepend)، هدر و کانتینر را در بالا اضافه کن
+            if (prepend) {
+                chatContent.prepend(newDateContainerHtml);
+                chatContent.prepend(newDateHeaderHtml);
+            } else { // در غیر این صورت (پیام جدید)، آن‌ها را در پایین اضافه کن
+                chatContent.append(newDateHeaderHtml);
+                chatContent.append(newDateContainerHtml);
+            }
+            // کانتینر جدید را پیدا کن
+            dateContainer = chatContent.find(`.message-box-list[data-message-date="${dateId}"]`);
+        }
+
+        const $messageBody = $(createMessageHtmlBody(message));
+
+        // پیام را به کانتینر تاریخ مربوطه اضافه کن
+        if (prepend) {
+            // پیام‌های قدیمی را در ابتدای کانتینر اضافه کن
+            dateContainer.prepend($messageBody);
+        } else {
+            // پیام‌های جدید را به انتهای کانتینر اضافه کن
+            dateContainer.append($messageBody);
+        }
+
+        return $messageBody;
+    }
+
+
 
     //تابع اعلام وضعیت کاربر انلاین شده
     async function announceUserPresence() {
@@ -70,8 +125,9 @@ window.chatApp = (function ($) {
 
     // دریافت اطلاعات قدیمی تر جهت نمایش به کاربر
     let getOldDataRunning = false;// پرچم برای نشان دادن در حال بارگذاری است
-    let hasMoreMessages = $('#hasMoreMessages').val();  // پرچم برای نشان دادن موجود بودن پیام‌های بیشتر
     function getOldData() {
+
+        console.log('hasMoreMessages : ' + hasMoreMessages + ' and getOldDataRunning is: ' + getOldDataRunning);
         if (hasMoreMessages && !getOldDataRunning) {
 
             getOldDataRunning = true;
@@ -89,17 +145,20 @@ window.chatApp = (function ($) {
                 data: { chatId: chatId, groupType: currentGroupType, messageId: lastmessageId, loadOlder: true },
                 success: function (response) {
                     if (response.success) {
-
-                        //  اگر کمتر از 50 ایتم بود، یعنی به انتهای پیام ها رسیده ایم و دیگر درخواست نکند
+                        // حالا که سرور همیشه 'data' را برمی‌گرداند، این کد همیشه امن است.
                         if (response.data.length < 50) {
                             hasMoreMessages = false;
                         }
-                        groupMessagesByDate(response.data);
 
-                        var lastMessageIdRecived = parseInt(response.lastMessageId);
-                        $('#lastMessageIdLoad').val(lastMessageIdRecived);// مقدار این المان باید بروزرسانی شود با ای دی اخرین پیام
+                        // فقط اگر داده‌ای برای نمایش وجود دارد، ادامه بده
+                        if (response.data.length > 0) {
+                            groupMessagesByDate(response.data);
+                            var lastMessageIdRecived = parseInt(response.lastMessageId);
+                            $('#lastMessageIdLoad').val(lastMessageIdRecived);
+                        }
 
-                        console.log('با موفقیت لود شد!' + response.lastMessageId);
+                        console.log('با موفقیت لود شد!');
+
                     } else {
                         console.log('خطا در فراخوانی پیامهای قبلی!: ' + response.message);
                     }
@@ -140,66 +199,25 @@ window.chatApp = (function ($) {
         return `${hours}:${minutes}`;
     }
 
-
     /**
-     * پیامهای قدیمی دریافت شده را در بالا اضافه میکند
-     * @param {any} messages
-     * 
-     * 
-     */
+    * پیامهای قدیمی دریافت شده را در بالا اضافه میکند
+    * @param {any} messages
+    */
     function groupMessagesByDate(messages) {
-        // مرتب‌سازی پیام‌ها بر اساس زمان (از قدیم به جدید)
+        // مرتب‌سازی پیام‌ها بر اساس زمان (از قدیم به جدید) تا به ترتیب درست prepend شوند
         //messages.sort((a, b) => new Date(a.messageDateTime) - new Date(b.messageDateTime));
 
-        const groupedMessages = {};
-
-        // گروه‌بندی پیام‌ها بر اساس تاریخ
+        // به ازای هر پیام، آن را با استفاده از تابع مرکزی به UI اضافه کن
         messages.forEach(function (message) {
-            const messageDate = new Date(message.messageDateTime);
-            const date = formatDate(messageDate);
-
-            if (!groupedMessages[date]) {
-                groupedMessages[date] = [];
-            }
-            groupedMessages[date].push(message);
+            addMessageToUI(message, true); // true یعنی به ابتدا اضافه شود (prepend)
         });
 
-        for (const date in groupedMessages) {
-            const dateId = `date-${date}`;
-            const persianDate = convertGregorianToJalaaliSimple(date);
-            // const persianDate = dateId; //--برای دیباگ 
-
-            let dateContainer = $(`#Message_Days .message-day[data-message-date="${dateId}"]`);
-
-            // ایجاد بدنه جدید برای تاریخ در صورت عدم وجود
-            if (!dateContainer.length) {
-                console.log(`بدنه برای تاریخ ${dateId} وجود ندارد. در حال ایجاد...`);
-                const newDateHtml = `
-                <div class="message-day" data-message-date="${dateId}">
-                    <div class="message-divider sticky-top pb-2" data-label="${persianDate}" id="${dateId}"></div>
-                </div>`;
-                $('#Message_Days').prepend(newDateHtml);
-                dateContainer = $(`#Message_Days .message-day[data-message-date="${dateId}"]`);
-            } else {
-                console.log(`بدنه برای تاریخ ${dateId} وجود دارد.`);
-            }
-
-            const divider = dateContainer.find(`#${dateId}`);
-
-            // درج پیام‌ها به ترتیب درست
-            groupedMessages[date].forEach(function (message) {
-                const messageBody = $(createMessageHtmlBody(message));
-
-                // درج پیام در بالای بدنه (قبل از اولین پیام موجود)
-                const firstMessage = dateContainer.find('.message').first();
-                if (firstMessage.length) {
-                    messageBody.insertBefore(firstMessage);
-                } else {
-                    divider.after(messageBody); // اگر هیچ پیامی نیست، بعد از divider اضافه شود
-                }
-            });
+        // پس از افزودن تمام پیام‌ها، آیکون‌ها را یکجا رندر کن
+        if (typeof init_iconsax === 'function') {
+            init_iconsax();
         }
-    }
+    }   
+   
 
     /** زمانی که کاربر پیامی را ارسال میکند 
      * بلافاصله در گروه بصورت ارسال نشده نمایش میدهیم
@@ -2576,9 +2594,9 @@ $(document).ready(function () {
         const groupId = parseInt($('#current-group-id-hidden-input').val()); //$('#current-group-id-hidden-input').val();
         const groupType = $('#current-group-type-hidden-input').val();
         var messageId = $(this).data('messageid');
-        const currentUserId = parseInt($('#userId').val());
-        const senderId = parseInt($(this).data('sender-id'));
-        var request = { MessageId: messageId, ClassGroupId: groupId, ClassGroupType: groupType };
+        //const currentUserId = parseInt($('#userId').val());
+        //const senderId = parseInt($(this).data('sender-id'));
+        //var request = { MessageId: messageId, ClassGroupId: groupId, ClassGroupType: groupType };
         console.log("در حال حذف پیام با شناسه: " + messageId);
 
         window.chatApp.userDeleteMessage(groupId, groupType, messageId);

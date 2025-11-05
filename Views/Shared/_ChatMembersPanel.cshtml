@@ -1,4 +1,4 @@
-@using Messenger.Tools
+﻿@using Messenger.Tools
 @model Messenger.WebApp.Models.ViewModels.ChatDetailsViewModel
 
 <!-- header starts -->
@@ -19,7 +19,7 @@
     <div class="name-panel">
         <div>
             <h2 class="fw-semibold text-white">@Model.GroupName <img src="~/chatzy/assets/images/svg/ring.svg" alt="ring"></h2>
-            <h5>@Model.Members.Count() People</h5>
+            <h5>تعداد اعضا:  @Model.Members.Count() </h5>
         </div>
         @* TODO: Edit details modal can be implemented later *@
         @* <a href="#edit-details" data-bs-toggle="modal">
@@ -61,7 +61,7 @@
         </ul> *@
 
         <div class="group-details">
-            <h6>Group Details : @Model.GroupName</h6>
+            <h6>جزییات گروه : @Model.GroupName</h6>
             <p>@Model.GroupDescription</p>
         </div>
 
@@ -99,7 +99,7 @@
                         <div class="member-box">
                             <div class="member-details">
                                 <div class="position-relative chat-list-image" id="member-status-@member.UserId">
-                                    <img class="img-fluid img position-relative" src="/assets/media/avatar/@member.ImagePath" alt="p1">
+                                    <img class="img-fluid img position-relative" src="/assets/media/avatar/@member.ImagePath?.TrimStart('/')" alt="p1">
                                     @if (member.RoleName == ConstRoles.Teacher)
                                     {
                                         <div class="admin-tag">T</div>

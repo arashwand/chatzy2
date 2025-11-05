@@ -40,10 +40,10 @@
                 </a>
                 <div class="profile-head">
                     <div class="profile-img">
-                        <i class="iconsax" data-icon="group" style="font-size: 36px;"></i>
+                       @* <img src="/chatzy/assets/iconsax/group.svg" alt="group" />*@
                     </div>
                     <div>
-                        <h4 class="fw-semibold">@ViewData["ChatTitle"]</h4>
+                        <h4 class="fw-semibold groupName"></h4>
                         <small class="text-muted" id="typing-indicator-@classGroupId"></small>
                     </div>
                 </div>
@@ -57,7 +57,9 @@
                     <ul class="dropdown-menu">
                         <li>
                             <a class="dropdown-item align-items-center d-flex" href="#" onclick="GetChatDetails('@classGroupId', '@chatType')">
-                                <i class="iconsax" data-icon="group"></i>&nbsp;
+                                 <img src="/chatzy/assets/iconsax/group.svg" alt="group" />                               
+                                
+                                &nbsp;
                                 <span>اعضای گروه</span>
                             </a>
                         </li>
@@ -77,8 +79,8 @@
         <div id="newMessagesNotice" class="sticky-top mt-4 pb-2 btn btn-primary" style="display:none; cursor:pointer; z-index: 10; padding-bottom: 5px !important; margin-bottom: 5px;" data-newCount="0">
             مشاهده پیام‌های جدید
         </div>
-        <input type="hidden" id="lastMessageIdLoad" value="@(Model.Count() > 0 ? Model.Last().MessageId : 0)" />
-        <input type="hidden" id="hasMoreMessages" value="@(Model.Count() >= 50 ? true : false)" />
+        <input type="hidden" id="lastMessageIdLoad" value="@(Model.Count() > 0 ? Model.First().MessageId : 0)" />
+        @* <input type="hidden" id="hasMoreMessages" value="@true" />*@
         <input type="hidden" id="lastReadMessageId" value="@(ViewData["LastReadMessageId"] ?? 0)" />
 
         <div id="Message_Days">
@@ -90,6 +92,7 @@
 
                 var groupedMessages = Model.OrderBy(m => m.MessageDateTime).GroupBy(m => m.MessageDateTime.Date);
             }
+            
             @foreach (var group in groupedMessages)
             {
                 string dateLabel;
@@ -219,6 +222,7 @@
 
                                     <h5>@Html.Raw(message.MessageText?.MessageTxt.Replace("\n", "<br />"))</h5>
 
+                                    <!--Message files-->
                                     @if (message.MessageFiles != null)
                                     {
                                         <div class="row mt-1 overflow-hidden image-group">
@@ -281,6 +285,8 @@
                     }
                 </ul>
             }
+   
+
         </div>
          <div class="chat-finished" id="chat-finished"></div>
     </div>

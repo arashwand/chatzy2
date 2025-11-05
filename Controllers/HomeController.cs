@@ -164,6 +164,7 @@ namespace Messenger.WebApp.Controllers
                 ViewData["classGroupId"] = chatId;
                 ViewData["baseUrl"] = _baseUrl;
                 ViewData["chatType"] = groupType;
+                //ViewData["ChatTitle"] = "عنوان گروه";
                 return PartialView("_ChatMessageBody", messages);
             }
             catch (Exception ex)
@@ -182,79 +183,78 @@ namespace Messenger.WebApp.Controllers
         /// <param name="pageSize"></param>
         /// <returns></returns>
         public async Task<IActionResult> GetOldMessage(int chatId, string groupType, int pageNumber = 1, int pageSize = 50
-            ,long messageId = 0
-            , bool loadOlder = false)
+            , long messageId = 0
+            , bool loadOlder = true)
         {
             try
             {
                 var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
-                if (userId == null)
+                if (string.IsNullOrEmpty(userId))
                 {
                     return BadRequest("User ID not found in claims.");
                 }
 
-                // تعین اینکه پیام گروه درخواست شده یا پیام کانال
-                //TODO برای دریافت پیام خصوصی نیز باید توسعه انجام شود
                 var messages = groupType == ConstChat.ClassGroupType ?
-                    await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId)
-                : await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId);
-
-
-                if (messages == null) return null;
+                    await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder) :
+                    await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder);
 
                 var payloadList = new List<object>();
-                foreach (var messageDto in messages)
-                {
-                    object replyMessage = null;
 
-                    if (messageDto.ReplyMessageId != null && messageDto.ReplyMessage != null)
+                // اگر لیستی از پیام‌ها وجود داشت، آن را پردازش کن
+                if (messages != null && messages.Any())
+                {
+                    foreach (var messageDto in messages)
                     {
-                        replyMessage = new
+                        // ... (منطق ساختن payload شما که کاملا درست است)
+                        object replyMessage = null;
+                        if (messageDto.ReplyMessageId != null && messageDto.ReplyMessage != null)
                         {
+                            replyMessage = new
+                            {
+                                replyToMessageId = messageDto.ReplyMessageId,
+                                senderUserName = messageDto.ReplyMessage?.SenderUser?.NameFamily,
+                                messageText = messageDto.ReplyMessage?.MessageText?.MessageTxt,
+                            };
+                        }
+
+                        object messageFiles = null;
+                        if (messageDto.MessageFiles != null && messageDto.MessageFiles.Any())
+                        {
+                            messageFiles = messageDto.MessageFiles.Select(mf => new { FileName = mf.FileName, FileThumbPath = mf.FileThumbPath }).ToList();
+                        }
+
+                        var payload = new
+                        {
+                            senderUserId = messageDto.SenderUserId,
+                            senderUserName = messageDto.SenderUser.NameFamily,
+                            messageText = messageDto.MessageText?.MessageTxt,
+                            groupId = messageDto.ClassGroupId,
+                            messageDateTime = messageDto.MessageDateTime,
+                            profilePicName = messageDto.SenderUser.ProfilePicName,
+                            messageId = messageDto.MessageId,
                             replyToMessageId = messageDto.ReplyMessageId,
-                            senderUserName = messageDto.ReplyMessage?.SenderUser?.NameFamily,
-                            messageText = messageDto.ReplyMessage?.MessageText?.MessageTxt,
+                            replyMessage = replyMessage,
+                            messageFiles = messageFiles
                         };
+                        payloadList.Add(payload);
                     }
-
-                    object messageFiles = null;
-                    if (messageDto.MessageFiles != null && messageDto.MessageFiles.Any())
-                    {
-                        messageFiles = messageDto.MessageFiles.Select(mf => new { FileName = mf.FileName, FileThumbPath = mf.FileThumbPath }).ToList();
-                    }
-
-                    var payload = new
-                    {
-                        senderUserId = messageDto.SenderUserId,
-                        senderUserName = messageDto.SenderUser.NameFamily,
-                        messageText = messageDto.MessageText?.MessageTxt,
-                        groupId = messageDto.ClassGroupId,
-                        messageDateTime = messageDto.MessageDateTime,
-                        profilePicName = messageDto.SenderUser.ProfilePicName,
-                        messageId = messageDto.MessageId,
-                        replyToMessageId = messageDto.ReplyMessageId,
-                        replyMessage = replyMessage,
-                        messageFiles = messageFiles
-                    };
-                    payloadList.Add(payload);
                 }
 
-                if (payloadList.Count() == 0)
-                {
-                    return Json(new { success = true });
-                }
+                //  <<<<< حذف بلوک if اضافی و مشکل ساز از اینجا >>>>>
 
-                //--اگر تعداد پیامهای دریافتی کمتر از 50 تا بود یعنی دیگه تموم شده و باید سمت اسکریپت رو با خبر کنم
-                return Json(new { success = true, lastMessageId = messages.Last().MessageId, data = payloadList });
-                //TODO : در سمت نمایش باید بررسی بشه که تاریخ پیامها در چه روزی هست تا در برچسب مناسب قرار بگیره
-                // امروز - دیروز و بر اساس تاریخ روزهای قبل
-                // return PartialView("_ChatOldMessageBody", messages);
+                // شناسه آخرین پیام را هوشمندانه تعیین کن
+                // اگر پیامی بود، شناسه آخرین را بگیر، در غیر این صورت همان شناسه ورودی را برگردان
+                long lastLoadedMessageId = (messages != null && messages.Any()) ? messages.Last().MessageId : messageId;
 
+                // همیشه یک ساختار JSON ثابت را برگردان
+                // اگر پیامی نباشد، payloadList یک آرایه خالی خواهد بود
+                return Json(new { success = true, lastMessageId = lastLoadedMessageId, data = payloadList });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false });
-                throw;
+                // لاگ کردن خطا برای دیباگ بهتر
+                //_logger.LogError(ex, "Error occurred in GetOldMessage");
+                return Json(new { success = false, message = "An error occurred." });
             }
         }
 
@@ -447,6 +447,7 @@ namespace Messenger.WebApp.Controllers
             try
             {
                 var saveMessages = await _messageService.GetSavedMessagesAsync();
+                ViewData["baseUrl"] = _baseUrl;
                 return PartialView("_SaveMessageBody", saveMessages);
                 //return Json(new { success = true });
             }

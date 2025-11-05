@@ -13,7 +13,7 @@
     <title>@ViewData["Title"] - Messenger.WebApp</title>
     <link rel="apple-touch-icon" href="~/chatzy/assets/images/logo/favicon.png">
     <meta name="theme-color" content="#01AA85">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    @* <meta name="apple-mobile-web-app-capable" content="yes"> *@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Chatzy">
     <meta name="msapplication-TileImage" content="~/chatzy/assets/images/logo/favicon.png">
@@ -59,9 +59,9 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-sm-3 gap-2">
-                    <a href="#search-offcanvas" data-bs-toggle="offcanvas">
+                   @*  <a href="#search-offcanvas" data-bs-toggle="offcanvas">
                         <i class="iconsax icon-btn" data-icon="search-normal-2"> </i>
-                    </a>
+                    </a> *@
                     <div class="dropdown more-options dropdown-menu-end">
                         <a class="btn dropdown-toggle mt-0 p-0" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="iconsax icon-btn" data-icon="menu-meatballs"> </i>
@@ -69,13 +69,13 @@
 
                         <ul class="dropdown-menu">
                             <li>
-                                <a href="new-group-contact.html" class="dropdown-item">
-                                    <i class="iconsax icon" data-icon="group"></i>
-                                    New Group
+                                <a href="#" onclick="GetSavedMessages()" class="dropdown-item">
+                                    <i class="iconsax icon" data-icon="save-2"></i>
+                                    Saved Message
                                 </a>
                             </li>
 
-                            <li>
+                           @*  <li>
                                 <a href="starred-message.html" class="dropdown-item">
                                     <i class="iconsax icon" data-icon="star"></i>
                                     Starred Message
@@ -86,7 +86,7 @@
                                     <i class="iconsax icon" data-icon="add-square">
                                     </i>Invite a Friend
                                 </a>
-                            </li>
+                            </li> *@
                         </ul>
                     </div>
                 </div>
@@ -166,7 +166,7 @@
                 </a>
             </li>
 
-            <li>
+           @*  <li>
                 <a href="#">
                     <div class="icon">
                         <img class="unactive" src="~/chatzy/assets/images/svg/call.svg" alt="call">
@@ -174,15 +174,15 @@
                     </div>
                     <span>Calls</span>
                 </a>
-            </li>
+            </li> *@
 
             <li>
-                <a href="#">
+                <a href="#" onclick="GetSavedMessages()">
                     <div class="icon">
-                        <img class="unactive" src="~/chatzy/assets/images/svg/setting.svg" alt="setting">
+                        <img class="unactive" src="~/chatzy/assets/iconsax/save-2.svg" alt="SavedMessage">
                         <img class="active" src="~/chatzy/assets/images/svg/setting-fill.svg" alt="setting">
                     </div>
-                    <span>Setting</span>
+                    <span>Saved Message</span>
                 </a>
             </li>
 

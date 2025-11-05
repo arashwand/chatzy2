@@ -44,17 +44,17 @@ namespace Messenger.WebApp.ServiceHelper
             return await _httpClient.GetFromJsonAsync<MessageDto>($"api/messages/{messageId}");
         }
 
-        public async Task<IEnumerable<MessageDto>> GetPrivateMessagesAsync(long userId1, long userId2, int pageNumber, int pageSize, long messageId)
+        public async Task<IEnumerable<MessageDto>> GetPrivateMessagesAsync(long userId1, long userId2, int pageNumber, int pageSize, long messageId, bool loadOlder)
         {
             var response = await _httpClient.GetFromJsonAsync<IEnumerable<MessageDto>>(
-                $"api/messages/private?userId1={userId1}&userId2={userId2}&pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}");
+                $"api/messages/private?userId1={userId1}&userId2={userId2}&pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}&loadOlder{loadOlder}");
             return response ?? new List<MessageDto>();
         }
 
         public async Task<IEnumerable<MessageDto>> GetChannelMessagesAsync(int channelId, int pageNumber, int pageSize, long messageId, bool loadOlder)
         {
             var response = await _httpClient.GetFromJsonAsync<IEnumerable<MessageDto>>(
-                $"api/messages/channel/{channelId}?pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}");
+                $"api/messages/channel/{channelId}?pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}=&loadOlder{loadOlder}");
             // currentUserId is not sent in the query string as the API gets it from claims
             return response ?? new List<MessageDto>();
         }
@@ -64,7 +64,7 @@ namespace Messenger.WebApp.ServiceHelper
             try
             {
                 var response = await _httpClient.GetFromJsonAsync<IEnumerable<MessageDto>>(
-                $"api/messages/classgroup/{classId}?pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}");
+                $"api/messages/classgroup/{classId}?pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}&loadOlder={loadOlder}");
                 // currentUserId is not sent in the query string as the API gets it from claims
                 return response ?? new List<MessageDto>();
             }

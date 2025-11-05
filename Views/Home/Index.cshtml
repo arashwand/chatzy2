@@ -6,7 +6,7 @@
 @using Messenger.Tools
 
 @section Styles {
-   
+
 }
 
 <input type="hidden" value="@User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value" id="userId" />
@@ -83,6 +83,8 @@
                         if (typeof init_iconsax === 'function') {
                             init_iconsax();
                         }
+
+                        $('.groupName').text(chatSelectedTitle);//--عنوان گروه
                     },
                     error: function (error) {
                         console.error("Error fetching chat messages:", error);
@@ -136,11 +138,16 @@
             });
         };
 
-        
+        var chatSelectedTitle = "";
 
         function ChatActivated(chatId, groupType) {
              console.log(`chat Id and group type is : ${chatId} and ${groupType}`);
              var selectedChat = $(`#${groupType}_${chatId}`);
+
+             chatSelectedTitle = selectedChat.find('.name').text();
+             console.log('---------------------------------------------------------------------------------' + chatSelectedTitle);
+             
+
              const selectedChatId = `${groupType}_${chatId}`
              if(selectedChat.length) {
                  const chatItemsBody = $('#chatContactTab');
