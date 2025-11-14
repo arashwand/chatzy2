@@ -38,6 +38,7 @@ namespace Messenger.WebApp.ServiceHelper.Interfaces
         Task<MessageDto> SendPrivateFileMessageAsync(long senderUserId, long receiverUserId, string fileName, byte[] fileContent, string contentType, long fileSize);
         Task<MessageDto> SendChannelFileMessageAsync(long senderUserId, int channelId, string fileName, byte[] fileContent, string contentType, long fileSize);
         Task<MessageDto> SendClassGroupFileMessageAsync(long senderUserId, int classId, string fileName, byte[] fileContent, string contentType, long fileSize);
-       
+        Task<IEnumerable<MessageDto>> GetMessagesFromFirstUnreadAsync(int chatId, string groupType);
+
     }
 }
