@@ -58,23 +58,3 @@
 .chat-details-panel-container .messages-panel {
     flex-shrink: 0; /* Footer should not shrink */
 }
-
-
-@media (max-width: 768px) {
-    .chat-details-panel-container .messages-panel {
-        position: relative; /* Override fixed position */
-        height: auto; /* Let content determine height */
-    }
-
-    .chat-details-panel-container .message-inputarea {
-        position: relative; /* Override fixed position */
-        bottom: auto; /* Reset positioning */
-        left: auto;
-        transform: none;
-        width: 100%; /* Take full width of its container */
-        max-width: 100%;
-        margin: 0; /* Reset margins */
-        padding: 10px; /* Add some padding */
-        box-sizing: border-box; /* Ensure padding is included in width */
-    }
-}
