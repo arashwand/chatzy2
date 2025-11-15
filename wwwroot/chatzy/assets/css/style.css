@@ -3329,7 +3329,7 @@ li {
 }
 
 .messages-panel {
-  position: sticky;
+  position: fixed;
   bottom: 0;
   max-width: 600px;
   width: 100%;

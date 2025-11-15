@@ -1,13 +1,19 @@
 /* Styles for the sliding chat details panel */
 .chat-details-panel-container {
-    position: absolute; /* تغییر به absolute برای هماهنگی با body flex */
+    position: fixed;
     top: 0;
-    left: 0; /* موقعیت‌دهی از چپ */
-    width: 100%; /* عرض کامل */
-    height: 100%; /* ارتفاع کامل والد */
+    right: -100%; /* Start off-screen */
+    /* --- Fix for Width Issue --- */
+    width: 100%; /* Take full width on small screens */
+    max-width: 600px; /* But not more than 600px on larger screens */
+    left: 0;
+    right: 0;
+    margin: auto;
+    transform: translateX(150%); /* Start off-screen to the right */
+    /* --- Fix for Scrolling Issue --- */
+    height: 100vh; /* Full viewport height */
     background-color: #fff;
     z-index: 1050;
-    transform: translateX(100%); /* شروع از خارج صفحه به سمت راست */
     display: flex;
     flex-direction: column;
     /* --- Animation --- */
@@ -51,4 +57,24 @@
 /* The footer from _ChatMessageBody.cshtml */
 .chat-details-panel-container .messages-panel {
     flex-shrink: 0; /* Footer should not shrink */
+}
+
+
+@media (max-width: 768px) {
+    .chat-details-panel-container .messages-panel {
+        position: relative; /* Override fixed position */
+        height: auto; /* Let content determine height */
+    }
+
+    .chat-details-panel-container .message-inputarea {
+        position: relative; /* Override fixed position */
+        bottom: auto; /* Reset positioning */
+        left: auto;
+        transform: none;
+        width: 100%; /* Take full width of its container */
+        max-width: 100%;
+        margin: 0; /* Reset margins */
+        padding: 10px; /* Add some padding */
+        box-sizing: border-box; /* Ensure padding is included in width */
+    }
 }
