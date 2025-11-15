@@ -8,6 +8,9 @@ namespace Messenger.WebApp.ServiceHelper.Interfaces
     {
         bool IsConnected { get; }
 
+        // پراپرتی جدید برای عمومی کردن ConnectionId کلاینت
+        string ClientConnectionId { get; }
+
         // Events
         event Func<object, Task> OnReceiveMessage;
         event Func<object, Task> OnReceiveEditedMessage;

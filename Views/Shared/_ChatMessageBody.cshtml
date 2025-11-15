@@ -1,9 +1,11 @@
-﻿@using System.Security.Claims
+@using System.Security.Claims
+@using Messenger.DTOs
 @using Messenger.Tools
 @using Newtonsoft.Json
 @model IEnumerable<MessageDto>
+
+
 @{
-    DateTime? lastMessageDate = null;
     long selfUserId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
     int classGroupId = 0;
     if (ViewData["classGroupId"] != null)
@@ -17,210 +19,106 @@
             classGroupId = groupId;
         }
     }
-
     string[] AllowedImages = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp"];
     if (ViewData.ContainsKey("allowedImagesExtention"))
     {
         AllowedImages = ViewData["allowedImagesExtention"] as string[] ?? AllowedImages;
     }
-
-    var _baseUrl = "";
-    if (ViewData.ContainsKey("baseUrl"))
-    {
-        _baseUrl = ViewData["baseUrl"].ToString();
-    }
-
-
-    var chatType = "ClassGroup";
-    if (ViewData.ContainsKey("chatType"))
-    {
-        chatType = ViewData["chatType"]?.ToString();
-    }
+    var _baseUrl = ViewData["baseUrl"]?.ToString() ?? "";
+    var chatType = ViewData["chatType"]?.ToString() ?? "ClassGroup";
 }
 <input type="hidden" id="current-group-id-hidden-input" value="@classGroupId" />
 <input type="hidden" id="current-group-type-hidden-input" value="@chatType" />
-<!-- Chat Header Start-->
-<div class="chat-header">
-    <!-- Chat Back Button (Visible only in Small Devices) -->
-    <button class="btn btn-secondary btn-icon btn-minimal btn-sm d-xl-none" type="button" data-close="">
-        <svg class="hw-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-        </svg>
-        <!-- <img class="injectable hw-20" src="./../assets/media/heroicons/outline/arrow-left.svg" alt=""> -->
-    </button>
 
-    <!-- Chat participant's Name -->
-    <div class="media chat-name align-items-center text-truncate">
-        <div class="avatar bg-success text-light d-none d-sm-inline-block mr-3">
-            <span>
-                <svg class="hw-24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-                <!-- <img class="injectable" src="./../assets/media/heroicons/outline/user-group.svg" alt=""> -->
-            </span>
-        </div>
-
-        <div class="media-body align-self-center ">
-            <h6 class="text-truncate mb-0">گروه: test</h6>
-            <small class="text-muted">شرکت کننده: test</small><br />
-            <small class="text-muted" id="typing-indicator-@classGroupId"></small>
-        </div>
-    </div>
-
-    <!-- Chat Options -->
-    <ul class="nav flex-nowrap">
-        <li class="nav-item list-inline-item d-none d-sm-block mr-1">
-            <a class="nav-link text-muted px-1" data-toggle="collapse" data-target="#searchCollapse" href="#" aria-expanded="false">
-                <svg class="hw-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-
-                <!-- <img src="./../assets/media/heroicons/outline/search.svg" alt="" class="injectable hw-20"> -->
-            </a>
-        </li>
-
-        <!--show in mobile or desktop-->
-        <li class="nav-item list-inline-item d-none d-sm-block mr-0">
-            <div class="dropdown">
-                <a class="nav-link text-muted px-1" href="#" role="button" title="جزئیات" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <svg class="hw-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-                    </svg>
-                    <!-- <img src="./../assets/media/heroicons/outline/dots-vertical.svg" alt="" class="injectable hw-20"> -->
+<!-- header starts -->
+<header id="header" class=" section-t-space main-header inner-page-header">
+    <div class="custom-container">
+        <div class="header-panel contact-panel">
+            <div class="d-flex align-items-center gap-2">
+                <a href="#" id="close-chat-panel-btn">
+                    <i class="iconsax icon-btn" data-icon="chevron-left"> </i>
                 </a>
-
-                <div class="dropdown-menu dropdown-menu-left">
-
-                    <a class="dropdown-item align-items-center d-flex" href="#">
-                        <svg class="hw-20 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                        <span>حذف</span>
-                    </a>
-                    <a class="dropdown-item align-items-center d-flex text-danger" href="#">
-                        <svg class="hw-20 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
-                        </svg>
-
-                        <!-- <img src="./../assets/media/heroicons/outline/ban.svg" alt="" class="injectable hw-20 mr-2"> -->
-                        <span>مسدود کردن</span>
-                    </a>
+                <div class="profile-head">
+                    <div class="profile-img">
+                        <i class="iconsax" data-icon="group" style="font-size: 36px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-semibold">@ViewData["ChatTitle"]</h4>
+                        <small class="text-muted" id="typing-indicator-@classGroupId"></small>
+                    </div>
                 </div>
             </div>
-        </li>
 
-        <li class="nav-item list-inline-item d-sm-none mr-0">
-            <div class="dropdown">
-                <a class="nav-link text-muted px-1" href="#" role="button" title="جزئیات" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <svg class="hw-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-                    </svg>
-                    <!-- <img src="./../assets/media/heroicons/outline/dots-vertical.svg" alt="" class="injectable hw-20"> -->
-                </a>
-
-                <div class="dropdown-menu dropdown-menu-left">
-
-                    <a class="dropdown-item align-items-center d-flex" href="#" data-toggle="collapse" data-target="#searchCollapse" aria-expanded="false">
-                        <svg class="hw-20 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        <!-- <img src="./../assets/media/heroicons/outline/search.svg" alt="" class="injectable hw-20 mr-2"> -->
-                        <span>جستجو کردن</span>
+            <div class="d-flex align-items-center gap-sm-3 gap-2">
+                <div class="dropdown more-options dropdown-menu-end">
+                    <a class="btn dropdown-toggle mt-0 p-0" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="iconsax icon-btn" data-icon="menu-meatballs"> </i>
                     </a>
-
-                    <a class="dropdown-item align-items-center d-flex" href="#">
-                        <svg class="hw-20 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-
-                        <!-- <img src="./../assets/media/heroicons/outline/trash.svg" alt="" class="injectable hw-20 mr-2"> -->
-                        <span>حذف</span>
-                    </a>
-                    <a class="dropdown-item align-items-center d-flex text-danger" href="#">
-                        <svg class="hw-20 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
-                        </svg>
-
-                        <!-- <img src="./../assets/media/heroicons/outline/ban.svg" alt="" class="injectable hw-20 mr-2"> -->
-                        <span>مسدود کردن</span>
-                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item align-items-center d-flex" href="#" onclick="GetChatDetails('@classGroupId', '@chatType')">
+                                <i class="iconsax" data-icon="group"></i>&nbsp;
+                                <span>اعضای گروه</span>
+                            </a>
+                        </li>
+                    </ul>
                 </div>
-            </div>
-        </li>
-    </ul>
-</div>
-<!-- Chat Header End-->
-<!-- Search Start -->
-<div class="collapse border-bottom px-3" id="searchCollapse">
-    <div class="container-xl py-2 px-0 px-md-3">
-        <div class="input-group bg-light ">
-            <input type="text" class="form-control form-control-md border-right-0 bg-transparent pr-0" placeholder="جستجو کردن...">
-            <div class="input-group-append">
-                <span class="input-group-text bg-transparent border-left-0">
-                    <svg class="hw-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-
-                    <!-- <img class="injectable hw-20" src="./../assets/media/heroicons/outline/search.svg" alt="Search icon"> -->
-                </span>
             </div>
         </div>
     </div>
+</header>
+<!-- header end -->
 
-</div>
-<!-- Search End -->
-<!-- Chat Content Start-->
-<div class="chat-content p-2" id="chat_content">
-    <div id="newMessagesNotice" class="sticky-top mt-4 pb-2 btn btn-primary" style="display:none; cursor:pointer; z-index: 10; padding-bottom: 5px !important; margin-bottom: 5px;" data-newCount="0">
-        مشاهده پیام‌های جدید
-    </div>
-    <input type="hidden" id="lastMessageIdLoad" value="@(Model.Count() > 0 ? Model.Last().MessageId : 0)" />
-    <input type="hidden" id="hasMoreMessages" value="@(Model.Count() >= 50 ? true : false)" />
-    <div class="container" id="Message_Days">
+<!-- group chat section starts -->
+<section class="section-lg-b-space position-relative pt-0" id="chat_content">
+    <img class="img-fluid chat-bg" src="" alt="wallpaper">
+    <div class="custom-container">
+       
+        <div id="newMessagesNotice" class="sticky-top mt-4 pb-2 btn btn-primary" style="display:none; cursor:pointer; z-index: 10; padding-bottom: 5px !important; margin-bottom: 5px;" data-newCount="0">
+            مشاهده پیام‌های جدید
+        </div>
+        <input type="hidden" id="lastMessageIdLoad" value="@(Model.Count() > 0 ? Model.Last().MessageId : 0)" />
+        <input type="hidden" id="hasMoreMessages" value="@(Model.Count() >= 50 ? true : false)" />
 
-        @{
-            var groupedMessages = Model
-            .OrderBy(m => m.MessageDateTime)
-            .GroupBy(m => m.MessageDateTime.Date);
-            var today = DateTime.Today;
-            var yesterday = today.AddDays(-1);
-            bool createdTodayBodyMessage = false;
-        }
+        <div id="Message_Days">
+            @{
+               
+                var today = DateTime.Today;
+                var yesterday = today.AddDays(-1);
+                bool createdTodayBodyMessage = false;
 
-
-        @foreach (var group in groupedMessages)
-        {
-            string dateLabel;
-            string todayMessageContent = "";
-            string dateClass = "date-" + @group.Key.ToString("yyyy-MM-dd");
-            if (group.Key == today)
-            {
-                dateLabel = "امروز";
-                todayMessageContent = "chatMessages";
-                createdTodayBodyMessage = true;
+                var groupedMessages = Model.OrderBy(m => m.MessageDateTime).GroupBy(m => m.MessageDateTime.Date);
             }
-            else if (group.Key == yesterday)
+            @foreach (var group in groupedMessages)
             {
-                dateLabel = "دیروز";
-            }
-            else
-            {
-                dateLabel = group.Key.ToString("dddd، d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"));
-            }
-
-            <div class="message-day" id="@todayMessageContent" data-message-date="@dateClass">
-                <div class="message-divider sticky-top pb-2" data-label="@dateLabel" id="@dateClass"></div>
-
-                @foreach (var message in group)
+                string dateLabel;
+                string todayMessageContent = "";
+                string dateClass = "date-" + @group.Key.ToString("yyyy-MM-dd");
+                if (group.Key == today)
                 {
-                    var isSelf = message.SenderUserId == selfUserId;
-                    var isRead = message.IsReadByCurrentUser; // Example, replace with actual property
+                    dateLabel = "امروز";
+                    todayMessageContent = "chatMessages";
+                    createdTodayBodyMessage = true;
+                }
+                else if (group.Key == yesterday)
+                {
+                    dateLabel = "دیروز";
+                }
+                else
+                {
+                    dateLabel = group.Key.ToString("dddd، d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"));
+                }
 
-                    <!--Start create Json Object for edit message-->
-                    // 1. ساخت یک آبجکت ناشناس (Anonymous Object) با تمام داده‌های لازم برای ویرایش
-                    var messageDetailsJson = "";
-                    // if (isSelf)
-                    // {
+
+                var chatInDateLabel = @group.Key.ToString("yyyy-MM-dd");
+                <h6 class="fw-normal text-center heading chatInDateLabelClass" data-label="@dateLabel" id="@dateClass">@dateLabel</h6>
+                <ul class="message-box-list" id="chatMessages-@chatInDateLabel">
+                   
+                    @foreach (var message in group)
+                    {
+                        var isSelf = message.SenderUserId == selfUserId;
+                        var hasRecorderFile = message.MessageFiles?.Any(f => f.FileExtension.Extension == ".webm") ?? false;
+                        
                         object messageDetailsForEdit = new
                         {
                             messageText = message.MessageText?.MessageTxt,
@@ -241,318 +139,219 @@
                                 FileSizeConverter = f.FileSize
                             })
                         };
+                        var messageDetailsJson = JsonConvert.SerializeObject(messageDetailsForEdit);
 
-                        // 2. سریال‌سازی آبجکت بالا به یک رشته JSON
-                        messageDetailsJson = JsonConvert.SerializeObject(messageDetailsForEdit);
-                        <!--End create Json Object for edit message-->
-                    // }
-                    <div class="message @(isSelf ? "self" : "")"
-                         id="message-@message.MessageId"
-                         data-message-id="@message.MessageId"
-                         data-sender-id="@message.SenderUserId"
-                         data-sender-username="@message.SenderUser.NameFamily"
-                         data-message-details='@messageDetailsJson'
-                         data-is-read="@isRead.ToString().ToLower()">
+                        <li class="message @(isSelf ? "personal" : "new")" id="message-@message.MessageId"
+                            data-message-id="@message.MessageId"
+                            data-sender-id="@message.SenderUserId"
+                            data-sender-username="@message.SenderUser.NameFamily"
+                            data-message-details='@Html.Raw(messageDetailsJson)'>
 
-                        <div class="message-wrapper">
-                            <div class="message-content">
-                                @if (message.ReplyMessageId != null)
-                                {
-                                    <div class="reply-preview border p-2 rounded bg-dark mb-2" style="cursor:pointer;" onclick="document.getElementById('message-@message.ReplyMessage?.MessageId')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
-                                        <div class="text-muted small">
-                                            پاسخ به: <strong>@message.ReplyMessage?.SenderUser.NameFamily</strong>
-                                        </div>
-                                        <div class="text-truncate">
-                                            @message.ReplyMessage?.MessageText?.MessageTxt
-                                        </div>
-
-                                        @if (message.ReplyMessage.MessageFiles?.Count() > 0)
+                            <!--message option menu-->
+                            <div class="dropdown message-options">
+                                <a class="btn" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src="~/chatzy/assets/iconsax/menu-meatballs.svg" alt="menu" />
+                                </a>
+                                <div class="dropdown-menu">
+                                    @if (isSelf)
+                                    {
+                                        // اگر فایل ضبظ شده نبود میتونه ویرایش کنه
+                                        if (!@hasRecorderFile)
                                         {
-                                            <div class="form-row mt-1">
-                                                @foreach (var file in message.ReplyMessage.MessageFiles)
-                                                {
-                                                    string fileTumbPath = System.IO.Path.Combine(_baseUrl, file.FileThumbPath);
+                                            <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="@message.MessageId" href="#">
+                                                <img src="~/chatzy/assets/iconsax/edit.svg" alt="ویرایش" class="svgInvertColor" />&nbsp;
+                                                <span>ویرایش</span>
+                                            </a>
+                                        }                                      
+                                        
 
-                                                    <div class="col file-attachment-item" data-file-id="@file.MessageFileId" style="display: flex; flex-direction: column;">
+                                        <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="@message.MessageId" href="#">
+                                            <img src="~/chatzy/assets/iconsax/trash.svg" />&nbsp;
+                                            <span>حذف</span>
+                                        </a>
+                                    }
+                                    <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="@message.MessageId" href="#">
+                                        <img src="~/chatzy/assets/iconsax/redo-arrow.svg" class="svgInvertColor" />&nbsp;
+                                        <span>پاسخ دادن</span>
+                                    </a>
+                                    <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="@message.MessageId" href="#">
+                                        <img src="~/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
+                                        <span>ذخیره</span>
+                                    </a>
 
-
-                                                        @if (AllowedImages.Contains(file.FileExtension.Extension, StringComparer.OrdinalIgnoreCase))
-                                                        {
-                                                            <a class="popup-media overflow-hidden" href=@fileTumbPath>
-                                                                <img class="img-fluid rounded" width="50" src="@fileTumbPath" data-oroginal-fileName="@file.OriginalFileName" alt="@file.FileName">
-                                                            </a>
-                                                        }
-                                                        else
-                                                        {
-                                                            if (file.FileExtension.Extension == ".webm")
-                                                            {
-                                                                <div class="audio-player-container">
-                                                                    <button class="voice-download-btn" data-file-id="@file.MessageFileId">
-                                                                        <i class="fa fa-download"></i>
-                                                                        <i class="fa fa-spinner fa-spin"></i>
-                                                                    </button>
-                                                                    <div class="file-meta text-light mx-1 text-dark">@FileSizeConverter.ConvertToReadableSize(@file.FileSize)</div>
-                                                                    <div class="voice-duration-display mx-1" style="margin-right: 15px;">صدای ضبط شده</div>
-                                                                </div>
-                                                            }
-                                                            else
-                                                            {
-                                                                <i class="fa fa-file-o fa-3x"></i>
-                                                                @FileNameShorter.ShortenFileName(file.OriginalFileName ?? "")
-
-                                                            }
-
-                                                        }
-
-                                                    </div>
-                                                }
-                                            </div>
+                                    @if (message.MessageFiles != null)
+                                    {
+                                        if (message.MessageFiles.Any(a => a.FileExtension.Extension == ".webm"))
+                                        {
+                                            var file = message.MessageFiles.First(a => a.FileExtension.Extension == ".webm");
+                                            <a class="dropdown-item d-flex align-items-center btn-download-file" data-file-id="@file.MessageFileId" data-messageid="@message.MessageId" href="#">
+                                                <img src="~/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
+                                                <span>دانلود فایل</span>
+                                            </a>
                                         }
+                                    }
+
+                                </div>
+                            </div>
+                            <!--/end message option menu-->
 
 
-                                    </div>
-                                }
-
-                                <span>
-                                    @Html.Raw(message.MessageText?.MessageTxt.Replace("\n", "<br />"))
-                                </span>
-
-                                @if (message.IsEdited)
+                            <div class="message-box @(message.IsReadByAnyRecipient ? "read" : "")">
+                                @if (!isSelf)
                                 {
-                                    <small class="text-muted font-italic">(ویرایش شده)</small>
+                                    <img class="img-fluid person-img" src="~/assets/media/avatar/@message.SenderUser.ProfilePicName" alt="p9">
                                 }
+                                <div class="message-box-details">
+                                    @if (message.ReplyMessageId != null)
+                                    {
+                                        <div class="reply-preview border p-2 rounded bg-light mb-2" style="cursor:pointer;" onclick="document.getElementById('message-@message.ReplyMessage?.MessageId')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
+                                            <div class="text-muted small">پاسخ به: <strong>@message.ReplyMessage?.SenderUser.NameFamily</strong></div>
+                                            <div class="text-truncate">@message.ReplyMessage?.MessageText?.MessageTxt</div>
+                                        </div>
+                                    }
 
-                                @if (message.MessageFiles?.Count() > 0)
-                                {
-                                    <div class="form-row mt-1">
-                                        @foreach (var file in message.MessageFiles)
-                                        {
-                                            string fileTumbPath = System.IO.Path.Combine(_baseUrl, file.FileThumbPath);
+                                    <h5>@Html.Raw(message.MessageText?.MessageTxt.Replace("\n", "<br />"))</h5>
 
-                                            <div class="col file-attachment-item" data-file-id="@file.MessageFileId" style="display: flex; flex-direction: column;">
+                                    @if (message.MessageFiles != null)
+                                    {
+                                        <div class="row mt-1 overflow-hidden image-group">
+                                            @foreach (var file in message.MessageFiles)
+                                            {
+                                                string fileTumbPath = System.IO.Path.Combine(_baseUrl, file.FileThumbPath);
 
+                                                <div class="col file-attachment-item" data-file-id="@file.MessageFileId" style="display: flex; flex-direction: column;">
+                                                    @if (AllowedImages.Contains(file.FileExtension.Extension, StringComparer.OrdinalIgnoreCase))
+                                                    {
+                                                        <img class="img-thumbnail chat-thumbnail"
+                                                             src="@fileTumbPath"
+                                                             data-original-filename="@file.OriginalFileName"
+                                                             alt="@file.FileName"
+                                                             style="max-height:150px; cursor:pointer;">
 
-                                                @if (AllowedImages.Contains(file.FileExtension.Extension, StringComparer.OrdinalIgnoreCase))
-                                                {
-                                                    <a class="popup-media overflow-hidden" href="@fileTumbPath" target="_blank">
-                                                        <img class="img-fluid rounded" width="100" src="@fileTumbPath" data-oroginal-fileName="@file.OriginalFileName" alt="@file.FileName" style="max-height:150px">
-                                                    </a>
-                                                }
-                                                else
-                                                {
-                                                    if (file.FileExtension.Extension == ".webm")
+                                                    }
+                                                    else if (file.FileExtension.Extension == ".webm")
                                                     {
                                                         <div class="audio-player-container">
                                                             <button class="voice-download-btn" data-file-id="@file.MessageFileId">
-                                                                <i class="fa fa-download"></i>
-                                                                <i class="fa fa-spinner fa-spin"></i>
+                                                                <img src="/chatzy/assets/iconsax/download.svg" class="download-icon" style="cursor:pointer; width: 24px; height: 24px;" alt="download">
+                                                                <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
+
                                                             </button>
-                                                            <div class="file-meta text-light mx-1 text-dark">@FileSizeConverter.ConvertToReadableSize(@file.FileSize)</div>
+                                                            
+                                                            <div class="file-meta text-light mx-1 text-dark">@FileSizeConverter.ConvertToReadableSize(file.FileSize)</div>
                                                             <div class="voice-duration-display mx-1" style="margin-right: 15px;">صدای ضبط شده</div>
+                                                            
                                                         </div>
                                                     }
                                                     else
                                                     {
-                                                        <i class="fa fa-file-o fa-3x"></i>
+                                                        <i class="iconsax" data-icon="document-text-1" style="font-size: 3em;"></i>
                                                         @FileNameShorter.ShortenFileName(file.OriginalFileName ?? "")
-                                                        <span style="min-width:75px;" class="btn-download-file" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
-                                                            @FileSizeConverter.ConvertToReadableSize(@file.FileSize)
+                                                        <span>&nbsp;</span>
+                                                        @FileSizeConverter.ConvertToReadableSize(file.FileSize)
+                                                        <span style="max-width:35px;" class="btn-download-file btn btn-sm btn-light p-0" data-file-id="@file.MessageFileId" data-file-originalName="@file.OriginalFileName">
 
-                                                            <i class="fa fa-download" style="cursor:pointer"></i>
+                                                            <img src="/chatzy/assets/iconsax/download.svg" class="download-icon" style="cursor:pointer; width: 24px; height: 24px;" alt="download">
+
                                                         </span>
                                                     }
-
-                                                }
-
-                                            </div>
-                                        }
-                                    </div>
-                                }
-
-                            </div>
-                        </div>
-
-                        <div class="message-options">
-                            <div class="avatar avatar-sm">
-                                <img alt="" src="../assets/media/avatar/@message.SenderUser.ProfilePicName" />
-                            </div>
-
-                            <span class="message-date">@message.SenderUser.NameFamily</span>
-
-                            <span class="message-date">@message.MessageDateTime.ToString("hh:mm")</span>
-
-                            @if (isSelf)
-                            {
-                                if (message.IsReadByAnyRecipient)
-                                {
-                                    <span class="message-status-ticks mb-1">
-                                        <img width="15" src="~/assets/media/icons/seen-green.svg" />
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="message-status-ticks mb-1">
-                                        ✓
-                                    </span>
-                                }
-                            }
-                            
-
-                            <div class="dropdown">
-                                <a class="text-muted" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <!-- Default :: Inline SVG -->
-                                    <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                                    </svg>
-                                </a>
-
-                                <div class="dropdown-menu dropdown-menu-left" style="">
-                                    @if (message.SenderUserId == selfUserId)
-                                    {
-                                        <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageId="@message.MessageId" href="#">
-                                            <i class="fa fa-edit"></i>&nbsp;
-                                            <span> ویرایش</span>
-                                        </a>
+                                                </div>
+                                            }
+                                        </div>
                                     }
 
-
-                                    <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageId="@message.MessageId" href="#">
-                                        <i class="fa fa-reply"></i>&nbsp;
-                                        <span> پاسخ دادن</span>
-                                    </a>
-
-
-                                    <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageId="@message.MessageId" href="#">
-                                        <i class="fa fa-save"></i>&nbsp;
-                                        <span> ذخیره</span>
-                                    </a>
-
-                                    <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageId="@message.MessageId" href="#">
-                                        <i class="fa fa-trash"></i>&nbsp;
-                                        <span> حذف</span>
-                                    </a>
+                                    <div class="timing">
+                                        <h6>@message.MessageDateTime.ToString("hh:mm")</h6>
+                                        @if (isSelf)
+                                        {
+                                            <img class="img-fluid tick-all" src="~/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: @(message.IsReadByAnyRecipient ? "inline" : "none");">
+                                            <img class="img-fluid tick" src="~/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: @(message.IsReadByAnyRecipient ? "none" : "inline");">
+                                        }
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+         <div class="chat-finished" id="chat-finished"></div>
+    </div>
+</section>
+<!-- group chat section end -->
+
+<!--  message input section starts -->
+<div class="messages-panel">
+    <!-- کانتینر برای بنرهای عملیاتی (پاسخ و ویرایش) -->
+    <div class="action-banners-container">
+        <div id="cancel-edit-container" class="force-hide">
+            <a href="#" id="cancel-edit-button">انصراف</a>
+            <div class="edit-indicator">
+                <span class="edit-text">در حال ویرایش</span>
+                <div class="edit-bar"></div>
+            </div>
+        </div>
+        
+
+        <div id="reply-to-container" style="display: none;">
+           
+            <div class="reply-indicator">
+                <div class="reply-bar"></div>
+                <div class="reply-content">
+                    <!-- کانتینر تصویر کوچک (برای پیام‌های عکس) -->
+                    <div id="reply-thumbnail-container"></div>
+
+                    <!-- کانتینر جدید برای آیکون (برای صوت و فایل) -->
+                    <span id="reply-icon-container"></span>
+
+                    <!-- کانتینر برای متون -->
+                    <div class="reply-text-content">
+                        <span id="reply-to-user"></span>
+                        <span id="reply-to-text"></span>
                     </div>
-                }
-
-
+                </div>
+                
             </div>
-        }
-        @if (!createdTodayBodyMessage)
-        {
-            var dateClass = "date-" + DateTime.Now.ToString("yyyy-MM-dd");
-            <div class="message-day" id="chatMessages" data-message-date="@dateClass">
-                <div class="message-divider sticky-top pb-2" data-label="امروز" id="@dateClass"></div>
-            </div>
-
-        }
-
-
+            <a href="#" id="cancel-reply">
+                انصراف
+            </a>
+        </div>
 
     </div>
 
-    <!-- Scroll to finish -->
-    <div class="chat-finished" id="chat-finished"></div>
-</div>
-<!-- Chat Content End-->
-<!-- Chat Footer Start-->
+    <!-- کانتینر پیش‌نمایش فایل‌ها -->
+    <div id="filePreviewContainer">        
+        <!-- File previews will be dynamically inserted here -->
+    </div>
 
-<div class="chat-footer">
-    <form>
-        <div class="form-row">
-            <!-- Chat Input Group Start -->
-            <div class="col pb-1">
-                <!--Reply to message-->
-                <div id="reply-to-container" class="p-2 mb-1" style="display: none; background-color: #3a4149; border-left: 3px solid #00b894; border-radius: 5px;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div id="reply-to-user" class="font-weight-bold text-light" style="font-size: 0.9em;"></div>
-                            <div id="reply-to-text" class="text-muted" style="font-size: 0.85em; max-height: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px;"></div>
-                        </div>
-                        <button id="cancel-reply" type="button" class="close text-light" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                </div>
-
-
-                <div class="input-group">
-                    <!-- Attachment Start -->
-                    <div class="input-group-prepend mr-sm-2 mr-1">
-                        <button class="btn btn-secondary btn-icon btn-minimal btn-sm" onclick="$('#fileInput').click();" type="button">
-                            <i class="fa fa-paperclip" aria-hidden="true"></i>
-                        </button>
-
-                    </div>
-                    <!-- Attachment End -->
-                    <!--strat recording voice-->
-
-                    <div class="input-group-prepend mr-sm-2 mr-1">
-                        <button class="btn btn-secondary btn-icon btn-minimal btn-sm btn-record-voice" type="button">
-                            <i class="fa fa-microphone" aria-hidden="true"></i>
-                        </button>
-                    </div>
-
-
-                    <!--end recording voice-->
-                    <!-- Emoji Start -->
-                    <div class="input-group-prepend mr-sm-2 mr-1">
-                        <div class="dropdown emoji-dropdown">
-                            <button class="btn btn-secondary btn-icon btn-minimal btn-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <svg class="hw-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-
-                                <div class="dropdown-menu dropdown-menu-right" x-placement="top" id="actionemoji"
-                                     style="position: absolute; transform: translate3d(0px, -92px, 0px); top: 0px; left: 0px; will-change: transform;">
-                                </div>
-
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Emoji End -->
-                    <!-- Textarea and File Upload Section -->
-                    <div id="text-input-area" class="flex-grow-1">
-                        <!-- File Upload Previews -->
-                        <div id="filePreviewContainer" class="method1"></div>
-
-                        <div id="cancel-edit-container" class="p-1 mt-1 d-flex justify-content-between align-items-center force-hide">
-                            <span>در حال ویرایش پیام...</span>
-                            <button id="cancel-edit-button" type="button" class="btn btn-sm btn-dark">انصراف</button>
-                        </div>
-
-                        <!-- Textarea -->
-                        <textarea class="form-control bg-transparent border-0 no-resize hide-scrollbar" id="message-input" placeholder="پیام خود را بنویسید..." rows="1"></textarea>
-
-
-                    </div>
-
-                    <!-- حالت ضبط صدا (این قسمت توسط JS پر می‌شود و در ابتدا خالی و مخفی است) -->
-                    <div id="voice-input-area" style="display: none;"></div>
-
-                </div>
-                <!-- Hidden fields for file management -->
-                <input type="file" id="fileInput" multiple style="display: none;">
-                <input type="hidden" id="uploadedFileIds" name="uploadedFileIds">
-                <input type="hidden" id="previousFileIds" name="previousFileIds">
-                <input type="hidden" id="deletUploadedFileIds" name="deletUploadedFileIds">
-
-                <input type="hidden" id="message-context-id" value="">
-                <input type="hidden" id="message-action-type" value="">
-                <!--Reply to message-->
-            </div>
-            <!-- Chat Input Group End -->
-            <!-- Submit Button Start -->
-            <div class="col-auto col-auto-input">
-                <div class="btn btn-primary btn-icon rounded-circle text-light mb-1" id="send-message-button" role="button">
-                    <i class="fa fa-paper-plane" aria-hidden="true"></i>
-                </div>
-            </div>
-            <!-- Submit Button End-->
+    <!-- فرم اصلی ورود پیام -->
+    <form onsubmit="return false;" class="message-form-container">
+        <div id="text-input-area" class="message-inputarea">
+            <a href="#" onclick="$('#fileInput').click(); return false;">
+                <i class="iconsax icon-btn" data-icon="picture-add"> </i>
+            </a>
+            <a class="btn-record-voice">
+                <i class="iconsax icon-btn" data-icon="mic-2"> </i>               
+            </a>
+            <textarea type="text" class="message-input" id="message-input" placeholder="Type here..." rows="1"></textarea>
+            <a href="#" class="" id="send-message-button">              
+                <i class="iconsax icon-btn" data-icon="send-btn1"> </i>
+            </a>
         </div>
+        <div id="voice-input-area" style="display: none;"></div>
+        <input type="file" id="fileInput" multiple style="display: none;">
+        <input type="hidden" id="uploadedFileIds" name="uploadedFileIds">
+        <input type="hidden" id="previousFileIds" name="previousFileIds">
+        <input type="hidden" id="deletUploadedFileIds" name="deletUploadedFileIds">
+        <input type="hidden" id="message-context-id" value="">
+        <input type="hidden" id="message-action-type" value="">
     </form>
 </div>
 
-<!-- Chat Footer End-->
+
+<!--  message input section end -->
+
+
+<script>
+   
+</script>
