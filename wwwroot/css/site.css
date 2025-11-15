@@ -401,6 +401,11 @@ body {
 /* ========================================================= */
 
 .messages-panel {
+    position: fixed; /* پنل را در پایین صفحه ثابت نگه می‌دارد */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000; /* اطمینان از قرارگیری روی محتوای دیگر */
     display: flex;
     flex-direction: column; /* فرزندان را به صورت ستونی مرتب می‌کند */
     background-color: #f0f2f5;
@@ -923,12 +928,38 @@ body {
 /*      END OF MERGED CSS                                  */
 /* ========================================================= */
 
+/* ========================================================= */
+/*      Override for .message-inputarea Conflicting Styles   */
+/* ========================================================= */
+/*
+   این کد استایل‌های ناخواسته از فایل دیگر را که باعث خروج
+   .message-inputarea از والد خود می‌شوند، خنثی می‌کند.
+*/
+.message-inputarea {
+    /* بازنشانی کامل استایل‌های موقعیت‌یابی */
+    position: relative !important; /* از fixed به relative تغییر می‌کند تا در جریان عادی صفحه باقی بماند */
+    bottom: unset !important; /* حذف موقعیت از پایین */
+    left: unset !important; /* حذف موقعیت از چپ */
+    transform: none !important; /* حذف هرگونه جابجایی */
+    /* بازنشانی استایل‌های ابعاد و حاشیه */
+    width: 100% !important; /* عرض به حالت خودکار برمی‌گردد تا والد آن را کنترل کند */
+    /* حاشیه (margin) از قبل به درستی در کد شما تنظیم شده است (margin: 12px 16px) */
+    /* حذف افکت بلور پس‌زمینه که دیگر کاربردی ندارد */
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    margin: unset;
+}
 
 /* ========================================================= */
 /*      Footer & Message Input Area Structure (FINAL FIX)    */
 /* ========================================================= */
 
 .messages-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
     /* 
@@ -969,7 +1000,18 @@ body {
     /* overflow-y: auto از اینجا حذف شد چون به والد منتقل شد */
 }
 
+/*
+   این بخش override که قبلاً اضافه کردید، همچنان لازم و صحیح است
+   و باید در فایل شما باقی بماند.
+*/
 .message-inputarea {
+    position: relative !important;
+    bottom: unset !important;
+    left: unset !important;
+    transform: none !important;
+    width: 100% !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
     /* استایل‌های اصلی خود عنصر را حفظ می‌کنیم */
     display: flex;
     align-items: center;
