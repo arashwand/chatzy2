@@ -1,19 +1,13 @@
 /* Styles for the sliding chat details panel */
 .chat-details-panel-container {
-    position: fixed;
+    position: absolute; /* تغییر به absolute برای هماهنگی با body flex */
     top: 0;
-    right: -100%; /* Start off-screen */
-    /* --- Fix for Width Issue --- */
-    width: 100%; /* Take full width on small screens */
-    max-width: 600px; /* But not more than 600px on larger screens */
-    left: 0;
-    right: 0;
-    margin: auto;
-    transform: translateX(150%); /* Start off-screen to the right */
-    /* --- Fix for Scrolling Issue --- */
-    height: 100vh; /* Full viewport height */
+    left: 0; /* موقعیت‌دهی از چپ */
+    width: 100%; /* عرض کامل */
+    height: 100%; /* ارتفاع کامل والد */
     background-color: #fff;
     z-index: 1050;
+    transform: translateX(100%); /* شروع از خارج صفحه به سمت راست */
     display: flex;
     flex-direction: column;
     /* --- Animation --- */
