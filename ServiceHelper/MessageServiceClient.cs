@@ -47,14 +47,14 @@ namespace Messenger.WebApp.ServiceHelper
         public async Task<IEnumerable<MessageDto>> GetPrivateMessagesAsync(long userId1, long userId2, int pageNumber, int pageSize, long messageId, bool loadOlder)
         {
             var response = await _httpClient.GetFromJsonAsync<IEnumerable<MessageDto>>(
-                $"api/messages/private?userId1={userId1}&userId2={userId2}&pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}&loadOlder{loadOlder}");
+                $"api/messages/private?userId1={userId1}&userId2={userId2}&pageNumber={pageNumber}&pageSize={pageSize}");
             return response ?? new List<MessageDto>();
         }
 
         public async Task<IEnumerable<MessageDto>> GetChannelMessagesAsync(int channelId, int pageNumber, int pageSize, long messageId, bool loadOlder)
         {
             var response = await _httpClient.GetFromJsonAsync<IEnumerable<MessageDto>>(
-                $"api/messages/channel/{channelId}?pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}=&loadOlder{loadOlder}");
+                $"api/messages/channel/{channelId}?pageNumber={pageNumber}&pageSize={pageSize}");
             // currentUserId is not sent in the query string as the API gets it from claims
             return response ?? new List<MessageDto>();
         }
@@ -63,14 +63,24 @@ namespace Messenger.WebApp.ServiceHelper
         {
             try
             {
-                var response = await _httpClient.GetFromJsonAsync<IEnumerable<MessageDto>>(
+                var response = await _httpClient.GetAsync(
                 $"api/messages/classgroup/{classId}?pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}&loadOlder={loadOlder}");
-                // currentUserId is not sent in the query string as the API gets it from claims
-                return response ?? new List<MessageDto>();
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadFromJsonAsync<IEnumerable<MessageDto>>() ?? new List<MessageDto>();
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError(httpEx, "HTTP error fetching class group messages for classId {classId}: {statusCode} {reason}", classId, httpEx.StatusCode, httpEx.Message);
+                throw;
+            }
+            catch (System.Text.Json.JsonException jsonEx)
+            {
+                _logger.LogError(jsonEx, "JSON deserialization error for class group messages classId {classId}", classId);
+                throw;
             }
             catch (Exception ex)
             {
-
+                _logger.LogError(ex, "Error fetching class group messages for classId {classId}", classId);
                 throw;
             }
         }

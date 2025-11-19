@@ -1,0 +1,181 @@
+﻿@using System.Security.Claims
+@using Messenger.Tools
+@model IEnumerable<MessageDto>
+@{
+    long selfUserId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+    var groupedMessages = Model
+    .OrderBy(m => m.MessageDateTime)
+    .GroupBy(m => m.MessageDateTime.Date);
+    var today = DateTime.Today;
+    var yesterday = today.AddDays(-1);
+
+    var _baseUrl = "";
+    if (ViewData.ContainsKey("baseUrl"))
+    {
+        _baseUrl = ViewData["baseUrl"].ToString();
+    }
+}
+
+@foreach (var group in groupedMessages)
+{
+    string dateLabel;
+    string todayMessageContent = "";
+    if (group.Key == today)
+    {
+        dateLabel = "امروز";
+        todayMessageContent = "chatMessages";
+    }
+    else if (group.Key == yesterday)
+    {
+        dateLabel = "دیروز";
+    }
+    else
+    {
+        dateLabel = group.Key.ToString("dddd، d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"));
+    }
+
+    <div class="message-day" id="@todayMessageContent">
+        <div class="message-divider sticky-top pb-2" data-label="@dateLabel"></div>
+        <input type="hidden" id="lastMessageIdLoad" value="@Model.Last().MessageId" />
+        @foreach (var message in group)
+        {
+            var isSelf = message.SenderUserId == selfUserId;
+            // Assuming MessageDto has a boolean property IsReadByCurrentUser
+            // If not, this will need to be added to the DTO and populated correctly.
+            var isRead = message.IsReadByCurrentUser; // Example, replace with actual property
+
+            <div class="message @(isSelf ? "self" : "")"
+                 id="message-@message.MessageId"
+                 data-message-id="@message.MessageId"
+                 data-sender-id="@message.SenderUserId"
+                 data-is-read="@isRead.ToString().ToLower()">
+                <div class="message-wrapper">
+                    <div class="message-content">
+                        @if (message.ReplyMessageId != null)
+                        {
+                            <div class="reply-preview border p-2 rounded bg-dark mb-2" style="cursor:pointer;" onclick="document.getElementById('message-@message.ReplyMessage?.MessageId')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
+                                <div class="text-muted small">
+                                    پاسخ به: <strong>@message.ReplyMessage?.SenderUser.NameFamily</strong>
+                                </div>
+                                <div class="text-truncate">
+                                    @message.ReplyMessage?.MessageText?.MessageTxt
+                                </div>
+                            </div>
+                        }
+
+                        @message.MessageText?.MessageTxt
+
+                        @if (message.MessageFiles?.Count() > 0)
+                        {
+                            <div class="form-row">
+                                @foreach (var file in message.MessageFiles)
+                                {
+                                    string fileTumbPath = System.IO.Path.Combine(_baseUrl, @file.FileThumbPath);
+
+                                    <div class="col file-attachment-item" data-file-id="@file.MessageFileId" style="display: flex; flex-direction: column;">
+
+                                        @if (file.FileExtension.FontAwesome == "fa-file-image-o")
+                                        {
+                                            <a class="popup-media" href=@fileTumbPath>
+                                                <img class="img-fluid rounded" width="100" src="@fileTumbPath" data-oroginal-fileName="@file.OriginalFileName" alt="@file.FileName">
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            if (file.FileExtension.Type.Contains("Audio") || file.FileExtension.Type.Contains("WEBM VIDEO"))
+                                            {
+                                                <div class="audio-player-container">
+                                                    <button class="voice-download-btn" data-src="@System.IO.Path.Combine(_baseUrl, "uploads/", file.FilePath)">
+                                                        <i class="fa fa-download"></i>
+                                                        <i class="fa fa-spinner fa-spin"></i>
+                                                    </button>
+                                                    <div class="voice-duration-display" style="margin-right: 15px;">...</div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <i class="fa fa-file-o fa-3x"></i>
+                                                <span style="min-width:75px">
+                                                    @FileSizeConverter.ConvertToReadableSize(@file.FileSize)
+                                                    <i class="fa fa-download"></i>
+                                                </span>
+                                            }
+
+                                        }
+
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                    </div>
+                </div>
+                <div class="message-options">
+                    <div class="avatar avatar-sm">
+                        <img alt="" src="../assets/media/avatar/@message.SenderUser.ProfilePicName" />
+                    </div>
+                    <span class="message-date">@message.SenderUser.NameFamily</span>
+                    <span class="message-date">@message.MessageDateTime.ToString("hh:mm")</span>
+                    @if (isSelf)
+                    {
+                        if (message.IsReadByAnyRecipient)
+                        {
+                            <span class="message-status-ticks">
+                                ✓✓
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="message-status-ticks">
+                                ✓
+                            </span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="message-status-ticks">
+
+                        </span>
+
+                    }
+                    <div class="dropdown">
+                        <a class="text-muted" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <!-- Default :: Inline SVG -->
+                            <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+                            </svg>
+                        </a>
+
+                        <div class="dropdown-menu dropdown-menu-left" style="">
+                            @if (message.SenderUserId == selfUserId)
+                            {
+                                <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageId="@message.MessageId" href="#">
+                                    <i class="fa fa-edit"></i>&nbsp;
+                                    <span> ویرایش</span>
+                                </a>
+                            }
+
+
+                            <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageId="@message.MessageId" href="#">
+                                <i class="fa fa-reply"></i>&nbsp;
+                                <span> پاسخ دادن</span>
+                            </a>
+
+
+                            <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageId="@message.MessageId" href="#">
+                                <i class="fa fa-save"></i>&nbsp;
+                                <span> ذخیره</span>
+                            </a>
+
+                            <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageId="@message.MessageId" href="#">
+                                <i class="fa fa-trash"></i>&nbsp;
+                                <span> حذف</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

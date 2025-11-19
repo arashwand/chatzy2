@@ -1,0 +1,214 @@
+﻿@using System.Security.Claims
+@using Messenger.Tools
+@model IEnumerable<MessageSavedDto>
+@{
+    DateTime? lastMessageDate = null;
+    long selfUserId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+    // int classGroupId = int.Parse(ViewData["classGroupId"].ToString());
+}
+@* <input type="hidden" id="current-group-id-hidden-input" value="@classGroupId" />
+<input type="hidden" id="current-group-type-hidden-input" value="@ConstChat.ClassGroupType" /> *@
+<!-- Chat Header Start-->
+<div class="chat-header">
+    <!-- Chat Back Button (Visible only in Small Devices) -->
+    <button class="btn btn-secondary btn-icon btn-minimal btn-sm d-xl-none" type="button" data-close="">
+        <svg class="hw-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        <!-- <img class="injectable hw-20" src="./../assets/media/heroicons/outline/arrow-left.svg" alt=""> -->
+    </button>
+
+    <!-- Chat participant's Name -->
+    <div class="media chat-name align-items-center text-truncate">
+        <div class="avatar bg-success text-light d-none d-sm-inline-block mr-3">
+            <span>
+                <svg class="hw-24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                <!-- <img class="injectable" src="./../assets/media/heroicons/outline/user-group.svg" alt=""> -->
+            </span>
+        </div>
+
+        <div class="media-body align-self-center ">
+            <h6 class="text-truncate mb-0">پیامهای ذخیره شده</h6>
+        </div>
+    </div>
+
+    <!-- Chat Options -->
+    <ul class="nav flex-nowrap">
+        <li class="nav-item list-inline-item d-none d-sm-block mr-1">
+            <a class="nav-link text-muted px-1" data-toggle="collapse" data-target="#searchCollapse" href="#" aria-expanded="false">
+                <svg class="hw-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+
+                <!-- <img src="./../assets/media/heroicons/outline/search.svg" alt="" class="injectable hw-20"> -->
+            </a>
+        </li>
+
+        <!--show in desktop-->
+        <li class="nav-item list-inline-item d-none d-sm-block mr-0">
+            <div class="dropdown">
+                <a class="nav-link text-muted px-1" href="#" role="button" title="جزئیات" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <svg class="hw-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                    </svg>
+                    <!-- <img src="./../assets/media/heroicons/outline/dots-vertical.svg" alt="" class="injectable hw-20"> -->
+                </a>
+
+                <div class="dropdown-menu dropdown-menu-left">
+
+                    <a class="dropdown-item align-items-center d-flex" href="#">
+                        <i class="fa fa-trash"></i>&nbsp;
+                        <span>حذف</span>
+                    </a>
+                </div>
+            </div>
+        </li>
+
+        <!--show in desktop-->
+        <li class="nav-item list-inline-item d-sm-none mr-0">
+            <div class="dropdown">
+                <a class="nav-link text-muted px-1" href="#" role="button" title="جزئیات" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <svg class="hw-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                    </svg>
+                    <!-- <img src="./../assets/media/heroicons/outline/dots-vertical.svg" alt="" class="injectable hw-20"> -->
+                </a>
+
+                <div class="dropdown-menu dropdown-menu-left">
+
+                    <a class="dropdown-item align-items-center d-flex" href="#" data-toggle="collapse" data-target="#searchCollapse" aria-expanded="false">
+                        <svg class="hw-20 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <!-- <img src="./../assets/media/heroicons/outline/search.svg" alt="" class="injectable hw-20 mr-2"> -->
+                        <span>جستجو کردن</span>
+                    </a>
+
+                    <a class="dropdown-item align-items-center d-flex" href="#">
+                        <i class="fa fa-trash"></i>&nbsp;
+                        <span>حذف</span>
+                    </a>
+                    <a class="dropdown-item align-items-center d-flex text-danger" href="#">
+                        <svg class="hw-20 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                        </svg>
+
+                        <!-- <img src="./../assets/media/heroicons/outline/ban.svg" alt="" class="injectable hw-20 mr-2"> -->
+                        <span>مسدود کردن</span>
+                    </a>
+                </div>
+            </div>
+        </li>
+    </ul>
+</div>
+<!-- Chat Header End-->
+
+<!-- Search Start for desktop -->
+<div class="collapse border-bottom px-3" id="searchCollapse">
+    <div class="container-xl py-2 px-0 px-md-3">
+        <div class="input-group bg-light ">
+            <input type="text" class="form-control form-control-md border-right-0 bg-transparent pr-0" placeholder="جستجو کردن...">
+            <div class="input-group-append">
+                <span class="input-group-text bg-transparent border-left-0">
+                    <svg class="hw-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+
+                    <!-- <img class="injectable hw-20" src="./../assets/media/heroicons/outline/search.svg" alt="Search icon"> -->
+                </span>
+            </div>
+        </div>
+    </div>
+
+</div>
+<!-- Search End -->
+
+<!-- Chat Content Start-->
+<div class="chat-content p-2" id="chat_content">
+   
+    <div class="container" id="Message_Days">
+
+            <div class="message-day" >
+               
+                @foreach (var message in Model)
+                {
+                    var isSelf = message.Message.SenderUserId == selfUserId;
+                   
+                    <div class="message @(isSelf ? "self" : "")"
+                         id="message-@message.MessageSavedId"
+                         data-message-id="@message.MessageId"
+                         data-sender-id="@message.Message.SenderUserId">
+                        <div class="message-wrapper">
+                            <div class="message-content">
+                                @if (message.Message.ReplyMessageId != null)
+                                {
+                                    <div class="reply-preview border p-2 rounded bg-dark mb-2" style="cursor:pointer;" onclick="document.getElementById('message-@message.Message.ReplyMessage?.MessageId')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
+                                        <div class="text-muted small">
+                                            پاسخ به: <strong>@message.Message.ReplyMessage?.SenderUser.NameFamily</strong>
+                                        </div>
+                                        <div class="text-truncate">
+                                            @message.Message.ReplyMessage?.MessageText?.MessageTxt
+                                        </div>
+                                    </div>
+                                }
+
+                                @message.Message.MessageText?.MessageTxt
+
+                                @if (message.Message.MessageFiles?.Count() > 0)
+                                {
+                                    <div class="form-row">
+                                        @foreach (var file in message.Message.MessageFiles)
+                                        {
+                                            string fileTumbPath = "https://localhost:7040/" + @file.FileThumbPath;
+                                            <div class="col">
+                                                <a class="popup-media" href=@fileTumbPath>
+                                                    <img class="img-fluid rounded" width="100" src="@fileTumbPath" alt="@file.FileName">
+                                                </a>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                            </div>
+                        </div>
+                        <div class="message-options">
+                            <div class="avatar avatar-sm">
+                                <img alt="" src="../assets/media/avatar/@message.Message.SenderUser.ProfilePicName" />
+                            </div>
+                            <span class="message-date">@message.Message.SenderUser.NameFamily</span>
+                            <span class="message-date">@message.Message.MessageDateTime.ToString("dddd، d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"))</span>
+                            @* <span class="message-date">@message.SaveDateTime.ToString("dddd، d MMMM yyyy", new System.Globalization.CultureInfo("fa-IR"))</span> *@
+                           
+                            <div class="dropdown">
+                                <a class="text-muted" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <!-- Default :: Inline SVG -->
+                                    <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+                                    </svg>
+                                </a>
+
+                                <div class="dropdown-menu dropdown-menu-left" style="">
+
+                                    <a class="dropdown-item d-flex align-items-center actionDeleteSavedMessage" data-messageSavedId="@message.MessageSavedId" href="#">
+                                        <!-- Default :: Inline SVG -->
+                                        <i class="fa fa-trash"></i>&nbsp;
+                                        <span> حذف</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        @* } *@
+
+
+    </div>
+
+    <!-- Scroll to finish -->
+    <div class="chat-finished" id="chat-finished"></div>
+</div>
+<!-- Chat Content End-->
+
