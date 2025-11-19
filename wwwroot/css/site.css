@@ -1213,3 +1213,13 @@ body:has(.chat-details-panel-container.visible) #chat_content {
 #chat_content {
     overflow-y: auto;
 }
+
+
+/* --- iOS Specific Fixes --- */
+body.ios-device .chat-flex-container {
+    overflow-x: hidden;
+}
+
+body.ios-device .messages-panel {
+    height: auto;
+}

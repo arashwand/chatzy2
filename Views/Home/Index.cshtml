@@ -378,5 +378,49 @@
 
         const config = { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] };
         observer.observe(document.body, config);
+
+        // --- iOS Device Detection ---
+        const ua = navigator.userAgent || '';
+        const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (isIOS) {
+            document.body.classList.add('ios-device');
+            console.log('iOS device detected. Applied ios-device class to body.');
+
+            // --- iOS Visual Viewport API for Keyboard Handling ---
+            const messageInput = document.getElementById('message-input');
+            const messagesPanel = document.querySelector('.messages-panel');
+            const chatContent = document.getElementById('chat_content');
+
+            if (messageInput && messagesPanel && window.visualViewport) {
+                const movePanel = () => {
+                    const viewportHeight = window.innerHeight;
+                    const visualViewportHeight = window.visualViewport.height;
+                    const offset = viewportHeight - visualViewportHeight;
+
+                    if (offset > 0) {
+                        // Move the panel up by the keyboard's height
+                        messagesPanel.style.transform = `translateY(-${offset}px)`;
+                        // Adjust padding to prevent messages from being hidden
+                        chatContent.style.paddingBottom = `${offset + messagesPanel.offsetHeight}px`;
+                    } else {
+                        // Keyboard is closed
+                        messagesPanel.style.transform = 'translateY(0)';
+                        chatContent.style.paddingBottom = `${messagesPanel.offsetHeight}px`;
+                    }
+                };
+
+                messageInput.addEventListener('focus', () => setTimeout(movePanel, 250));
+                messageInput.addEventListener('blur', () => {
+                    messagesPanel.style.transform = 'translateY(0)';
+                    setTimeout(() => chatContent.style.paddingBottom = `${messagesPanel.offsetHeight}px`, 300);
+                });
+
+                window.visualViewport.addEventListener('resize', () => {
+                    if (document.activeElement === messageInput) {
+                        movePanel();
+                    }
+                });
+            }
+        }
     </script>
 }
