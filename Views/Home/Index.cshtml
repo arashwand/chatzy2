@@ -339,60 +339,30 @@
             }, 300);
         });
 
-        // --- Mobile Keyboard Layout Fix ---
-        function adjustChatLayout() {
-            const chatPanel = $('#chat-details-panel');
-            if (!chatPanel.length || !chatPanel.hasClass('visible')) {
-                return;
-            }
-
-            const setPanelHeight = () => {
-                const newHeight = window.innerHeight;
-                chatPanel.css('height', `${newHeight}px`);
-
-                const chatContent = $('#chat_content');
-                if (chatContent.length) {
-                    chatContent.scrollTop(chatContent.prop("scrollHeight"));
-                }
-            };
-
-            setPanelHeight(); // Initial adjustment
-
-            $(window).on('resize.chatLayout', setPanelHeight);
-        }
-
-        function cleanupChatLayout() {
-            $(window).off('resize.chatLayout');
-        }
-
-        const observer = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                // Check if the #chat-details-panel itself changed or was added
-                let chatPanel = null;
-                if ($(mutation.target).is('#chat-details-panel')) {
-                    chatPanel = $(mutation.target);
-                } else if (mutation.addedNodes.length) {
-                    chatPanel = $(mutation.addedNodes).find('#chat-details-panel').addBack('#chat-details-panel');
-                }
-
-                if (chatPanel && chatPanel.length) {
-                    if (chatPanel.hasClass('visible')) {
-                        adjustChatLayout();
-                    } else {
-                        cleanupChatLayout();
-                    }
-                }
-            });
-        });
-
-        const config = { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] };
-        observer.observe(document.body, config);
-
         // --- iOS Device Detection ---
         const ua = navigator.userAgent || '';
         const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
             document.body.classList.add('ios-device');
+        }
+
+        // --- Modern iOS Keyboard Fix using visualViewport ---
+        if (isIOS && window.visualViewport) {
+            const chatPanel = document.getElementById('chat-details-panel');
+            const initialHeight = window.innerHeight;
+
+            const viewportHandler = () => {
+                const newHeight = window.visualViewport.height;
+                // Calculate keyboard height, considering it only when it's significant
+                const keyboardHeight = (initialHeight - newHeight) > 100 ? (initialHeight - newHeight) : 0;
+
+                // Move the panel up by the keyboard height
+                chatPanel.style.transform = `translateY(-${keyboardHeight}px)`;
+                // Also adjust height to prevent visual glitches
+                chatPanel.style.height = `${newHeight}px`;
+            };
+
+            window.visualViewport.addEventListener('resize', viewportHandler);
         }
     </script>
 }
