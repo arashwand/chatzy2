@@ -961,20 +961,18 @@ body {
 /* ========================================================= */
 
 .messages-panel {
+    display: flex;
+    flex-direction: column;
     flex-shrink: 0; /* Prevent the panel from shrinking */
     background-color: #f0f2f5;
     box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
 }
 
-/* Action banners داخل messages-panel با order: -1 برای قرار گرفتن در بالا */
+/* Action banners should appear first */
 .action-banners-container-inner {
-    order: -1; /* قرار گرفتن در بالاترین موقعیت */
+    order: 1;
     width: 100%;
     flex-shrink: 0;
-    position: relative;
-    z-index: 1010; /* بالاتر از filePreviewContainer */
-    background-color: transparent;
-    pointer-events: none; /* اجازه کلیک روی عناصر زیرین */
 }
 
 /* فرزندان action-banners-container-inner باید pointer-events داشته باشند */
@@ -989,7 +987,7 @@ body {
 
 /* --- File Preview Container --- */
 #filePreviewContainer {
-    order: 1; /* بعد از action-banners-container-inner */
+    order: 2;
     flex-shrink: 0;
     display: none;
     flex-wrap: wrap;
@@ -1000,10 +998,6 @@ body {
     border-bottom: 1px solid #e0e0e0;
     max-height: 30vh;
     overflow-y: auto;
-    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
-    animation: slideDown 0.3s ease-out;
-    z-index: 999; /* کمتر از action-banners-container-inner ولی بیشتر از message-form */
-    position: relative;
 }
 
     #filePreviewContainer.visible {
@@ -1011,13 +1005,10 @@ body {
     }
 
 .message-form-container {
-    order: 2;
+    order: 4;
     background-color: #f0f2f5;
     padding: 8px 10px;
     flex-shrink: 0; /* از فشرده شدن این بخش جلوگیری می‌کند */
-    position: relative;
-    z-index: 997; /* کمتر از همه */
-    /* overflow-y: auto از اینجا حذف شد چون به والد منتقل شد */
 }
 
 /* 
