@@ -200,6 +200,8 @@
                     type: 'GET',
                     data: { chatId: chatId, groupType: groupType, messageId: lastReadMessageId },
                     success: function (data) {
+                        history.pushState({ chatOpen: true }, ''); // Add history state for back button
+                        $('body').addClass('chat-panel-visible'); // Lock body scroll
                         $('#chat-details-panel').html(data).addClass('visible');
 
                         window.chatApp.reAttachScrollListener();
@@ -224,6 +226,7 @@
                     url: '/Home/GetSaveMessages',
                     type: 'GET',
                     success: function (data) {
+                        $('body').addClass('chat-panel-visible'); // Lock body scroll
                         $('#chat-details-panel').html(data).addClass('visible');
 
                         if (typeof init_iconsax === 'function') {
@@ -238,15 +241,32 @@
                 });
             };
 
-            // When closing the chat view to go back to the list
-            $(document).on('click', '#close-chat-panel-btn', function() {
+            function closeChatPanel() {
+                $('body').removeClass('chat-panel-visible'); // Unlock body scroll
                 $('#chat-details-panel').removeClass('visible');
                 // Optional: clear content after animation
-                setTimeout(function() {
+                setTimeout(function () {
                     $('#chat-details-panel').html('');
                 }, 300);
                 // نمایش دوباره عناصر هنگام برگشت از چت
                 $('.hide-on-chat-select').removeClass('hidden');
+            }
+
+            // When closing the chat view to go back to the list
+            $(document).on('click', '#close-chat-panel-btn', function() {
+                // If the user clicks the close button, we might need to go back in history
+                if (history.state && history.state.chatOpen) {
+                    history.back();
+                }
+                closeChatPanel();
+            });
+
+            // Handle the back button press
+            $(window).on('popstate', function () {
+                // Check if the panel is currently open
+                if ($('#chat-details-panel').hasClass('visible')) {
+                    closeChatPanel();
+                }
             });
 
         });

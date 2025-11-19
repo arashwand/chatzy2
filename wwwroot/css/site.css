@@ -1223,3 +1223,9 @@ body.ios-device .chat-flex-container {
 body.ios-device .messages-panel {
     height: auto;
 }
+
+
+/* --- Prevents body scroll when chat panel is active --- */
+body.chat-panel-visible {
+    overflow: hidden;
+}
