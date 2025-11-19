@@ -1,20 +1,20 @@
 /* Styles for the chat details panel */
 .chat-details-panel-container {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
+    bottom: 0;
     margin: auto;
     width: 100%;
     max-width: 600px;
-    height: 100%; /* The JS will override this, but it's a good fallback */
     background-color: #fff;
     z-index: 1050;
     display: flex;
     flex-direction: column;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out, bottom 0.25s ease-out;
     overflow: hidden; /* Constrains scrolling to child elements */
 }
 

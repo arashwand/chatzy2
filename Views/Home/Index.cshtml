@@ -406,40 +406,25 @@
             document.body.classList.add('ios-device');
             console.log('iOS device detected. Applied ios-device class to body.');
 
-            // --- iOS Visual Viewport API for Keyboard Handling ---
-            const messageInput = document.getElementById('message-input');
-            const messagesPanel = document.querySelector('.messages-panel');
-            const chatContent = document.getElementById('chat_content');
+            // --- New iOS Visual Viewport API for Keyboard Handling ---
+            const chatPanel = document.getElementById('chat-details-panel');
+            if (chatPanel && window.visualViewport) {
+                const initialHeight = window.innerHeight;
 
-            if (messageInput && messagesPanel && window.visualViewport) {
-                const movePanel = () => {
-                    const viewportHeight = window.innerHeight;
-                    const visualViewportHeight = window.visualViewport.height;
-                    const offset = viewportHeight - visualViewportHeight;
+                const viewportHandler = () => {
+                    const newHeight = window.visualViewport.height;
+                    const keyboardHeight = initialHeight - newHeight;
 
-                    if (offset > 0) {
-                        // Move the panel up by the keyboard's height
-                        messagesPanel.style.transform = `translateY(-${offset}px)`;
-                        // Adjust padding to prevent messages from being hidden
-                        chatContent.style.paddingBottom = `${offset + messagesPanel.offsetHeight}px`;
+                    if (keyboardHeight > 0) {
+                        // Keyboard is visible, move the entire panel up
+                        chatPanel.style.bottom = `${keyboardHeight}px`;
                     } else {
-                        // Keyboard is closed
-                        messagesPanel.style.transform = 'translateY(0)';
-                        chatContent.style.paddingBottom = `${messagesPanel.offsetHeight}px`;
+                        // Keyboard is hidden
+                        chatPanel.style.bottom = '0';
                     }
                 };
 
-                messageInput.addEventListener('focus', () => setTimeout(movePanel, 250));
-                messageInput.addEventListener('blur', () => {
-                    messagesPanel.style.transform = 'translateY(0)';
-                    setTimeout(() => chatContent.style.paddingBottom = `${messagesPanel.offsetHeight}px`, 300);
-                });
-
-                window.visualViewport.addEventListener('resize', () => {
-                    if (document.activeElement === messageInput) {
-                        movePanel();
-                    }
-                });
+                window.visualViewport.addEventListener('resize', viewportHandler);
             }
         }
     </script>
