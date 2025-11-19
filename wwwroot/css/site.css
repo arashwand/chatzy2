@@ -1229,3 +1229,10 @@ body.ios-device .messages-panel {
 body.chat-panel-visible {
     overflow: hidden;
 }
+
+
+/* --- Aggressive iOS Horizontal Scroll Fix --- */
+body.ios-device #chat-details-panel.visible {
+    width: 100%;
+    overflow-x: hidden !important;
+}
