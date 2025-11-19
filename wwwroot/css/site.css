@@ -1209,3 +1209,7 @@ body:has(.chat-details-panel-container.visible) #chat_content {
     flex-grow: 1;
 }
 
+
+#chat_content {
+    overflow-y: auto;
+}

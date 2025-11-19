@@ -440,26 +440,10 @@
 
 <script>
     $(document).ready(function () {
-        // --- Dynamic Padding Adjustment ---
-        const messagesPanel = document.getElementById('messages-panel');
-        const chatContent = document.getElementById('chat_content');
-
-        const updatePadding = () => {
-            const panelHeight = messagesPanel.offsetHeight;
-            chatContent.style.paddingBottom = `${panelHeight}px`;
-            console.log(`Messages panel height: ${panelHeight}px. Chat content padding updated.`);
-        };
-
-        // Initial update
-        updatePadding();
-
-        // Update whenever the panel's size changes
-        const resizeObserver = new ResizeObserver(updatePadding);
-        resizeObserver.observe(messagesPanel);
-
         // A short delay to ensure the DOM is fully rendered
         setTimeout(function () {
             const lastReadMessageId = parseInt($('#lastReadMessageId').val(), 10);
+            const chatContent = document.getElementById('chat_content');
 
             if (lastReadMessageId > 0) {
                 const targetMessage = $(`#message-${lastReadMessageId}`);
