@@ -1209,7 +1209,8 @@ body {
     /* --- Main Chat Panel Container (Full Screen Overlay) --- */
     #chat-details-panel {
         position: fixed !important;
-        top: 0;
+        top: unset; /* Allow 'bottom' to control vertical position */
+        bottom: 0; /* Default position at the bottom */
         left: 0;
         width: 100%;
         height: 100%;
@@ -1232,7 +1233,6 @@ body {
         flex-direction: column;
         width: 100%;
         height: 100%;
-        overflow: hidden; /* Prevent internal elements from causing scroll */
     }
 
     /* --- Chat Header (Sticky) --- */

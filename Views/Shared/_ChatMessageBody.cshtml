@@ -407,7 +407,6 @@
             <button class="emoji-btn border border-0 bg-white" data-emoji="💯">💯</button>
         </div>
     </div>
-    
     <!-- فرم اصلی ورود پیام -->
     <form onsubmit="return false;" class="message-form-container">
         <div id="text-input-area" class="message-inputarea">
@@ -432,6 +431,13 @@
         <input type="hidden" id="deletUploadedFileIds" name="deletUploadedFileIds">
         <input type="hidden" id="message-context-id" value="">
         <input type="hidden" id="message-action-type" value="">
+
+        <!-- Debug Inputs for iOS Keyboard -->
+        <div id="debug-info" style="display: flex; gap: 5px; padding: 5px; background: #eee; font-size: 10px;">
+            <input type="text" id="debug-initial-height" placeholder="Initial Height" readonly style="width:100px;">
+            <input type="text" id="debug-keyboard-height" placeholder="Keyboard Height" readonly style="width:100px;">
+            <input type="text" id="debug-final-bottom" placeholder="Final Bottom" readonly style="width:100px;">
+        </div>
     </form>
    
 </div>

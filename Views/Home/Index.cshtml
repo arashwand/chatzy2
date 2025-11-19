@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Home Page";
     Layout = "~/Views/Shared/_ChatzyLayout.cshtml";
 }
@@ -346,23 +346,38 @@
             document.body.classList.add('ios-device');
         }
 
-        // --- Modern iOS Keyboard Fix using visualViewport ---
+        // --- New iOS Keyboard Fix with Debugging ---
         if (isIOS && window.visualViewport) {
             const chatPanel = document.getElementById('chat-details-panel');
-            const initialHeight = window.innerHeight;
+            let initialHeight = window.innerHeight;
 
             const viewportHandler = () => {
-                const newHeight = window.visualViewport.height;
-                // Calculate keyboard height, considering it only when it's significant
-                const keyboardHeight = (initialHeight - newHeight) > 100 ? (initialHeight - newHeight) : 0;
+                // Ensure debug fields are available within the chat panel
+                const debugInitialHeight = document.getElementById('debug-initial-height');
+                const debugKeyboardHeight = document.getElementById('debug-keyboard-height');
+                const debugFinalBottom = document.getElementById('debug-final-bottom');
 
-                // Move the panel up by the keyboard height
-                chatPanel.style.transform = `translateY(-${keyboardHeight}px)`;
-                // Also adjust height to prevent visual glitches
-                chatPanel.style.height = `${newHeight}px`;
+                const newHeight = window.visualViewport.height;
+                const keyboardHeight = (initialHeight - newHeight) > 50 ? (initialHeight - newHeight) : 0;
+
+                if (debugInitialHeight) debugInitialHeight.value = `InitialH: ${initialHeight.toFixed(0)}`;
+                if (debugKeyboardHeight) debugKeyboardHeight.value = `KeyboardH: ${keyboardHeight.toFixed(0)}`;
+
+                const newBottom = keyboardHeight;
+                chatPanel.style.bottom = `${newBottom}px`;
+
+                if (debugFinalBottom) debugFinalBottom.value = `PanelB: ${newBottom.toFixed(0)}`;
             };
+
+            // Re-evaluate initialHeight when an input is focused, before the keyboard appears
+            document.addEventListener('focusin', (e) => {
+                if(e.target.matches('#message-input, .message-input')) {
+                    initialHeight = window.innerHeight;
+                }
+            });
 
             window.visualViewport.addEventListener('resize', viewportHandler);
         }
+
     </script>
 }
