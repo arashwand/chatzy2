@@ -191,10 +191,7 @@
 
             // When a chat is selected
             window.GetSelectedChatMessages = function(chatId, groupType,lastReadMessageId) {
-                console.log("chatId selected = " + chatId + " and groupType : " + groupType);
                 ChatActivated(chatId, groupType);
-                //var lastReadMessageId = $(this).closest('#LastReadMessageIdOnChatList').val();
-                console.log('select chat and get closest id : LastReadMessageIdOnChatList value is : ' + lastReadMessageId);
                 $.ajax({
                     url: '/Home/GetChatMessages',
                     type: 'GET',
@@ -215,7 +212,7 @@
                         $('.hide-on-chat-select').addClass('hidden');
                     },
                     error: function (error) {
-                        console.error("Error fetching chat messages:", error);
+                        // console.error("Error fetching chat messages:", error);
                     }
                 });
             };
@@ -236,7 +233,7 @@
                         $('.hide-on-chat-select').addClass('hidden');
                     },
                     error: function (error) {
-                        console.error("Error fetching saved messages:", error);
+                        // console.error("Error fetching saved messages:", error);
                     }
                 });
             };
@@ -277,13 +274,12 @@
                 type: 'GET',
                 success: function (data) {
                     $('#chatContactTab').html(data);
-                    console.log("Class groups for user on loaded");
                     if (typeof init_iconsax === 'function') {
                        init_iconsax();
                     }
                 },
                 error: function (error) {
-                    console.error("Error fetching class groups:", error);
+                    // console.error("Error fetching class groups:", error);
                 }
             });
         };
@@ -291,13 +287,10 @@
         var chatSelectedTitle = "";
 
         function ChatActivated(chatId, groupType) {
-             console.log(`chat Id and group type is : ${chatId} and ${groupType}`);
              var selectedChat = $(`#${groupType}_${chatId}`);
 
              chatSelectedTitle = selectedChat.find('.name').text();
-             console.log('---------------------------------------------------------------------------------' + chatSelectedTitle);
              
-
              const selectedChatId = `${groupType}_${chatId}`
              if(selectedChat.length) {
                  const chatItemsBody = $('#chatContactTab');
@@ -331,7 +324,7 @@
                      }
                  },
                  error: function (error) {
-                     console.error("Error fetching chat members:", error);
+                     // console.error("Error fetching chat members:", error);
                  }
              });
         }
@@ -356,7 +349,6 @@
             const setPanelHeight = () => {
                 const newHeight = window.innerHeight;
                 chatPanel.css('height', `${newHeight}px`);
-                console.log(`Chat panel height set to: ${newHeight}px`);
 
                 const chatContent = $('#chat_content');
                 if (chatContent.length) {
@@ -371,7 +363,6 @@
 
         function cleanupChatLayout() {
             $(window).off('resize.chatLayout');
-            console.log('Chat layout resize listener removed.');
         }
 
         const observer = new MutationObserver(function (mutations) {
@@ -386,10 +377,8 @@
 
                 if (chatPanel && chatPanel.length) {
                     if (chatPanel.hasClass('visible')) {
-                        console.log('Chat panel became visible. Attaching layout adjuster.');
                         adjustChatLayout();
                     } else {
-                        console.log('Chat panel is hidden. Cleaning up.');
                         cleanupChatLayout();
                     }
                 }
@@ -404,27 +393,27 @@
         const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
             document.body.classList.add('ios-device');
-            console.log('iOS device detected. Applied ios-device class to body.');
 
-            // --- New iOS Visual Viewport API for Keyboard Handling ---
+            // --- Aggressive iOS Visual Viewport API for Keyboard Handling ---
             const chatPanel = document.getElementById('chat-details-panel');
             if (chatPanel && window.visualViewport) {
                 const initialHeight = window.innerHeight;
 
-                const viewportHandler = () => {
+                const updatePanelPosition = () => {
                     const newHeight = window.visualViewport.height;
-                    const keyboardHeight = initialHeight - newHeight;
+                    // Use a small threshold to avoid minor resize fluctuations
+                    const keyboardHeight = (initialHeight - newHeight) > 100 ? (initialHeight - newHeight) : 0;
 
-                    if (keyboardHeight > 0) {
-                        // Keyboard is visible, move the entire panel up
-                        chatPanel.style.bottom = `${keyboardHeight}px`;
-                    } else {
-                        // Keyboard is hidden
-                        chatPanel.style.bottom = '0';
-                    }
+                    chatPanel.style.bottom = `${keyboardHeight}px`;
                 };
 
-                window.visualViewport.addEventListener('resize', viewportHandler);
+                // Listen for any focus event to immediately check keyboard state
+                document.addEventListener('focusin', () => {
+                    // Short delay to allow viewport to update after focus
+                    setTimeout(updatePanelPosition, 250);
+                });
+
+                window.visualViewport.addEventListener('resize', updatePanelPosition);
             }
         }
     </script>

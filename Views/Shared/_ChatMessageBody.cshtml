@@ -440,6 +440,33 @@
 
 <script>
     $(document).ready(function () {
+        // --- Dynamic Height Management for Messages Panel ---
+        const messagesPanel = document.getElementById('messages-panel');
+        const actionBannersContainer = document.getElementById('action-banners-container-inner');
+        const filePreviewContainer = document.getElementById('filePreviewContainer');
+
+        function updateMessagesPanelHeight() {
+            const replyBannerVisible = $('#reply-to-container').is(':visible');
+            const editBannerVisible = !$('#cancel-edit-container').hasClass('force-hide');
+            const filePreviewVisible = $(filePreviewContainer).is(':visible');
+
+            if (replyBannerVisible || editBannerVisible || filePreviewVisible) {
+                $(messagesPanel).removeClass('panel-height-default').addClass('panel-height-auto');
+            } else {
+                $(messagesPanel).removeClass('panel-height-auto').addClass('panel-height-default');
+            }
+        }
+
+        // Initial check
+        updateMessagesPanelHeight();
+
+        // Observe for changes in banners
+        const observer = new MutationObserver(updateMessagesPanelHeight);
+        const config = { attributes: true, childList: true, subtree: true };
+        observer.observe(actionBannersContainer, config);
+        observer.observe(filePreviewContainer, config);
+
+
         // A short delay to ensure the DOM is fully rendered
         setTimeout(function () {
             const lastReadMessageId = parseInt($('#lastReadMessageId').val(), 10);
@@ -450,14 +477,12 @@
                 if (targetMessage.length) {
                     // Scroll to the target message
                     chatContent.scrollTop = targetMessage.offset().top - $(chatContent).offset().top + chatContent.scrollTop;
-                    console.log(`Scrolled to last read message: ${lastReadMessageId}`);
                 } else {
                     // If the message is not found, scroll to the bottom
                     const chatFinished = $('#chat-finished');
                     if (chatFinished.length) {
                         chatFinished[0].scrollIntoView({ behavior: 'auto', block: 'end' });
                     }
-                    console.log(`Last read message ${lastReadMessageId} not found. Scrolling to bottom.`);
                 }
             } else {
                 // If there are no unread messages, scroll to the bottom
@@ -465,7 +490,6 @@
                 if (chatFinished.length) {
                     chatFinished[0].scrollIntoView({ behavior: 'auto', block: 'end' });
                 }
-                console.log("No last read message ID. Scrolling to bottom.");
             }
 
             // Scroll pinned messages container to the bottom

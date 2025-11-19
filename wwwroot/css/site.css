@@ -1236,3 +1236,23 @@ body.ios-device #chat-details-panel.visible {
     width: 100%;
     overflow-x: hidden !important;
 }
+
+
+/* --- Sticky Header and Sizing Fixes --- */
+#header-chat {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1; /* Ensure header stays above chat content */
+}
+
+/* Height is now managed by JS-toggled classes */
+
+
+/* --- Dynamic Height Classes for Messages Panel --- */
+.panel-height-default {
+    height: 65px !important;
+}
+
+.panel-height-auto {
+    height: auto !important;
+}
