@@ -6,6 +6,7 @@
 body {
     font-family: 'Vazir', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+    height: 100vh;
 }
 
 /* --- General Chat Area Styling --- */
@@ -960,21 +961,9 @@ body {
 /* ========================================================= */
 
 .messages-panel {
-    position: fixed;
-    bottom: 0; /* پنل را در پایین صفحه ثابت نگه می‌دارد */
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    flex-shrink: 0; /* Prevent the panel from shrinking */
     background-color: #f0f2f5;
     box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
-    max-height: calc(var(--vh, 1vh) * 80);
-    overflow-y: auto;
-    height: auto;
-    padding-bottom: env(safe-area-inset-bottom);
-    transition: transform 0.25s ease-out;
 }
 
 /* Action banners داخل messages-panel با order: -1 برای قرار گرفتن در بالا */
@@ -1209,36 +1198,23 @@ body {
     display: none;
 }
 
-/* ========================================================= */
-/*      iOS-Specific Fixes for Messages Panel               */
-/* ========================================================= */
-
-/* کلاس ویژه برای دستگاه‌های iOS که توسط JavaScript اضافه می‌شود */
-body.ios-device .messages-panel {
-    /* اطمینان از نمایش کامل پنل با استفاده از viewport units */
-    padding-bottom: max(env(safe-area-inset-bottom), 20px);
-}
-
-/* تنظیم chat_content برای iOS تا فضای کافی برای messages-panel بماند */
-body.ios-device #chat_content {
-    padding-bottom: var(--messages-panel-height, 200px);
-    margin-bottom: 20px;
-}
-
-/* اطمینان از نمایش صحیح message-inputarea در iOS */
-body.ios-device .message-inputarea {
-    background: white !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-/* تنظیمات اضافی برای action-banners-container در iOS */
-body.ios-device .action-banners-container {
-    /* اطمینان از قرارگیری صحیح بالای messages-panel */
-    padding-bottom: env(safe-area-inset-bottom, 0);
+/* Dynamically adjust padding based on the actual height of the messages panel */
+body:has(.chat-details-panel-container.visible) #chat_content {
+    padding-bottom: var(--messages-panel-height, 120px);
 }
 
 /* کلاس برای مخفی کردن عناصر هنگام انتخاب چت */
 .hidden {
     display: none;
 }
+.chat-flex-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+
+#chat_content {
+    flex-grow: 1;
+}
+

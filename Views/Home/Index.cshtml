@@ -326,83 +326,57 @@
             }, 300);
         });
 
-        const ua = navigator.userAgent || '';
-        const isAndroid = /Android/i.test(ua);
-        // شرط دوم برای شناسایی iPad های جدید است
-        //const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        // --- Mobile Keyboard Layout Fix ---
+        function adjustChatLayout() {
+            const chatPanel = $('#chat-details-panel');
+            if (!chatPanel.length || !chatPanel.hasClass('visible')) {
+                return;
+            }
 
-        // --- مدیریت کیبورد برای اندروید ---
-        if (isAndroid) {
-            console.log("Android detected. Applying standard scroll-into-view.");
-            $(document).on("focus", "#message-input", function() {
-                setTimeout(() => {
-                    // برای اندروید، اسکرول کردن به پایین معمولاً کافی است
-                    window.scrollTo(0, document.body.scrollHeight);
-                    this.scrollIntoView({ block: "center", behavior: "smooth" });
-                }, 300); // یک تأخیر کوچک برای اطمینان از بالا آمدن کیبورد
-            });
-        
+            const setPanelHeight = () => {
+                const newHeight = window.innerHeight;
+                chatPanel.css('height', `${newHeight}px`);
+                console.log(`Chat panel height set to: ${newHeight}px`);
 
-            // --- Mobile Keyboard Layout Fix ---
-            function adjustChatLayout() {
-                const chatPanel = $('#chat-details-panel');
-                if (!chatPanel.length || !chatPanel.hasClass('visible')) {
-                    return;
+                const chatContent = $('#chat_content');
+                if (chatContent.length) {
+                    chatContent.scrollTop(chatContent.prop("scrollHeight"));
+                }
+            };
+
+            setPanelHeight(); // Initial adjustment
+
+            $(window).on('resize.chatLayout', setPanelHeight);
+        }
+
+        function cleanupChatLayout() {
+            $(window).off('resize.chatLayout');
+            console.log('Chat layout resize listener removed.');
+        }
+
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                // Check if the #chat-details-panel itself changed or was added
+                let chatPanel = null;
+                if ($(mutation.target).is('#chat-details-panel')) {
+                    chatPanel = $(mutation.target);
+                } else if (mutation.addedNodes.length) {
+                    chatPanel = $(mutation.addedNodes).find('#chat-details-panel').addBack('#chat-details-panel');
                 }
 
-                const initialHeight = window.innerHeight;
-                chatPanel.css('height', `${initialHeight}px`);
-                console.log(`Chat panel height set to: ${initialHeight}px`);
-
-                // Adjust on keyboard show/hide
-                $(window).on('resize.chatLayout', function () {
-                    const newHeight = window.innerHeight;
-                    chatPanel.css('height', `${newHeight}px`);
-                    console.log(`Chat panel resized to: ${newHeight}px`);
-                    // Scroll to the bottom of the messages
-                    const chatContent = $('#chat_content');
-                    if (chatContent.length) {
-                        chatContent.scrollTop(chatContent.prop("scrollHeight"));
+                if (chatPanel && chatPanel.length) {
+                    if (chatPanel.hasClass('visible')) {
+                        console.log('Chat panel became visible. Attaching layout adjuster.');
+                        adjustChatLayout();
+                    } else {
+                        console.log('Chat panel is hidden. Cleaning up.');
+                        cleanupChatLayout();
                     }
-                });
-            }
-
-            // Detach the listener when the panel is closed
-            function cleanupChatLayout() {
-                $(window).off('resize.chatLayout');
-                console.log('Chat layout resize listener removed.');
-            }
-
-            // Observe the body for when the chat panel is added and made visible
-            const observer = new MutationObserver(function (mutations) {
-                mutations.forEach(function (mutation) {
-                    if (mutation.addedNodes.length) {
-                        const chatPanel = $(mutation.addedNodes).find('#chat-details-panel').addBack('#chat-details-panel');
-                        if (chatPanel.length && chatPanel.hasClass('visible')) {
-                            console.log('Chat panel is now visible. Attaching layout adjuster.');
-                            adjustChatLayout();
-                        }
-                    }
-                    // Also check for attribute changes (like the 'visible' class)
-                    if (mutation.type === 'attributes' && $(mutation.target).is('#chat-details-panel')) {
-                        const chatPanel = $(mutation.target);
-                        if (chatPanel.hasClass('visible')) {
-                            console.log('Chat panel became visible. Attaching layout adjuster.');
-                            adjustChatLayout();
-                        } else {
-                            console.log('Chat panel is hidden. Cleaning up.');
-                            cleanupChatLayout();
-                        }
-                    }
-                });
+                }
             });
+        });
 
-            // Start observing the main content body for changes
-            const config = { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] };
-            const targetNode = document.getElementById('main-content-body');
-            // We need to observe a parent that is always present.
-            // Let's observe the body itself for the #chat-details-panel.
-            observer.observe(document.body, config);
-        }
+        const config = { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] };
+        observer.observe(document.body, config);
     </script>
 }

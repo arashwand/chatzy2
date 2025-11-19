@@ -30,6 +30,7 @@
 <input type="hidden" id="current-group-id-hidden-input" value="@classGroupId" />
 <input type="hidden" id="current-group-type-hidden-input" value="@chatType" />
 
+<div class="chat-flex-container">
 <!-- header starts -->
 <header id="header-chat" class="section-t-space main-header inner-page-header" style="padding-top:15px;">
     <div class="custom-container">
@@ -435,64 +436,39 @@
    
 </div>
 <!--  message input section end -->
+</div>
 
 <script>
     $(document).ready(function () {
-        // تشخیص iOS و اضافه کردن کلاس به body
-        const ua = navigator.userAgent || '';
-        const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        
-        if (isIOS) {
-            document.body.classList.add('ios-device');
-            console.log('iOS device detected. Applied ios-device class to body.');
-        }
-
-        // تابع برای به‌روزرسانی ارتفاع پنل
-        function updatePanelHeight() {
-            const messagesPanel = document.getElementById('messages-panel');
-            
-            if (messagesPanel) {
-                const panelHeight = messagesPanel.offsetHeight;
-                document.documentElement.style.setProperty('--messages-panel-height', `${panelHeight}px`);
-                console.log(`Panel height set to: ${panelHeight}px`);
-            }
-        }
-
-        // فراخوانی اولیه
-        updatePanelHeight();
-
-        // به‌روزرسانی هنگام تغییر اندازه پنل
-        const resizeObserver = new ResizeObserver(updatePanelHeight);
+        // --- Dynamic Padding Adjustment ---
         const messagesPanel = document.getElementById('messages-panel');
-        if (messagesPanel) {
-            resizeObserver.observe(messagesPanel);
-        }
+        const chatContent = document.getElementById('chat_content');
 
-        // به‌روزرسانی هنگام نمایش/مخفی کردن بنرها
-        const observer = new MutationObserver(updatePanelHeight);
-        const actionBannersInner = document.getElementById('action-banners-container-inner');
-        if (actionBannersInner) {
-            observer.observe(actionBannersInner, {
-                attributes: true,
-                childList: true,
-                subtree: true,
-                attributeFilter: ['style', 'class']
-            });
-        }
+        const updatePadding = () => {
+            const panelHeight = messagesPanel.offsetHeight;
+            chatContent.style.paddingBottom = `${panelHeight}px`;
+            console.log(`Messages panel height: ${panelHeight}px. Chat content padding updated.`);
+        };
 
-        // تاخیر کوتاهی برای اطمینان از رندر شدن کامل DOM
+        // Initial update
+        updatePadding();
+
+        // Update whenever the panel's size changes
+        const resizeObserver = new ResizeObserver(updatePadding);
+        resizeObserver.observe(messagesPanel);
+
+        // A short delay to ensure the DOM is fully rendered
         setTimeout(function () {
             const lastReadMessageId = parseInt($('#lastReadMessageId').val(), 10);
-            const chatContent = $('#chat_content');
 
             if (lastReadMessageId > 0) {
                 const targetMessage = $(`#message-${lastReadMessageId}`);
                 if (targetMessage.length) {
-                    // اسکرول به پیام مورد نظر
-                    chatContent.scrollTop(targetMessage.offset().top - chatContent.offset().top + chatContent.scrollTop());
+                    // Scroll to the target message
+                    chatContent.scrollTop = targetMessage.offset().top - $(chatContent).offset().top + chatContent.scrollTop;
                     console.log(`Scrolled to last read message: ${lastReadMessageId}`);
                 } else {
-                    // اگر پیام مورد نظر پیدا نشد، به آخرین پیام اسکرول کن
+                    // If the message is not found, scroll to the bottom
                     const chatFinished = $('#chat-finished');
                     if (chatFinished.length) {
                         chatFinished[0].scrollIntoView({ behavior: 'auto', block: 'end' });
@@ -500,7 +476,7 @@
                     console.log(`Last read message ${lastReadMessageId} not found. Scrolling to bottom.`);
                 }
             } else {
-                // اگر هیچ پیام خوانده نشده‌ای نبود، به آخرین پیام اسکرول کن
+                // If there are no unread messages, scroll to the bottom
                 const chatFinished = $('#chat-finished');
                 if (chatFinished.length) {
                     chatFinished[0].scrollIntoView({ behavior: 'auto', block: 'end' });
@@ -508,90 +484,13 @@
                 console.log("No last read message ID. Scrolling to bottom.");
             }
 
-            // اسکرول pinned messages container به پایین برای نمایش جدیدترین
+            // Scroll pinned messages container to the bottom
             const pinnedContainer = $('.pinned-messages-container');
             if (pinnedContainer.length) {
                 pinnedContainer.scrollTop(pinnedContainer[0].scrollHeight);
             }
         }, 100);
-
-        const isAndroid = /Android/i.test(ua);
-
-        // --- مدیریت کیبورد برای iOS با Visual Viewport API ---
-        if (isIOS) {
-            console.log("iOS detected. Applying Visual Viewport API handler.");
-
-            const messageInput = document.getElementById('message-input');
-            const messagesPanel = document.querySelector('.messages-panel');
-            const chatContent = document.getElementById('chat_content');
-
-            if (messageInput && messagesPanel && window.visualViewport) {
-                
-                // تابعی برای جابجایی پنل ورودی و اسکرول محتوای چت
-                const movePanel = () => {
-                    const viewportHeight = window.innerHeight; 
-                    const visualViewportHeight = window.visualViewport.height;
-                    const offset = viewportHeight - visualViewportHeight;
-
-                    if (offset > 0) {
-                        // پنل را به اندازه ارتفاع کیبورد به بالا منتقل کن
-                        messagesPanel.style.transform = `translateY(-${offset}px)`;
-                        console.log(`iOS: Adjusted messages-panel position to: -${offset}px`);
-                        
-                        // به‌روزرسانی ارتفاع و اسکرول چت به پایین
-                        updatePanelHeight();
-                        
-                        // اسکرول محتوای چت به پایین
-                        if (chatContent) {
-                            setTimeout(() => {
-                                chatContent.scrollTop = chatContent.scrollHeight;
-                                console.log('iOS: Scrolled chat content to bottom');
-                            }, 100);
-                        }
-                    } else {
-                        // کیبورد بسته است
-                        messagesPanel.style.transform = 'translateY(0)';
-                    }
-                };
-                
-                // هنگامی که کاربر روی اینپوت کلیک می‌کند
-                messageInput.addEventListener('focus', () => {
-                    console.log('iOS: Input focused');
-                    setTimeout(movePanel, 250);
-                });
-
-                // هنگامی که کاربر از اینپوت خارج می‌شود (کیبورد بسته می‌شود)
-                messageInput.addEventListener('blur', () => {
-                    console.log('iOS: Input blurred');
-                    messagesPanel.style.transform = 'translateY(0)';
-                    setTimeout(updatePanelHeight, 300);
-                });
-
-                // این رویداد تغییرات در ابعاد بخش قابل مشاهده را تشخیص می‌دهد
-                window.visualViewport.addEventListener('resize', () => {
-                    if (document.activeElement === messageInput) {
-                        console.log('iOS: Visual viewport resized while input focused');
-                        movePanel();
-                    }
-                });
-
-                // لیسنر اضافی برای scroll
-                window.visualViewport.addEventListener('scroll', () => {
-                    if (document.activeElement === messageInput) {
-                        console.log('iOS: Visual viewport scrolled while input focused');
-                        // جلوگیری از scroll ناخواسته
-                        window.visualViewport.scrollTo(0, 0);
-                    }
-                });
-
-            } else {
-                console.warn("Visual Viewport API not supported or required elements not found.");
-            }
-        }
-
     });
-
-    
 </script>
 
 
