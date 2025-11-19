@@ -198,7 +198,7 @@
                     data: { chatId: chatId, groupType: groupType, messageId: lastReadMessageId },
                     success: function (data) {
                         history.pushState({ chatOpen: true }, ''); // Add history state for back button
-                        $('body').addClass('chat-panel-visible'); // Lock body scroll
+                        $('html, body').addClass('scroll-lock'); // Lock scroll
                         $('#chat-details-panel').html(data).addClass('visible');
 
                         window.chatApp.reAttachScrollListener();
@@ -223,7 +223,7 @@
                     url: '/Home/GetSaveMessages',
                     type: 'GET',
                     success: function (data) {
-                        $('body').addClass('chat-panel-visible'); // Lock body scroll
+                        $('html, body').addClass('scroll-lock'); // Lock scroll
                         $('#chat-details-panel').html(data).addClass('visible');
 
                         if (typeof init_iconsax === 'function') {
@@ -239,7 +239,7 @@
             };
 
             function closeChatPanel() {
-                $('body').removeClass('chat-panel-visible'); // Unlock body scroll
+                $('html, body').removeClass('scroll-lock'); // Unlock scroll
                 $('#chat-details-panel').removeClass('visible');
                 // Optional: clear content after animation
                 setTimeout(function () {
@@ -393,28 +393,6 @@
         const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
             document.body.classList.add('ios-device');
-
-            // --- Aggressive iOS Visual Viewport API for Keyboard Handling ---
-            const chatPanel = document.getElementById('chat-details-panel');
-            if (chatPanel && window.visualViewport) {
-                const initialHeight = window.innerHeight;
-
-                const updatePanelPosition = () => {
-                    const newHeight = window.visualViewport.height;
-                    // Use a small threshold to avoid minor resize fluctuations
-                    const keyboardHeight = (initialHeight - newHeight) > 100 ? (initialHeight - newHeight) : 0;
-
-                    chatPanel.style.bottom = `${keyboardHeight}px`;
-                };
-
-                // Listen for any focus event to immediately check keyboard state
-                document.addEventListener('focusin', () => {
-                    // Short delay to allow viewport to update after focus
-                    setTimeout(updatePanelPosition, 250);
-                });
-
-                window.visualViewport.addEventListener('resize', updatePanelPosition);
-            }
         }
     </script>
 }

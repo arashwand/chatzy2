@@ -440,31 +440,19 @@
 
 <script>
     $(document).ready(function () {
-        // --- Dynamic Height Management for Messages Panel ---
-        const messagesPanel = document.getElementById('messages-panel');
-        const actionBannersContainer = document.getElementById('action-banners-container-inner');
-        const filePreviewContainer = document.getElementById('filePreviewContainer');
+        // --- iOS Keyboard Handling via Padding ---
+        if (document.body.classList.contains('ios-device') && window.visualViewport) {
+            const chatFlexContainer = document.querySelector('.chat-flex-container');
+            const initialHeight = window.innerHeight;
 
-        function updateMessagesPanelHeight() {
-            const replyBannerVisible = $('#reply-to-container').is(':visible');
-            const editBannerVisible = !$('#cancel-edit-container').hasClass('force-hide');
-            const filePreviewVisible = $(filePreviewContainer).is(':visible');
+            const viewportHandler = () => {
+                const newHeight = window.visualViewport.height;
+                const keyboardHeight = (initialHeight - newHeight) > 100 ? (initialHeight - newHeight) : 0;
+                chatFlexContainer.style.paddingBottom = `${keyboardHeight}px`;
+            };
 
-            if (replyBannerVisible || editBannerVisible || filePreviewVisible) {
-                $(messagesPanel).removeClass('panel-height-default').addClass('panel-height-auto');
-            } else {
-                $(messagesPanel).removeClass('panel-height-auto').addClass('panel-height-default');
-            }
+            window.visualViewport.addEventListener('resize', viewportHandler);
         }
-
-        // Initial check
-        updateMessagesPanelHeight();
-
-        // Observe for changes in banners
-        const observer = new MutationObserver(updateMessagesPanelHeight);
-        const config = { attributes: true, childList: true, subtree: true };
-        observer.observe(actionBannersContainer, config);
-        observer.observe(filePreviewContainer, config);
 
 
         // A short delay to ensure the DOM is fully rendered

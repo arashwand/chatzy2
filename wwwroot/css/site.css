@@ -1189,10 +1189,7 @@ body {
     display: none;
 }
 
-/* Dynamically adjust padding based on the actual height of the messages panel */
-body:has(.chat-details-panel-container.visible) #chat_content {
-    padding-bottom: var(--messages-panel-height, 120px);
-}
+/* Dead CSS rule removed */
 
 /* کلاس برای مخفی کردن عناصر هنگام انتخاب چت */
 .hidden {
@@ -1248,11 +1245,18 @@ body.ios-device #chat-details-panel.visible {
 /* Height is now managed by JS-toggled classes */
 
 
-/* --- Dynamic Height Classes for Messages Panel --- */
-.panel-height-default {
-    height: 65px !important;
+/* --- Messages Panel Sizing --- */
+.messages-panel {
+    height: auto;
+    max-height: 250px; /* Prevent panel from getting excessively large */
 }
 
-.panel-height-auto {
-    height: auto !important;
+
+/* --- Aggressive Scroll Lock for Modal View --- */
+html.scroll-lock,
+body.scroll-lock {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100%;
+    height: 100%;
 }
