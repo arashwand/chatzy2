@@ -85,6 +85,33 @@ namespace Messenger.WebApp.ServiceHelper
             }
         }
 
+
+        public async Task<IEnumerable<MessageDto>> GetChatPinnedMessagesAsync(int classId, string chatType, int pageSize)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync(
+                $"api/messages/chatpinned/{classId}?chatType={chatType}&pageSize={pageSize}");
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadFromJsonAsync<IEnumerable<MessageDto>>() ?? new List<MessageDto>();
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError(httpEx, "HTTP error fetching class group messages for classId {classId}: {statusCode} {reason}", classId, httpEx.StatusCode, httpEx.Message);
+                throw;
+            }
+            catch (System.Text.Json.JsonException jsonEx)
+            {
+                _logger.LogError(jsonEx, "JSON deserialization error for class group messages classId {classId}", classId);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching class group messages for classId {classId}", classId);
+                throw;
+            }
+        }
+
         public async Task<long?> MarkMessageAsReadAsync(long messageId, long userId) // userId is kept for interface consistency, though not sent in this POST.
         {
             // The API endpoint is POST api/Messages/{messageId}/read and takes messageId from URL, userId from JWT.

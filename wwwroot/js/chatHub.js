@@ -25,6 +25,9 @@ window.chatApp = (function ($) {
     const HEARTBEAT_INTERVAL = 180 * 1000; // ارسال Heartbeat هر 90 ثانیه (90000 میلی‌ثانیه)
     let hasMoreMessages = true;
 
+    // متغیرهای جدید برای مدیریت بار اول لود
+    let isInitialLoad = true;
+    let isLoadingAroundMessage = false; // پرچم برای بارگذاری دور پیام هدف
 
     // =================================================
     //               PRIVATE METHODS
@@ -125,56 +128,133 @@ window.chatApp = (function ($) {
 
     // دریافت اطلاعات قدیمی تر جهت نمایش به کاربر
     let getOldDataRunning = false;// پرچم برای نشان دادن در حال بارگذاری است
-    function getOldData() {
+    function getOldData(targetMessageId = null, loadBothDirections = false) {
 
         console.log('hasMoreMessages : ' + hasMoreMessages + ' and getOldDataRunning is: ' + getOldDataRunning);
-        if (hasMoreMessages && !getOldDataRunning) {
+        console.log('targetMessageId: ' + targetMessageId + ', loadBothDirections: ' + loadBothDirections);
 
-            getOldDataRunning = true;
-            var lastmessageId = $('#lastMessageIdLoad').val();//قدیمی ترین پیام دریافت شده
-            if (lastmessageId == 0) {
+        if (getOldDataRunning) {
+            console.log('getOldData is already running');
+            return;
+        }
+
+        // اگر targetMessageId داریم، حول آن بارگذاری کن (نه فقط قدیمی‌ها)
+        if (targetMessageId && loadBothDirections) {
+            if (isLoadingAroundMessage) {
+                console.log('Already loading around a target message');
                 return;
             }
+            isLoadingAroundMessage = true;
+            getOldDataRunning = true;
 
-            console.log('last messageId is :' + lastmessageId);
             const chatId = parseInt($('#current-group-id-hidden-input').val());
             const currentGroupType = $('#current-group-type-hidden-input').val();
+
+            console.log(`Loading 50 messages around message ID: ${targetMessageId}`);
+
             $.ajax({
                 url: '/Home/GetOldMessage',
                 type: 'POST',
-                data: { chatId: chatId, groupType: currentGroupType, messageId: lastmessageId, loadOlder: true },
+                data: {
+                    chatId: chatId,
+                    groupType: currentGroupType,
+                    messageId: targetMessageId,
+                    loadOlder: false, // false = بارگذاری دور این پیام، نه فقط قدیمی‌ها
+                    loadBothDirections: true // 25 قدیمی + 25 جدید
+                },
                 success: function (response) {
-                    if (response.success) {
-                        // حالا که سرور همیشه 'data' را برمی‌گرداند، این کد همیشه امن است.
-                        if (response.data.length < 50) {
-                            hasMoreMessages = false;
-                        }
+                    if (response.success && response.data.length > 0) {
+                        console.log(`Loaded ${response.data.length} messages around target message`);
+                        
+                        // ابتدا تمام پیام‌ها را بارگذاری کن
+                        groupMessagesByDate(response.data);
 
-                        // فقط اگر داده‌ای برای نمایش وجود دارد، ادامه بده
-                        if (response.data.length > 0) {
-                            groupMessagesByDate(response.data);
-                            var lastMessageIdRecived = parseInt(response.lastMessageId);
-                            $('#lastMessageIdLoad').val(lastMessageIdRecived);
-                        }
-
-                        console.log('با موفقیت لود شد!');
+                        // سپس به پیام هدف اسکرول کن
+                        setTimeout(() => {
+                            const targetElement = $(`#message-${targetMessageId}`);
+                            if (targetElement.length) {
+                                const chatContent = $('#chat_content');
+                                const elementTop = targetElement.offset().top - chatContent.offset().top + chatContent.scrollTop();
+                                chatContent.scrollTop(elementTop - 100); // تا حدی بالاتر برای دیدن کامل
+                                
+                                // Highlight پیام هدف
+                                targetElement.addClass('highlight-message');
+                                setTimeout(() => {
+                                    targetElement.removeClass('highlight-message');
+                                }, 2000);
+                            }
+                        }, 100);
 
                     } else {
-                        console.log('خطا در فراخوانی پیامهای قبلی!: ' + response.message);
+                        console.log('No messages found around target message');
                     }
                 },
                 complete: function () {
                     getOldDataRunning = false;
+                    isLoadingAroundMessage = false;
                 },
-                error: function () {
-                    console.log('خطای ارتباط با سرور.');
+                error: function (xhr, status, error) {
+                    console.log('Error loading messages around target: ' + error);
+                    isLoadingAroundMessage = false;
                 }
             });
 
-        } else {
-            console.log('getDatarunning is on, or hasMoreMessages = false');
+            return; // از اجرای کد پایین‌تر جلوگیری کن
         }
 
+        // ---- کد اصلی برای بارگذاری قدیمی‌تر در حین اسکرول ----
+        if (!hasMoreMessages) {
+            console.log('No more messages to load');
+            return;
+        }
+
+        getOldDataRunning = true;
+        var lastmessageId = $('#lastMessageIdLoad').val();
+        
+        if (lastmessageId == 0) {
+            return;
+        }
+
+        console.log('last messageId is :' + lastmessageId);
+        const chatId = parseInt($('#current-group-id-hidden-input').val());
+        const currentGroupType = $('#current-group-type-hidden-input').val();
+
+        $.ajax({
+            url: '/Home/GetOldMessage',
+            type: 'POST',
+            data: {
+                chatId: chatId,
+                groupType: currentGroupType,
+                messageId: lastmessageId,
+                loadOlder: true, // true = فقط قدیمی‌تر
+                loadBothDirections: false
+            },
+            success: function (response) {
+                if (response.success) {
+                    
+                    if (response.data.length < 50) {
+                        hasMoreMessages = false;
+                    }
+
+                    if (response.data.length > 0) {
+                        groupMessagesByDate(response.data);
+                        var lastMessageIdRecived = parseInt(response.lastMessageId);
+                        $('#lastMessageIdLoad').val(lastMessageIdRecived);
+                    }
+
+                    console.log('Messages loaded successfully!');
+
+                } else {
+                    console.log('Error loading old messages: ' + response.message);
+                }
+            },
+            complete: function () {
+                getOldDataRunning = false;
+            },
+            error: function () {
+                console.log('Network error while loading messages.');
+            }
+        });
     }
 
     function formatDate(date) {
@@ -230,41 +310,59 @@ window.chatApp = (function ($) {
         const messageDetailsJson = message.jsonMessageDetails || makeJsonObjectForMessateDetails(message);
 
         let dropdownHtml = `
-            <div class="dropdown message-options">
-                <a class="btn" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <img src="/chatzy/assets/iconsax/menu-meatballs.svg" alt="menu" />
-                </a>
-            <div class="dropdown-menu">`;
+        <div class="dropdown message-options">
+            <a class="btn" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <img src="/chatzy/assets/iconsax/menu-meatballs.svg" alt="menu" />
+            </a>
+        <div class="dropdown-menu">`;
         if (isSelf) {
             dropdownHtml += `
-                             <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="${messageId}" href="#">
-                                <img src="/chatzy/assets/iconsax/edit.svg" class="svgInvertColor" alt="ویرایش" />&nbsp;
-                                 <span>ویرایش</span>
-                             </a>
-                            
+                         <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="${messageId}" href="#">
+                            <img src="/chatzy/assets/iconsax/edit.svg" class="svgInvertColor" alt="ویرایش" />&nbsp;
+                             <span>ویرایش</span>
+                         </a>
+                        
 
-                              <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="${messageId}" href="#">
-                                  <img src="/chatzy/assets/iconsax/trash.svg" />&nbsp;
-                                  <span>حذف</span>
-                              </a>`;
+                          <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="${messageId}" href="#">
+                              <img src="/chatzy/assets/iconsax/trash.svg" />&nbsp;
+                              <span>حذف</span>
+                          </a>`;
         }
         dropdownHtml += `<a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="${messageId}" href="#">
-                              <img src="/chatzy/assets/iconsax/redo-arrow.svg" class="svgInvertColor" />&nbsp;
-                              <span>پاسخ دادن</span>
-                          </a>
-                          <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="${messageId}" href="#">
-                              <img src="/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
-                              <span>ذخیره</span>
-                          </a>`;
+                          <img src="/chatzy/assets/iconsax/redo-arrow.svg" class="svgInvertColor" />&nbsp;
+                          <span>پاسخ دادن</span>
+                      </a>
+                      <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="${messageId}" href="#">
+                          <img src="/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
+                          <span>ذخیره</span>
+                      </a>`;
+
+        // Pin/unpin: only show when current user role is allowed
+        try {
+            const userRole = $('#userRoleName').val() || '';
+            const allowedRoles = ['Teacher', 'Personel', 'Manager'];
+            if (allowedRoles.includes(userRole)) {
+                const isPinned = !!message.isPin; // expects message.isPin (camelCase from server)
+                const pinText = isPinned ? 'لغو سنجاق' : 'سنجاق';
+                const pinIcon = '/chatzy/assets/iconsax/pin-1.svg';
+                dropdownHtml += `
+                <a class="dropdown-item d-flex align-items-center actionPinMessage" data-messageid="${messageId}" data-is-pinned="${isPinned ? 'true' : 'false'}" href="#" aria-label="Pin message">
+                    <img src="${pinIcon}" class="svgInvertColor" />&nbsp;
+                    <span class="pin-text">${pinText}</span>
+                </a>`;
+            }
+        } catch (err) {
+            console.warn('Error while determining user role for pin option:', err);
+        }
 
         dropdownHtml += `</div></div>`;
 
         let replyPreviewHtml = '';
         if (message.replyToMessageId && message.replyMessage) {
             replyPreviewHtml = `<div class="reply-preview border p-2 rounded bg-light mb-2" style="cursor:pointer;" onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
-                                    <div class="text-muted small">پاسخ به: <strong>${message.replyMessage.senderUserName}</strong></div>
-                                    <div class="text-truncate">${message.replyMessage.messageText || ''}</div>
-                                </div>`;
+                                <div class="text-muted small">پاسخ به: <strong>${message.replyMessage.senderUserName}</strong></div>
+                                <div class="text-truncate">${message.replyMessage.messageText || ''}</div>
+                            </div>`;
         }
 
         let filesHtml = '';
@@ -284,14 +382,14 @@ window.chatApp = (function ($) {
                 timingHtml += '🕒';
             } else {
                 timingHtml += `<img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: ${message.isReadByAnyRecipient ? "none" : "inline"};">
-                               <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: ${message.isReadByAnyRecipient ? "inline" : "none"};">`;
+                           <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: ${message.isReadByAnyRecipient ? "inline" : "none"};">`;
             }
         }
 
         if (!isSelf) {
             timingHtml += `<h6>${message.senderUserName}</h6>`;
         }
-        
+
         timingHtml += '</div>';
 
         let personImageHtml = '';
@@ -300,21 +398,20 @@ window.chatApp = (function ($) {
         }
 
         return `
-            <li class="message ${liClass}${systemClass}" id="${elementId}" data-message-id="${messageId}" data-client-id="${message.clientMessageId || ''}" data-sender-id="${message.senderUserId}" data-sender-username="${message.senderUserName}" data-message-details='${messageDetailsJson}'>
-                ${dropdownHtml}
-                <div class="message-box ${message.isReadByAnyRecipient ? "read" : ""}">
-                    ${personImageHtml}
-                    <div class="message-box-details">
-                        ${replyPreviewHtml}
-                        <h5>${messageTextHtml}${editedIndicator}</h5>
-                        ${filesHtml}
-                        ${timingHtml}
-                        ${senderName}
-                    </div>
+        <li class="message ${liClass}${systemClass}" id="${elementId}" data-message-id="${messageId}" data-client-id="${message.clientMessageId || ''}" data-sender-id="${message.senderUserId}" data-sender-username="${message.senderUserName}" data-message-details='${messageDetailsJson}' data-is-read="${message.isReadByAnyRecipient ? 'true' : 'false'}">
+            ${dropdownHtml}
+            <div class="message-box ${message.isReadByAnyRecipient ? "read" : ""}">
+                ${personImageHtml}
+                <div class="message-box-details">
+                    ${replyPreviewHtml}
+                    <h5>${messageTextHtml}${editedIndicator}</h5>
+                    ${filesHtml}
+                    ${timingHtml}
+                    ${senderName}
                 </div>
-            </li>`;
+            </div>
+        </li>`;
     }
-
 
     function createDisplayFileBody(file, isSelf, isReplyed = null) {
         const fileExtension = file.fileName.split('.').pop().toLowerCase();
@@ -389,15 +486,6 @@ window.chatApp = (function ($) {
                     </span>
             </div>`;
 
-            //const fileSize = formatFileSize(file.fileSize);
-            //fileHtml = `
-            //    <div class="col file-attachment-item" data-file-id="${file.messageFileId}" style="display: flex; flex-direction: column;">
-            //            <i class="fa fa-file-o fa-3x" aria-hidden="true"></i>
-            //            <span style="min-width:75px;" class="btn-download-file" data-file-id="${file.messageFileId}">
-            //                ${fileSize}
-            //                <i class="fa fa-download" style="cursor:pointer"></i>
-            //            </span>
-            //    </div>`;
         }
         return fileHtml;
     }
@@ -430,7 +518,6 @@ window.chatApp = (function ($) {
             console.log("Skipping checkVisibleMessages because MarkAllMessagesAsRead is in progress.");
             return;
         }
-
 
         const currentGroupIdForCheck = parseInt($('#current-group-id-hidden-input').val());
         const currentGroupTypeForCheck = $('#current-group-type-hidden-input').val();
@@ -468,11 +555,11 @@ window.chatApp = (function ($) {
             }
         };
 
-        if (specificMessageElement && specificMessageElement.length && specificMessageElement.attr('data-is-read') === 'false') {
+        if (specificMessageElement && specificMessageElement.length && specificMessageElement.attr('data-is-read') !== 'true') {
             processSingleMessage(specificMessageElement);
         } else if (!specificMessageElement) {
             // انتخاب پیام‌های خوانده‌نشده که از کاربر جاری نیستند
-            const unreadMessages = chatContent.find('.message[data-is-read="false"]').filter(function () {
+            const unreadMessages = chatContent.find('.message:not([data-is-read="true"])').filter(function () {
                 return $(this).data('sender-id') !== currentUser && typeof $(this).data('sender-id') !== 'undefined';
             });
 
@@ -836,20 +923,94 @@ window.chatApp = (function ($) {
         }
     }
 
-    // وقتی پیام توسط دیگران خوانده شد، اطلاعات خوانندگان را برای ارسال کننده بروزرسانی میکنه
-    function handleMessageReadByRecipient(messageId, senderUserId, readerFullName) {
-        console.log('handleMessageReadByRecipient messageId: ' + messageId + ' currentUser :' + currentUser + ' and senderUserId : ' + senderUserId);
+
+    // بروزرسانی وضعیت دیده شدن پیام با تعداد دیده‌ها
+    function handleMessageSeenUpdate(messageId, readerUserId, seenCount, readerFullName) {
+        console.log('handleMessageSeenUpdate called with messageId:', messageId, 'readerUserId:', readerUserId, 'seenCount:', seenCount, 'readerFullName:', readerFullName);
         const messageElement = $('#message-' + messageId);
         if (messageElement.length && messageElement.data('sender-id') == currentUser) {
-            const seenHtml = `<img width="15" src="/assets/media/icons/seen-green.svg" />`
-            messageElement.find('.message-status-ticks').html(seenHtml).attr('title', 'خوانده شده توسط ' + readerFullName);
-            // If you want to accumulate readers:
-            const currentTitle = messageElement.find('.message-status-ticks').attr('title') || 'خوانده شده توسط:';
-            if (!currentTitle.includes(readerFullName)) {
-                messageElement.find('.message-status-ticks').attr('title', currentTitle + ' ' + readerFullName);
+            if (seenCount > 0) {
+                const timingElement = messageElement.find('.timing');
+                timingElement.find('.tick').hide();
+                timingElement.find('.tick-all').show();
+                // بروزرسانی title با نام خواننده
+                const currentTitle = timingElement.attr('title') || 'خوانده شده توسط:';
+                if (!currentTitle.includes(readerFullName)) {
+                    timingElement.attr('title', currentTitle + ' ' + readerFullName);
+                }
             }
         }
     }
+
+    function handlerUpdatePinMessage(messageId, messageText, isPin) {
+        console.log('handlerUpdatePinMessage called with messageId:', messageId, 'isPin:', isPin);
+
+        const pinnedContainer = $('.pinned-messages-container');
+        const pinnedList = $('.pinned-messages-list');
+
+        // بررسی وجود کانتینر پیام‌های پین شده
+        if (!pinnedContainer.length || !pinnedList.length) {
+            console.warn('Pinned messages container not found!');
+            return;
+        }
+
+        if (isPin) {
+            // اگر پیام باید پین شود، آن را اضافه کن
+            // ابتدا متن پیام را از DOM پیدا کن
+            const messageElement = $(`#message-${messageId}`);
+            if (!messageElement.length) {
+                console.warn(`Message element not found for messageId: ${messageId}`);
+                return;
+            }
+
+
+            // بررسی کن که آیا این پیام قبلاً پین شده است
+            const existingItem = pinnedList.find(`.pinned-message-item[data-message-id="${messageId}"]`);
+            if (existingItem.length) {
+                console.log(`Message ${messageId} is already pinned.`);
+                return;
+            }
+
+            // ایجاد عنصر جدید برای پیام پین شده
+            const newPinnedItem = `
+                <li class="pinned-message-item" data-message-id="${messageId}" style="position: relative; padding-left: 20px; margin-bottom: 0; cursor: pointer;">
+                    <span class="borderPinMessage"></span>
+                    <span class="pinMessageText">${messageText}</span>
+                </li>
+            `;
+
+            // اضافه کردن عنصر جدید به لیست
+            pinnedList.append(newPinnedItem);
+            console.log(`Message ${messageId} added to pinned messages.`);
+
+            // نمایش کانتینر اگر پنهان بود
+            pinnedContainer.show();
+
+            // اسکرول به آخرین پیام پین شده
+            pinnedContainer.scrollTop(pinnedContainer[0].scrollHeight);
+
+        } else {
+            // اگر پیام باید از حالت پین خارج شود، آن را حذف کن
+            const pinnedItem = pinnedList.find(`.pinned-message-item[data-message-id="${messageId}"]`);
+            if (pinnedItem.length) {
+                // انیمیشن حذف
+                pinnedItem.fadeOut(300, function () {
+                    $(this).remove();
+
+                    // اگر دیگر پیام پین شده‌ای وجود نداشت، کانتینر را پنهان کن
+                    if (pinnedList.find('.pinned-message-item').length === 0) {
+                        pinnedContainer.fadeOut(300, function () {
+                            $(this).hide();
+                        });
+                    }
+                });
+                console.log(`Message ${messageId} removed from pinned messages.`);
+            } else {
+                console.warn(`Pinned message item not found for messageId: ${messageId}`);
+            }
+        }
+    }
+
 
     // وقتی پیام توسط یک فرد خوانده شد، پیام مورد نظر را بصورت خوانده شده تغیر میده و تعداد خوانده نشده را نیز اپدیت میکنه
     function handleMessageSuccessfullyMarkedAsRead(messageId, groupId, groupType, unreadCount) {
@@ -899,41 +1060,45 @@ window.chatApp = (function ($) {
     }
 
 
+    // ... کد موجود شما ...
+
     function handleDeleteMessage(messageId, result) {
         console.log('indide UserDeleteMessage ' + messageId + ' and result is :' + result);
         // نتیجه را پردازش میکنیم اگر موفق بود حذف میشود و اگر ناموفق بود به کاربر پیام نمایش داده میشود
         const messageElement = $('#message-' + messageId);
         if (result === true) {
             if (messageElement.length) {
-                // اضافه کردن transition به صورت مستقیم
-                messageElement.css('transition', 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out');
-
+                // اضافه کردن کلاس removing برای شروع انیمیشن
                 messageElement.addClass('removing');
+
+                // بعد از پایان انیمیشن (0.5 ثانیه)، عنصر را حذف کنید
                 setTimeout(() => {
                     messageElement.remove();
-                }, 400);
+                }, 500); // زمان باید با duration انیمیشن همخوانی داشته باشد
             }
         } else {
             console.log('result from hub to handleDeleteMessage has error')
         }
     }
 
-    function handleUserSaveMessage(messageId, result) {
-        console.log('result from hub to handleUserSaveMessage')
-        // نتیجه را پردازش میکنیم اگر موفق بود حذف میشود و اگر ناموفق بود به کاربر پیام نمایش داده میشود
-        const messageElement = $('#message-' + messageId);
-        if (result === true) {
-            console.log('result equal true')
-            if (messageElement.length) {
-                messageElement.addClass('removing');
-                setTimeout(() => {
-                    messageElement.remove();
-                }, 400);
-            }
-        } else {
-            console.log('result from hub to handleUserSaveMessage has error')
-        }
-    }
+    // ... کد موجود شما ...
+
+    //function handleUserSaveMessage(messageId, result) {
+    //    console.log('result from hub to handleUserSaveMessage')
+    //    // نتیجه را پردازش میکنیم اگر موفق بود حذف میشود و اگر ناموفق بود به کاربر پیام نمایش داده میشود
+    //    const messageElement = $('#message-' + messageId);
+    //    if (result === true) {
+    //        console.log('result equal true')
+    //        if (messageElement.length) {
+    //            messageElement.addClass('removing');
+    //            setTimeout(() => {
+    //                messageElement.remove();
+    //            }, 400);
+    //        }
+    //    } else {
+    //        console.log('result from hub to handleUserSaveMessage has error')
+    //    }
+    //}
 
     function makeJsonObjectForMessateDetails(message) {
         try {
@@ -1257,6 +1422,8 @@ window.chatApp = (function ($) {
                 updateUnreadCountForGroup(key, count);
             });
 
+           
+
             signalRConnection.on("UserStatusChanged", function (userId, isOnline, groupId, groupType) {
                 // لاگ برای اطمینان از دریافت رویداد در مرورگر
                 console.log(`CLIENT RECEIVED: UserStatusChanged for user ${userId} in group ${groupId}. IsOnline: ${isOnline}`);
@@ -1294,11 +1461,18 @@ window.chatApp = (function ($) {
 
             signalRConnection.on("UserTyping", handleUserTyping);
             signalRConnection.on("UserStoppedTyping", handleUserStopTyping);
-            signalRConnection.on("MessageReadByRecipient", handleMessageReadByRecipient);
+
+            signalRConnection.on("MessageSeenUpdate", handleMessageSeenUpdate);
+
+            signalRConnection.on("UpdatePinMessage", function (data) {
+                console.log("UpdatePinMessage received:", data);
+                handlerUpdatePinMessage(data.messageId, data.messageText, data.isPin);
+            });
+
             signalRConnection.on("MessageSuccessfullyMarkedAsRead", handleMessageSuccessfullyMarkedAsRead);
             signalRConnection.on("AllUnreadMessagesSuccessfullyMarkedAsRead", handleAllUnreadMessageSuccessfullyMarkedAsRead);
             signalRConnection.on("UserDeleteMessage", handleDeleteMessage);
-            signalRConnection.on("UserSaveMessage", handleUserSaveMessage);
+            //signalRConnection.on("UserSaveMessage", handleUserSaveMessage);
 
             signalRConnection.on("ReceiveVoiceMessageResult", function (data) {
                 console.log("ReceiveVoiceMessageResult received:", data);
@@ -1582,6 +1756,10 @@ window.chatApp = (function ($) {
             publicApi.setScrollListenerActive(true);
         },
 
+        triggerGetoldData: function (messageId, loadBothDirections) {
+            getOldData(messageId, loadBothDirections);
+        },
+
         userDeleteMessage: function (groupId, groupType, messageId) {
             // console.log(`publicApi.deleteMessage: Invoked for Group ID: ${groupId}, Type: ${groupType}, Message ID: ${messageId}.`);
             const payload = {
@@ -1595,8 +1773,7 @@ window.chatApp = (function ($) {
                 contentType: 'application/json',
                 data: JSON.stringify(payload),
                 success: function () {
-                    // console.log(`DeleteMessage (AJAX) successful for message ${messageId} in group ${groupId}`);
-                    // The actual removal from UI is handled by the "UserDeleteMessage" event from SignalR
+                    // در صورت موفقیت از طریق رویداد حذف که از طریق سیگنار آر میاد، مدیریت میشه
                 },
                 error: function (xhr, status, error) {
                     console.error(`Error in DeleteMessage (AJAX) for message ${messageId} in group ${groupId}:`, status, error, xhr.responseText);

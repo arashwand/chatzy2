@@ -1,21 +1,25 @@
-﻿<!DOCTYPE html>
+﻿@using Messenger.Tools
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Chatzy">
-    <meta name="keywords" content="Chatzy">
-    <meta name="author" content="Chatzy">
-    <link rel="manifest" href="~/chatzy/manifest.json">
+    <meta name="description" content="Iran-Europe Chat">
+    <meta name="keywords" content="Iran-Europe Chat">
+    <meta name="author" content="Iran-Europe Chat">
+    <link rel="manifest" href="~/manifest.json">
     <link rel="icon" href="~/chatzy/assets/images/LOGO-118x118.png" type="image/x-icon">
-    <title>@ViewData["Title"] - Messenger.WebApp</title>
+    <title>@ViewData["Title"] - Iran-Europe</title>
     <link rel="apple-touch-icon" href="~/chatzy/assets/images/LOGO-118x118.png">
     <meta name="theme-color" content="#01AA85">
     @* <meta name="apple-mobile-web-app-capable" content="yes"> *@
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="Chatzy">
+    <meta name="apple-mobile-web-app-title" content="Iran-Europe Chat">
+
+
     <meta name="msapplication-TileImage" content="~/chatzy/assets/images/LOGO-118x118.png">
     <meta name="msapplication-TileColor" content="#FFFFFF">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -37,6 +41,7 @@
     <!-- template css -->
     <link rel="stylesheet" id="change-link" type="text/css" href="~/chatzy/assets/css/style.css">
     @* <link rel="stylesheet" href="~/css/imported-chat-styles.css" asp-append-version="true" /> *@
+    <link rel="stylesheet" href="~/css/sliding-panel.css" asp-append-version="true" />
     @* <link rel="stylesheet" href="~/css/voiceStyle.css" asp-append-version="true" /> *@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
@@ -45,9 +50,56 @@
 <body>
  
     @RenderBody()
+    <!-- sidebar starts -->
+    <div class="offcanvas sidebar-offcanvas offcanvas-start" tabindex="-1" id="offcanvasLeft">
+        <div class="offcanvas-header sidebar-header">
+            <div class="sidebar-logo">
+                <img class="img-fluid logo" src="~/chatzy/assets/images/LOGO-118x118.png" alt="logo">
+                <span class="fw-bold dark-text">Iran-europe</span>
+            </div>
+        </div>
 
-    
-   
+        <div class="offcanvas-body">
+            <ul class="link-section switch-section">
+                <li class="active">
+                    <a href="#" class="pages">
+                        <i class="iconsax sidebar-icon" data-icon="messages-2"> </i>
+                        <h3>خوش آمدید</h3>
+                    </a>
+                </li>
+                @* 
+                <li>
+                    <a href="#" id="notification-toggle" class="pages">
+                        <i class="iconsax sidebar-icon" data-icon="bell"> </i>
+                        <h3 id="notification-status">نوتیفیکیشن: غیر فعال</h3>
+                    </a>
+                </li> *@
+
+                <li>
+                    <div class="pages" id="notification-toggle">
+                        <i class="iconsax sidebar-icon" data-icon="notification"> </i>
+                        <h3>نوتیفیکیشن</h3>
+                    </div>
+                    <div class="switch-btn">
+                        <input id="notification-switch" type="checkbox">
+                    </div>
+                </li>
+
+                <li>
+                    <form action="/Account/Logout" method="post">
+                        <a href="#" onclick="event.preventDefault(); this.closest('form').submit();" class="pages">
+                            <i class="iconsax sidebar-icon" data-icon="logout-2"> </i>
+                            <h3>خروج</h3>
+                        </a>
+                    </form>
+
+                </li>
+            </ul>
+        </div>
+    </div>
+    <!-- sidebar end -->
+
+
     <!-- add story modal starts -->
     <div class="modal fade add-modal" id="add-story-modal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
@@ -89,6 +141,7 @@
         </div>
     </div>
     <!-- add story modal end  -->
+
     <!-- friend story modal starts -->
     <div class="modal fade story-modal" id="friend-story" tabindex="-1">
         <div class="modal-dialog modal-fullscreen">
@@ -196,7 +249,45 @@
             </div>
         </div>
     </div>
+    
+    <!--notif modal-->
+    <div class="modal fade" id="notif-modal" tabindex="-1" style="">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>فعال‌سازی اعلان‌ها</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>برای اینکه در زمان دریافت پیام جدید به شما اطلاع بدهیم، لطفاً اعلان‌ها را فعال کنید.</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnEnableNotif" class="btn btn-primary">فعال‌سازی اعلان</button>
+                    <button id="btnCancelNotif" class="btn btn-secondary" data-bs-dismiss="modal">بعداً</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+
+    <!--pwa install modal-->
+    <div class="modal fade" id="pwa-install-modal" tabindex="-1" style="">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>نصب اپلیکیشن</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>برای تجربه بهتر، اپلیکیشن را روی دستگاه خود نصب کنید.</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnInstallPWA" class="btn btn-primary">نصب اپلیکیشن</button>
+                    <button id="btnCancelInstall" class="btn btn-secondary" data-bs-dismiss="modal">بعداً</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!--light box modal-->
     <!-- Modal برای نمایش لایت‌باکس -->
@@ -215,7 +306,6 @@
                     <img id="imageA" class="lightbox-image position-absolute top-50 start-50 translate-middle" src="" alt="">
                     <img id="imageB" class="lightbox-image position-absolute top-50 start-50 translate-middle" src="" alt="">
                 </div>
-
                 <div class="modal-footer justify-content-between border-0">
                     <div>
                         <button class="btn btn-outline-light" id="prevImage">
@@ -235,6 +325,121 @@
             </div>
         </div>
     </div>
+
+
+    <!-- pwa-install-modal (به‌روز شده: شامل تصاویر راهنما) -->
+    <div class="modal fade" id="pwa-install-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" dir="rtl">
+                <div class="modal-header">
+                    <h3 class="modal-title">نصب اپلیکیشن</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p id="pwa-install-intro">برای تجربه بهتر، اپلیکیشن را روی دستگاه خود نصب کنید.</p>
+
+                    <!-- راهنمای تصویری برای iOS -->
+                    <div id="pwa-ios-guide" class="pwa-guide d-none" style="margin-top:12px;">
+                        <p style="font-size:14px;margin-bottom:8px;"><strong>برای iPhone / iPad:</strong></p>
+
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <!-- SVG Share icon -->
+                            <div style="width:48px;height:48px;flex:0 0 48px;">
+                                <svg viewBox="0 0 24 24" width="48" height="48" aria-hidden="true">
+                                    <path fill="currentColor" d="M12 5V1L8 5h3v6h2V5h3l-4-4zM19 8h-2v10H7V8H5v12h14V8z" />
+                                </svg>
+                            </div>
+                            <div style="font-size:13px;">
+                                <div>۱ — دکمه <strong>Share</strong> را بزن</div>
+                                <div>۲ — گزینه <strong>Add to Home Screen</strong> را انتخاب کن</div>
+                            </div>
+                        </div>
+
+                        <!-- تصویر نمونه کوچک شبیه‌سازی مسیر (inline SVG) -->
+                        <div style="text-align:center;margin-top:6px;">
+                            <svg width="220" height="120" viewBox="0 0 220 120" aria-hidden="true">
+                                <rect width="220" height="120" rx="14" fill="#f7f7f8"></rect>
+                                <rect x="16" y="16" width="188" height="72" rx="10" fill="#ffffff"></rect>
+                                <!-- share icon location -->
+                                <circle cx="190" cy="40" r="10" fill="#e9ecef"></circle>
+                                <path d="M176 30 L190 18 L204 30" stroke="#6c757d" stroke-width="2" fill="none" stroke-linecap="round" />
+                                <!-- add to home hint -->
+                                <text x="20" y="70" font-size="11" fill="#6c757d">Share → Add to Home Screen</text>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- راهنمای تصویری برای Android / Desktop (در صورت نبود prompt) -->
+                    <div id="pwa-generic-guide" class="pwa-guide d-none" style="margin-top:12px;">
+                        <p style="font-size:14px;margin-bottom:8px;"><strong>نصب برای Android / Desktop</strong></p>
+                        <div style="font-size:13px;">
+                            <div>• اگر مرورگر شما از نصب پشتیبانی می‌کند: دکمه <strong>نصب</strong> در نوار آدرس یا منوی مرورگر را انتخاب کنید.</div>
+                            <div>• اگر پنجره نصب نشان داده نشد، این گزینه ممکن است در منوی مرورگر (سه‌نقطه) یا در کنار آدرس باشد.</div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button id="btnInstallPWA" class="btn btn-primary">نصب اپلیکیشن</button>
+                    <button id="btnCancelInstall" class="btn btn-secondary" data-bs-dismiss="modal">بعداً</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- notif-guide-modal (اختیاری، در صورت نبود JS آن را می‌سازد) -->
+    <div class="modal fade" id="notif-guide-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" dir="rtl">
+                <div class="modal-header">
+                    <h5 class="modal-title">فعالسازی اعلان‌ها</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body">
+                    <p>برای دریافت اعلان‌ها روی <strong>فعال کن</strong> بزنید. اگر پیغام اجازه را ندیدی یا مسدود شده، از Settings → Notifications اقدام کنید.</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="notif-guide-confirm" class="btn btn-primary">فعال کن</button>
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">بعداً</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--show pinned message in modal-->
+    <div class="modal fade" id="pinnedMessageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" dir="rtl">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">جزئیات پیام پین شده</h5>
+                    <button class="btn-close m-0 p-0" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div id="pinnedMessageModalContent"
+                         style="white-space: pre-wrap; word-break: break-word;">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-sm p-1 btn-secondary" data-bs-dismiss="modal">بستن</button>
+
+                    @if (User.IsInRole(ConstRoles.Teacher) || User.IsInRole(ConstRoles.Personel) || User.IsInRole(ConstRoles.Manager))
+                    {
+                        <button id="unpinMessageBtn" class="btn btn-sm p-1 btn-danger">
+                            لغو سنجاق
+                        </button>
+                    }
+                </div>
+
+            </div>
+        </div>
+    </div>
+
 
     <script>
         if ('serviceWorker' in navigator) {
@@ -257,18 +462,25 @@
     <script src="~/chatzy/assets/js/bootstrap.bundle.min.js"></script>
 
     <!-- swiper js -->
-    <script src="~/chatzy/assets/js/swiper-bundle.min.js"></script>
-    <script src="~/chatzy/assets/js/custom-swiper.js"></script>
+@*     <script src="~/chatzy/assets/js/swiper-bundle.min.js"></script>
+    <script src="~/chatzy/assets/js/custom-swiper.js"></script> *@
 
-
+    
+    <script>
+        window.VAPID_PUBLIC_KEY = "BAoXI8fA4RhnNRHLS8Onxe5VLEQJ4TXsFFyw_L2cf9_IUkVRU5Uq5wsfor9s63C331Hh97oeFNz7WcvNPPIL5BQ";
+        window.userIsLoggedIn = @User.Identity.IsAuthenticated.ToString().ToLower();
+    </script>
 
     <!-- script js -->
+    @* <script src="~/js/push.js"></script> *@
+   
     <script src="~/chatzy/assets/js/script.js"></script>
 
     <!-- template Setting js -->
     @* <script src="~/chatzy/assets/js/template-setting.js"></script> *@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/js/group-info-panel.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

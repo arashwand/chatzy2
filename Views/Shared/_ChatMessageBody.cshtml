@@ -26,11 +26,68 @@
     }
     var _baseUrl = ViewData["baseUrl"]?.ToString() ?? "";
     var chatType = ViewData["chatType"]?.ToString() ?? "ClassGroup";
+
+    var pinnedMessageIdGenerated = "pinnedMessage_" + classGroupId + "_" + chatType;
+
+    var roleName = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+    var pinnedMessages = Model.Where(m => m.IsPin).OrderBy(m => m.PinnedAt);
 }
+
+<style>
+    .pinned-messages-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    .pinned-messages-container {
+        background: rgba(255,255,255,0.9);
+        margin-top: 5px;
+        // border: 1px solid #e0e0e0;
+        padding: 2px;
+        border-radius: 5px;
+        max-height: 30px;
+        overflow-y: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .pinned-messages-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pinned-message-item {
+        padding: 4px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        display: block;
+    }
+
+        .pinned-message-item:last-child {
+            border-bottom: none;
+        }
+
+    .borderPinMessage {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 60%;
+        background-color: #28a745;
+        border-radius: 2px;
+    }
+
+    .pinMessageText {
+        font-size: 14px;
+        color: #333;
+        line-height: 1.4;
+    }
+</style>
+
 <input type="hidden" id="current-group-id-hidden-input" value="@classGroupId" />
 <input type="hidden" id="current-group-type-hidden-input" value="@chatType" />
+<input type="hidden" id="userRoleName" value="@roleName" />
 
-<div class="chat-flex-container">
 <!-- header starts -->
 <header id="header-chat" class="section-t-space main-header inner-page-header" style="padding-top:15px;">
     <div class="custom-container">
@@ -46,29 +103,21 @@
                     <div>
                         <h4 class="fw-semibold groupName"></h4>
                         <small class="text-muted" id="typing-indicator-@classGroupId"></small>
-                        @{
-                            var pinnedMessages = Model.Where(m => m.IsPin).OrderBy(m => m.MessageDateTime);
-                        }
-                        @if (pinnedMessages.Any())
-                        {
-                            <div class="pinned-messages-container" style="background: rgba(255,255,255,0.9);margin-top:5px; border: 1px solid #e0e0e0; max-height: 30px; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                <style>
-                                    .pinned-messages-container::-webkit-scrollbar { display: none; }
-                                    .pinned-messages-list { display: flex; flex-direction: column; }
-                                    .pinned-message-item { padding: 4px 12px; border-bottom: 1px solid #f0f0f0; display: block; }
-                                    .pinned-message-item:last-child { border-bottom: none; }
-                                </style>
-                                <ul class="pinned-messages-list" style="list-style: none; padding: 0; margin: 0;">
-                                    @foreach (var msg in pinnedMessages)
-                                    {
-                                        <li class="pinned-message-item" style="position: relative; padding-left: 20px; margin-bottom: 0;">
-                                            <span style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 60%; background-color: #28a745; border-radius: 2px;"></span>
-                                            <span style="font-size: 14px; color: #333; line-height: 1.4;">@Html.Raw(msg.MessageText?.MessageTxt)</span>
-                                        </li>
-                                    }
-                                </ul>
-                            </div>
-                        }
+                        <div id="@pinnedMessageIdGenerated"></div>
+
+                        @* <div class="pinned-messages-container" style="">
+                           
+                            <ul class="pinned-messages-list" style="list-style: none; padding: 0; margin: 0;">
+                                @foreach (var msg in pinnedMessages)
+                                {
+                                    <li class="pinned-message-item" data-message-id="@msg.MessageId" style="position: relative; padding-left: 20px; margin-bottom: 0;cursor: pointer;">
+                                        <span class="borderPinMessage"></span>
+                                        <span class="pinMessageText">@Html.Raw(msg.MessageText?.MessageTxt)</span>
+                                    </li>
+                                }
+                            </ul>
+                        </div>*@
+
                     </div>
                 </div>
             </div>
@@ -94,7 +143,6 @@
     </div>
 </header>
 <!-- header end -->
-
 <!-- group chat section starts -->
 <section class="section-lg-b-space position-relative pt-0" id="chat_content">
     <img class="img-fluid chat-bg" src="" alt="wallpaper">
@@ -230,6 +278,26 @@
                                             <span>ذخیره</span>
                                         </a>
 
+                                        if (User.IsInRole(ConstRoles.Teacher) || User.IsInRole(ConstRoles.Personel) || User.IsInRole(ConstRoles.Manager))
+                                        {
+                                            <a class="dropdown-item d-flex align-items-center actionPinMessage" data-messageid="@message.MessageId" data-is-pinned="@(message.IsPin ? "true" : "false")" href="#" aria-label="Pin message">
+
+                                                @if (message.IsPin)
+                                                {
+                                                    <img src="~/chatzy/assets/iconsax/pin-slash.svg" />
+                                                    <span>&nbsp;</span>
+                                                    <span class="pin-text">لغو سنجاق</span>
+                                                }
+                                                else
+                                                {
+                                                    <img src="~/chatzy/assets/iconsax/pin-1.svg" />
+                                                    <span>&nbsp;</span>
+                                                    <span class="pin-text">سنجاق</span>
+                                                }
+
+                                            </a>
+                                        }
+
                                         @if (message.MessageFiles != null)
                                         {
                                             if (message.MessageFiles.Any(a => a.FileExtension.Extension == ".webm"))
@@ -240,6 +308,14 @@
                                                     <span>دانلود فایل</span>
                                                 </a>
                                             }
+                                        }
+
+                                        if (!isSelf)
+                                        {
+                                            <a class="dropdown-item d-flex align-items-center actionReportMessage" data-messageid="@message.MessageId" href="#">
+                                                <img src="~/chatzy/assets/iconsax/alarm.svg" class="svgInvertColor" />&nbsp;
+                                                <span>گزارش تخلف</span>
+                                            </a>
                                         }
                                     }
 
@@ -336,9 +412,15 @@
                                         @if (IsSystemMessage)
                                         {
                                             <h6>آموزشگاه</h6>
-                                        } else if (!isSelf)
+                                        }
+                                        else if (!isSelf)
                                         {
                                             <h6>@message.SenderUser.NameFamily</h6>
+                                        }
+
+                                        @if (message.IsPin)
+                                        {
+                                            <img src="/chatzy/assets/iconsax/pin-1.svg" class="pinmedmessageIcon" style="width:20px;">
                                         }
                                     </div>
                                 </div>
@@ -354,47 +436,51 @@
     </div>
 </section>
 <!-- group chat section end -->
-
 <!--  message input section starts -->
-<div class="messages-panel" id="messages-panel">
-    <!-- بنرهای عملیاتی (ویرایش و پاسخ) - اولین عنصر با order: -1 -->
-    <div class="action-banners-container-inner" id="action-banners-container-inner">
+<div class="messages-panel">
+    <!-- کانتینر برای بنرهای عملیاتی (پاسخ و ویرایش) -->
+    <div class="action-banners-container">
         <div id="cancel-edit-container" class="force-hide">
-            <a href="#" id="cancel-edit-button" onclick="event.preventDefault(); event.stopPropagation();">انصراف</a>
+            <a href="#" id="cancel-edit-button">انصراف</a>
             <div class="edit-indicator">
                 <span class="edit-text">در حال ویرایش</span>
                 <div class="edit-bar"></div>
             </div>
         </div>
 
+
         <div id="reply-to-container" style="display: none;">
+
             <div class="reply-indicator">
                 <div class="reply-bar"></div>
                 <div class="reply-content">
                     <!-- کانتینر تصویر کوچک (برای پیام‌های عکس) -->
                     <div id="reply-thumbnail-container"></div>
+
                     <!-- کانتینر جدید برای آیکون (برای صوت و فایل) -->
                     <span id="reply-icon-container"></span>
+
                     <!-- کانتینر برای متون -->
                     <div class="reply-text-content">
                         <span id="reply-to-user"></span>
                         <span id="reply-to-text"></span>
                     </div>
                 </div>
+
             </div>
-            <a href="#" id="cancel-reply" onclick="event.preventDefault(); event.stopPropagation();">
+            <a href="#" id="cancel-reply">
                 انصراف
             </a>
         </div>
+
     </div>
 
     <!-- کانتینر پیش‌نمایش فایل‌ها -->
     <div id="filePreviewContainer">
         <!-- File previews will be dynamically inserted here -->
     </div>
-
-    <div id="emoji-picker" style="display: none; order: 3; background: white; border: 1px solid #ccc; padding: 10px; max-height: 200px; overflow-y: auto; z-index: 1000;">
-        <div class="emoji-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
+    <div id="emoji-picker" style="display: none;">
+        <div class="emoji-grid" style="">
             <button class="emoji-btn border border-0 bg-white" data-emoji="😀">😀</button>
             <button class="emoji-btn border border-0 bg-white" data-emoji="😂">😂</button>
             <button class="emoji-btn border border-0 bg-white" data-emoji="😊">😊</button>
@@ -420,6 +506,7 @@
                 <i class="iconsax icon-btn" data-icon="emoji-happy"> </i>
             </a>
             <textarea type="text" class="message-input" id="message-input" placeholder="Type here..." rows="1"></textarea>
+            @*  <input type="text" name="name" value="" placeholder="Type here..." />*@
             <a href="#" class="" id="send-message-button">
                 <i class="iconsax icon-btn" data-icon="send-btn1"> </i>
             </a>
@@ -431,62 +518,122 @@
         <input type="hidden" id="deletUploadedFileIds" name="deletUploadedFileIds">
         <input type="hidden" id="message-context-id" value="">
         <input type="hidden" id="message-action-type" value="">
-
-        <!-- Debug Inputs for iOS Keyboard -->
-        <div id="debug-info" style="display: flex; gap: 5px; padding: 5px; background: #eee; font-size: 10px;">
-            <input type="text" id="debug-initial-height" placeholder="Initial Height" readonly style="width:100px;">
-            <input type="text" id="debug-keyboard-height" placeholder="Keyboard Height" readonly style="width:100px;">
-            <input type="text" id="debug-final-bottom" placeholder="Final Bottom" readonly style="width:100px;">
-        </div>
     </form>
-   
+
 </div>
+
+
+
+
+
 <!--  message input section end -->
-</div>
 
 <script>
     $(document).ready(function () {
-        // A short delay to ensure the DOM is fully rendered
+        // تاخیر کوتاهی برای اطمینان از رندر شدن کامل DOM
         setTimeout(function () {
             const lastReadMessageId = parseInt($('#lastReadMessageId').val(), 10);
-            const chatContent = document.getElementById('chat_content');
+            const chatContent = $('#chat_content');
 
             if (lastReadMessageId > 0) {
                 const targetMessage = $(`#message-${lastReadMessageId}`);
                 if (targetMessage.length) {
-                    // Scroll to the target message
-                    chatContent.scrollTop = targetMessage.offset().top - $(chatContent).offset().top + chatContent.scrollTop;
+                    // اسکرول به پیام مورد نظر
+                    chatContent.scrollTop(targetMessage.offset().top - chatContent.offset().top + chatContent.scrollTop());
+                    console.log(`Scrolled to last read message: ${lastReadMessageId}`);
                 } else {
-                    // If the message is not found, scroll to the bottom
+                    // اگر پیام مورد نظر پیدا نشد، به آخرین پیام اسکرول کن
                     const chatFinished = $('#chat-finished');
                     if (chatFinished.length) {
                         chatFinished[0].scrollIntoView({ behavior: 'auto', block: 'end' });
                     }
+                    console.log(`Last read message ${lastReadMessageId} not found. Scrolling to bottom.`);
                 }
             } else {
-                // If there are no unread messages, scroll to the bottom
+                // اگر هیچ پیام خوانده نشده‌ای نبود، به آخرین پیام اسکرول کن
                 const chatFinished = $('#chat-finished');
                 if (chatFinished.length) {
                     chatFinished[0].scrollIntoView({ behavior: 'auto', block: 'end' });
                 }
+                console.log("No last read message ID. Scrolling to bottom.");
             }
 
-            // Scroll pinned messages container to the bottom
+            // اسکرول pinned messages container به پایین برای نمایش جدیدترین
             const pinnedContainer = $('.pinned-messages-container');
             if (pinnedContainer.length) {
                 pinnedContainer.scrollTop(pinnedContainer[0].scrollHeight);
             }
-        }, 100);
+        }, 100); // 100 میلی‌ثانیه تاخیر
+
+
+
+
+    const ua = navigator.userAgent || '';
+    const isAndroid = /Android/i.test(ua);
+    // شرط دوم برای شناسایی iPad های جدید است
+    const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    // --- مدیریت کیبورد برای اندروید ---
+    if (isAndroid) {
+        console.log("Android detected. Applying standard scroll-into-view.");
+        $(document).on("focus", "#message-input", function() {
+            setTimeout(() => {
+                // برای اندروید، اسکرول کردن به پایین معمولاً کافی است
+                window.scrollTo(0, document.body.scrollHeight);
+                this.scrollIntoView({ block: "center", behavior: "smooth" });
+            }, 300); // یک تأخیر کوچک برای اطمینان از بالا آمدن کیبورد
+        });
+    }
+
+    // --- مدیریت کیبورد برای iOS با Visual Viewport API ---
+    if (isIOS) {
+            console.log("iOS detected. Applying Visual Viewport API handler.");
+
+            const messageInput = document.getElementById('message-input');
+            const messagesPanel = document.querySelector('.messages-panel');
+
+            if (messageInput && messagesPanel && window.visualViewport) {
+                let lastOffset = 0; // ذخیره offset قبلی برای جلوگیری از انباشت
+
+                const movePanel = () => {
+                    const viewportHeight = window.innerHeight;
+                    const visualViewportHeight = window.visualViewport.height;
+                    const offset = Math.max(0, viewportHeight - visualViewportHeight); // اطمینان از مثبت بودن offset
+
+                    // فقط اگر offset تغییر کرده، اعمال کن
+                    if (offset !== lastOffset) {
+                        requestAnimationFrame(() => {
+                            messagesPanel.style.transform = `translateY(-${offset}px)`;
+                            lastOffset = offset;
+                        });
+                    }
+                };
+
+                messageInput.addEventListener('focus', () => {
+                    setTimeout(movePanel, 300); // افزایش تاخیر برای دقت بیشتر
+                });
+
+                messageInput.addEventListener('blur', () => {
+                    requestAnimationFrame(() => {
+                        messagesPanel.style.transform = 'translateY(0)';
+                        lastOffset = 0;
+                    });
+                });
+
+                window.visualViewport.addEventListener('resize', () => {
+                    if (document.activeElement === messageInput) {
+                        movePanel();
+                    }
+                });
+            } else {
+                console.warn("Visual Viewport API not supported or required elements not found.");
+            }
+        }
+
     });
+
+
 </script>
-
-
-
-
-
-
-
-
 
 
 

@@ -185,15 +185,52 @@ namespace Messenger.WebApp.Controllers
         }
 
         /// <summary>
+        /// بدست آوردن پیامهای سنجاق شده یک گروه
+        /// </summary>
+        /// <param name="chatId"></param>
+        /// <param name="groupType"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
+        public async Task<IActionResult> GetChatPinnedMessages(int chatId, string groupType, int pageSize = 50)
+        {
+            try
+            {
+                var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+                if (userId == null)
+                {
+                    return BadRequest("User ID not found in claims.");
+                }
+
+                var messages = await _messageService.GetChatPinnedMessagesAsync(chatId, groupType, pageSize);
+
+                //var lastReadMessageId = await GetLastReadMessageIdPlaceholderAsync(chatId, groupType, long.Parse(userId));
+                
+                return PartialView("_ChatPinnedMessageBody", messages);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error in GetChatMessages " + ex);
+                throw;
+            }
+
+        }
+
+
+        /// <summary>
         /// گرفتن پیامهای قبلی
         /// </summary>
         /// <param name="chatId">ایدی گروه یا کانال</param>
         /// <param name="pageNumber"></param>
         /// <param name="pageSize"></param>
         /// <returns></returns>
-        public async Task<IActionResult> GetOldMessage(int chatId, string groupType, int pageNumber = 1, int pageSize = 50
-            , long messageId = 0
-            , bool loadOlder = true)
+        public async Task<IActionResult> GetOldMessage(
+            int chatId, 
+            string groupType, 
+            int pageNumber = 1, 
+            int pageSize = 50,
+            long messageId = 0,
+            bool loadOlder = true,
+            bool loadBothDirections = false)
         {
             try
             {
@@ -203,18 +240,34 @@ namespace Messenger.WebApp.Controllers
                     return BadRequest("User ID not found in claims.");
                 }
 
-                var messages = groupType == ConstChat.ClassGroupType ?
-                    await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder) :
-                    await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder);
+                List<MessageDto> messages = new List<MessageDto>();
+
+                if (loadBothDirections && messageId > 0)
+                {
+                    // بارگذاری 25 پیام قدیمی‌تر و 25 پیام جدیدتر از messageId
+                    var olderMessages = groupType == ConstChat.ClassGroupType ?
+                        await _messageService.GetClassGroupMessagesAsync(chatId, 1, 25, messageId, true) :
+                        await _messageService.GetChannelMessagesAsync(chatId, 1, 25, messageId, true);
+                    // ترکیب: قدیمی‌ها + جدید‌ها
+                    messages.AddRange(olderMessages ?? new List<MessageDto>());
+
+                    // مرتب‌سازی بر اساس زمان
+                    messages = messages.OrderBy(m => m.MessageDateTime).ToList();
+                }
+                else
+                {
+                    // کد اصلی: فقط قدیمی‌ها
+                    messages = (List<MessageDto>)(groupType == ConstChat.ClassGroupType ?
+                        await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder) :
+                        await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder));
+                }
 
                 var payloadList = new List<object>();
 
-                // اگر لیستی از پیام‌ها وجود داشت، آن را پردازش کن
                 if (messages != null && messages.Any())
                 {
                     foreach (var messageDto in messages)
                     {
-                        // ... (منطق ساختن payload شما که کاملا درست است)
                         object replyMessage = null;
                         if (messageDto.ReplyMessageId != null && messageDto.ReplyMessage != null)
                         {
@@ -229,7 +282,15 @@ namespace Messenger.WebApp.Controllers
                         object messageFiles = null;
                         if (messageDto.MessageFiles != null && messageDto.MessageFiles.Any())
                         {
-                            messageFiles = messageDto.MessageFiles.Select(mf => new { FileName = mf.FileName, FileThumbPath = mf.FileThumbPath }).ToList();
+                            messageFiles = messageDto.MessageFiles.Select(mf => new 
+                            { 
+                                FileName = mf.FileName, 
+                                FileThumbPath = mf.FileThumbPath,
+                                MessageFileId = mf.MessageFileId,
+                                OriginalFileName = mf.OriginalFileName,
+                                FileType = mf.FileType,
+                                FileSize = mf.FileSize
+                            }).ToList();
                         }
 
                         var payload = new
@@ -239,30 +300,25 @@ namespace Messenger.WebApp.Controllers
                             messageText = messageDto.MessageText?.MessageTxt,
                             groupId = messageDto.ClassGroupId,
                             messageDateTime = messageDto.MessageDateTime,
+                            messageDate = messageDto.MessageDateTime.Date,
                             profilePicName = messageDto.SenderUser.ProfilePicName,
                             messageId = messageDto.MessageId,
                             replyToMessageId = messageDto.ReplyMessageId,
                             replyMessage = replyMessage,
-                            messageFiles = messageFiles
+                            messageFiles = messageFiles,
+                            isPin = messageDto.IsPin,
+                            isReadByAnyRecipient = messageDto.IsReadByAnyRecipient
                         };
                         payloadList.Add(payload);
                     }
                 }
 
-                //  <<<<< حذف بلوک if اضافی و مشکل ساز از اینجا >>>>>
-
-                // شناسه آخرین پیام را هوشمندانه تعیین کن
-                // اگر پیامی بود، شناسه آخرین را بگیر، در غیر این صورت همان شناسه ورودی را برگردان
                 long lastLoadedMessageId = (messages != null && messages.Any()) ? messages.Last().MessageId : messageId;
 
-                // همیشه یک ساختار JSON ثابت را برگردان
-                // اگر پیامی نباشد، payloadList یک آرایه خالی خواهد بود
                 return Json(new { success = true, lastMessageId = lastLoadedMessageId, data = payloadList });
             }
             catch (Exception ex)
             {
-                // لاگ کردن خطا برای دیباگ بهتر
-                //_logger.LogError(ex, "Error occurred in GetOldMessage");
                 return Json(new { success = false, message = "An error occurred." });
             }
         }

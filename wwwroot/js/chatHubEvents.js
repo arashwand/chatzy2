@@ -20,6 +20,8 @@ $(document).ready(function() {
     let currentMimeType = 'audio/webm'; // متغیر جدید برای ذخیره فرمت پشتیبانی شده
     let isAudioProcessing = false;
     let isAjaxProcessing = false;
+    let wakeLock = null; // متغیر جهانی برای Wake Lock
+
     // ======================================================================
     //             VOICE RECORDING EVENT HANDLERS
     // ======================================================================
@@ -142,6 +144,16 @@ $(document).ready(function() {
             isRecording = true;
             changeIcon($('.btn-record-voice'), 'stop');
             updateChatInputUI('recording');
+
+            // درخواست Wake Lock برای جلوگیری از خاموش شدن صفحه
+            if ('wakeLock' in navigator) {
+                navigator.wakeLock.request('screen').then(lock => {
+                    wakeLock = lock;
+                    console.log('Wake Lock acquired');
+                }).catch(err => {
+                    console.error('Wake Lock request failed:', err);
+                });
+            }
 
             // ریست کردن متغیرها برای ضبط جدید
             audioChunks = [];
@@ -330,6 +342,12 @@ $(document).ready(function() {
         recordingChunkerInterval = null;
         window.lastRecordedBlob = null;
 
+        // آزاد کردن Wake Lock
+        if (wakeLock) {
+            wakeLock.release();
+            wakeLock = null;
+            console.log('Wake Lock released');
+        }
 
         if (deleteFromServer && pendingVoiceFileId) {
             // ارسال درخواست حذف به سرور با فرمت JSON
@@ -621,6 +639,12 @@ $(document).ready(function() {
         $('#deletUploadedFileIds').val(''); // شناسه‌های فایل های حذف شده را پاک کن
         window.chatApp.stopTyping(groupId, groupType); // اطلاع به سرور برای توقف نمایش "در حال تایپ"
 
+        // اضافه کردن فوکوس دوباره برای نگه داشتن کیبورد در موبایل
+        setTimeout(() => {
+            $('#message-input').focus();
+            window.scrollTo(0, document.body.scrollHeight);
+        }, 50); // تأخیر کوتاه برای اطمینان از اعمال فوکوس
+
     });
 
     // ساخت پیام برای نمایش فوری
@@ -822,15 +846,10 @@ $(document).ready(function() {
     });
 
     // رویداد کلیک برای دکمه انصراف از ویرایش
-    // استفاده از mousedown به جای click برای جلوگیری از blur شدن textarea
-    $(document).on('mousedown', '#cancel-edit-button', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        
+    $(document).on('click', '#cancel-edit-button', function () {
         resetInputState();
-        return false;
     });
+
 
     // actionReplyMessage
     $(document).off('click', '.actionReplyMessage').on('click', '.actionReplyMessage', function (e) {
@@ -923,13 +942,33 @@ $(document).ready(function() {
             data: { messageId: messageId },
             success: function (response) {
                 if (response.success) {
-                    alert('پیام با موفقیت ذخیره شد!');
+                    //alert('پیام با موفقیت ذخیره شد!');
+                    Swal.fire({
+                        title: 'موفق!',
+                        text: 'پیام با موفقیت ذخیره شد!.',
+                        icon: 'success',
+                        confirmButtonText: 'باشه',
+                        timer: 1000, // بسته شدن خودکار پس از ۳ ثانیه
+                        showConfirmButton: false
+                    });
                 } else {
-                    alert('خطا در ذخیره پیام: ' + response.message);
+                    //alert('خطا در ذخیره پیام: ' + response.message);
+                    Swal.fire({
+                        title: 'خطا!',
+                        text: 'خطا در حذف پیام ذخیره‌شده: ' + response.message,
+                        icon: 'error',
+                        confirmButtonText: 'باشه'
+                    });
                 }
             },
             error: function () {
-                alert('خطای ارتباط با سرور.');
+                //alert('خطای ارتباط با سرور.');
+                Swal.fire({
+                    title: 'خطای ارتباط!',
+                    text: 'خطای ارتباط با سرور. لطفاً دوباره تلاش کنید.',
+                    icon: 'error',
+                    confirmButtonText: 'باشه'
+                });
             }
         });
     });
@@ -940,9 +979,6 @@ $(document).ready(function() {
         const groupId = parseInt($('#current-group-id-hidden-input').val()); //$('#current-group-id-hidden-input').val();
         const groupType = $('#current-group-type-hidden-input').val();
         var messageId = $(this).data('messageid');
-        //const currentUserId = parseInt($('#userId').val());
-        //const senderId = parseInt($(this).data('sender-id'));
-        //var request = { MessageId: messageId, ClassGroupId: groupId, ClassGroupType: groupType };
         console.log("در حال حذف پیام با شناسه: " + messageId);
 
         window.chatApp.userDeleteMessage(groupId, groupType, messageId);
@@ -959,33 +995,250 @@ $(document).ready(function() {
 
         // ارسال درخواست ایجکس به کنترلر برای ذخیره پیام
         $.ajax({
-            url: '/Home/DeleteSavedMessage', // آدرس کنترلر خود را جایگزین کنید
+            url: '/Home/DeleteSavedMessage', 
             type: 'POST',
             data: { messageSavedId: messageSavedId },
             success: function (response) {
                 if (response.success) {
                     const messageSaveIdToRemove = "#message-" + messageSavedId;
                     $(messageSaveIdToRemove).remove();
-                    alert('با موفقیت حذف شد!');
+                    // نمایش پیام موفقیت با SweetAlert
+                    Swal.fire({
+                        title: 'موفق!',
+                        text: 'پیام ذخیره‌شده با موفقیت حذف شد.',
+                        icon: 'success',
+                        confirmButtonText: 'باشه',
+                        timer: 1000, // بسته شدن خودکار پس از ۳ ثانیه
+                        showConfirmButton: false
+                    });
                 } else {
-                    alert('خطا در حذف پیام ذخیره شده: ' + response.message);
+                    // نمایش پیام خطا با SweetAlert
+                    Swal.fire({
+                        title: 'خطا!',
+                        text: 'خطا در حذف پیام ذخیره‌شده: ' + response.message,
+                        icon: 'error',
+                        confirmButtonText: 'باشه'
+                    });
                 }
             },
             error: function () {
-                alert('خطای ارتباط با سرور.');
+                // نمایش پیام خطای شبکه با SweetAlert
+                Swal.fire({
+                    title: 'خطای ارتباط!',
+                    text: 'خطای ارتباط با سرور. لطفاً دوباره تلاش کنید.',
+                    icon: 'error',
+                    confirmButtonText: 'باشه'
+                });
             }
         });
     });
 
-    // رویداد کلیک برای دکمه لغو پاسخ
-    // استفاده از mousedown به جای click برای جلوگیری از blur شدن textarea
-    $(document).off('mousedown', '#cancel-reply').on('mousedown', '#cancel-reply', function (e) {
+    $(document).off('click', '.actionReportMessage').on('click', '.actionReportMessage', function (e) {
         e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        
+        var messageId = $(this).data('messageid');
+        console.log("در حال گزارش پیام با شناسه: " + messageId);
+
+        // نمایش مودال برای گرفتن توضیحات گزارش
+        Swal.fire({
+            title: 'گزارش پیام',
+            input: 'textarea',
+            inputLabel: 'توضیحات گزارش',
+            inputPlaceholder: 'لطفاً دلیل گزارش را توضیح دهید...',
+            inputAttributes: {
+                'aria-label': 'توضیحات گزارش',
+                'dir':'rtl'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'ارسال گزارش',
+            cancelButtonText: 'لغو',
+            inputValidator: (value) => {
+                if (!value || value.trim() === '') {
+                    return 'توضیحات گزارش الزامی است!';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const description = result.value.trim();
+
+                // ارسال گزارش به سرور با فیلدهای صحیح
+                $.ajax({
+                    url: `/api/chat/ReportMessage`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ MessageId: messageId, FoulDesc: description }),
+                    success: function (response) {
+                        Swal.fire({
+                            title: 'موفق!',
+                            text: 'پیام با موفقیت گزارش شد.',
+                            icon: 'success',
+                            confirmButtonText: 'باشه',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        console.error('خطا در گزارش پیام:', textStatus, errorThrown);
+                        Swal.fire({
+                            title: 'خطا!',
+                            text: 'خطا در گزارش پیام: ' + (jqXHR.responseJSON?.message || 'خطای نامشخص'),
+                            icon: 'error',
+                            confirmButtonText: 'باشه'
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+
+    $(document).off('click', '.actionPinMessage').on('click', '.actionPinMessage', function (e) {
+        e.preventDefault();
+
+        const $btn = $(this);
+        let messageId = $btn.data('messageid') ?? $btn.data('message-id');
+        messageId = parseInt(messageId);
+
+        if (!messageId || messageId <= 0) {
+            console.error("Invalid messageId for pin action:", messageId);
+            return;
+        }
+
+        let currentIsPinned = $btn.data('is-pinned');
+        if (typeof currentIsPinned === 'undefined') {
+            const $messageBlock = $(`.message[data-message-id="${messageId}"]`);
+            currentIsPinned = ($messageBlock.data('is-pinned') === true) || $messageBlock.hasClass('pinned');
+        }
+
+        currentIsPinned = (currentIsPinned === true || currentIsPinned === 'true' || currentIsPinned === 1);
+
+        const confirmText = currentIsPinned
+            ? 'آیا مطمئن هستید که می‌خواهید پین این پیام را لغو کنید؟'
+            : 'آیا مطمئن هستید که می‌خواهید این پیام را پین کنید؟';
+
+        Swal.fire({
+            title: 'تأیید',
+            text: confirmText,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'بله',
+            cancelButtonText: 'خیر',
+            reverseButtons: true
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            const newIsPinned = !currentIsPinned;
+
+            $.ajax({
+                url: '/api/chat/PinMessage',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ MessageId: messageId, IsPinned: newIsPinned }),
+
+                success: function () {
+                    const $messageBlock = $(`.message[data-message-id="${messageId}"]`);
+
+                    // Toggle pinned state on message
+                    $messageBlock.toggleClass('pinned', newIsPinned);
+                    $messageBlock.data('is-pinned', newIsPinned);
+
+                    // --------✨ Update timing pin icon ✨--------
+                    const $timing = $messageBlock.find(".timing");
+
+                    if (newIsPinned) {
+                        if ($timing.find(".pinmedmessageIcon").length === 0) {
+                            $timing.append(
+                                '<img src="/chatzy/assets/iconsax/pin-1.svg" class="pinmedmessageIcon" style="width:20px;">'
+                            );
+                        }
+                    } else {
+                        $timing.find(".pinmedmessageIcon").remove();
+                    }
+                    // --------------------------------------------------
+
+                    // --------✨ Update pin button only ✨--------
+                    $btn.data('is-pinned', newIsPinned);
+
+                    const $textSpan = $btn.find(".pin-text");
+                    if ($textSpan.length) {
+                        $textSpan.text(newIsPinned ? "لغو سنجاق" : "سنجاق");
+                    }
+
+                    const $icon = $btn.find("img");
+                    if ($icon.length) {
+                        $icon.attr("src", newIsPinned
+                            ? "/chatzy/assets/iconsax/pin-slash.svg"
+                            : "/chatzy/assets/iconsax/pin-1.svg");
+                    }
+                    // --------------------------------------------------
+
+                    Swal.fire({
+                        title: 'موفق',
+                        text: newIsPinned ? 'پیام با موفقیت پین شد.' : 'پین پیام حذف شد.',
+                        icon: 'success',
+                        timer: 1400,
+                        showConfirmButton: false
+                    });
+                },
+
+                error: function (jqXHR, textStatus, errorThrown) {
+                    const serverMsg = jqXHR.responseJSON?.message || jqXHR.responseText || errorThrown || 'خطای نامشخص';
+                    Swal.fire({
+                        title: 'خطا',
+                        text: 'خطا در عملیات پین/لغو پین: ' + serverMsg,
+                        icon: 'error',
+                        confirmButtonText: 'باشه'
+                    });
+                }
+            });
+        });
+    });
+
+    // کلیک بر روی پیام سنجاق شده در پنل سنجاق‌ها
+    $(document).on('click', '.pinned-message-item', function () {
+        const messageId = $(this).data('message-id');
+
+        // بررسی کنید آیا پیام در حال حاضر در DOM موجود است
+        const existingMessage = $(`#message-${messageId}`);
+
+        if (existingMessage.length) {
+            // اگر پیام موجود است، به آن اسکرول کنید
+            scrollToPinnedMessage(messageId);
+        } else {
+            // اگر پیام موجود نیست، آن را بارگذاری کنید
+            console.log(`Message ${messageId} not in DOM, loading around it...`);
+
+            // لیسنر اسکرول را غیرفعال کنید
+            window.chatApp.setScrollListenerActive(false);
+
+            // بارگذاری 25 قدیمی + 25 جدید
+            window.chatApp.triggerGetoldData(messageId, true);
+        }
+    });
+
+    function scrollToPinnedMessage(messageId) {
+        const targetElement = $(`#message-${messageId}`);
+        if (!targetElement.length) return;
+
+        const chatContent = $('#chat_content');
+        const elementPosition = targetElement.offset().top - chatContent.offset().top + chatContent.scrollTop();
+
+        // اسکرول با حاشیه
+        chatContent.animate({
+            scrollTop: elementPosition - 100
+        }, 500);
+
+        // Highlight پیام برای 2 ثانیه
+        targetElement.addClass('highlight-message');
+        setTimeout(() => {
+            targetElement.removeClass('highlight-message');
+            // فعال کردن مجدد لیسنر اسکرول
+            window.chatApp.setScrollListenerActive(true);
+        }, 2000);
+    }
+
+    // رویداد کلیک برای دکمه لغو پاسخ
+    $(document).off('click', '#cancel-reply').on('click', '#cancel-reply', function () {
         resetInputState();
-        return false;
     });
 
     // تابع برای ریست کردن حالت ورودی
@@ -1105,13 +1358,18 @@ $(document).ready(function() {
         console.log('Line count:', lineCount, 'New rows:', newRows);
     }
 
+    // تابع برای تشخیص دستگاه موبایل یا تبلت
+    function isMobileOrTablet() {
+        return window.innerWidth < 768;
+    }
+
     // مدیریت فشردن دکمه کنترل  و اینتر
     $(document).off('keydown', '#message-input').on('keydown', '#message-input', function (event) {
         console.log('Keydown event fired. Key:', event.key, 'Ctrl:', event.ctrlKey, 'Value before:', $(this).val());
         if (event.key === 'Enter') {
             // اگر کنترل با اینتر بود
-            if (event.ctrlKey) {
-                console.log('Ctrl + Enter: Adding new line');
+            if (event.ctrlKey || event.shiftKey) {
+                console.log('Ctrl + Enter or Shift + Enter: Adding new line');
                 const $textarea = $(this);
                 const currentText = $textarea.val();
                 const cursorPos = $textarea[0].selectionStart;
@@ -1122,15 +1380,27 @@ $(document).ready(function() {
                 adjustTextareaRows($textarea); // تنظیم rows بعد از افزودن خط جدید
                 return;
             } else { // اگر فقط اینتر بود
-                console.log('Enter: Submitting');
-                event.preventDefault();
-                event.stopPropagation();
-                const sendButton = $('#send-message-button');
-                console.log('Send button element:', sendButton.length ? sendButton : 'Not found');
-                if (sendButton.length) {
-                    sendButton.trigger('click');
+                if (isMobileOrTablet()) {
+                    console.log('Mobile/Tablet: Enter adds new line');
+                    const $textarea = $(this);
+                    const currentText = $textarea.val();
+                    const cursorPos = $textarea[0].selectionStart;
+                    const newText = currentText.substring(0, cursorPos) + '\n' + currentText.substring(cursorPos);
+                    $textarea.val(newText);
+                    $textarea[0].selectionStart = $textarea[0].selectionEnd = cursorPos ;
+                    adjustTextareaRows($textarea);
+                    return;
                 } else {
-                    console.error('Send button not found!');
+                    console.log('Desktop: Enter submits');
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const sendButton = $('#send-message-button');
+                    console.log('Send button element:', sendButton.length ? sendButton : 'Not found');
+                    if (sendButton.length) {
+                        sendButton.trigger('click');
+                    } else {
+                        console.error('Send button not found!');
+                    }
                 }
             }
         }
@@ -1155,4 +1425,5 @@ $(document).ready(function() {
         }
     });
 
+    
 });

@@ -1,0 +1,32 @@
+@using System.Security.Claims
+@using Messenger.DTOs
+@using Messenger.Tools
+@using Newtonsoft.Json
+@model IEnumerable<MessageDto>
+
+
+@{  
+
+    var roleName = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+    var pinnedMessages = Model.Where(m => m.IsPin).OrderBy(m => m.PinnedAt);
+}
+
+<div class="pinned-messages-container" style="">
+
+    <ul class="pinned-messages-list" style="list-style: none; padding: 0; margin: 0;">
+        @foreach (var msg in pinnedMessages)
+        {
+            <li class="pinned-message-item" data-message-id="@msg.MessageId" style="position: relative; padding-left: 20px; margin-bottom: 0;cursor: pointer;">
+                <span class="borderPinMessage"></span>
+                <span class="pinMessageText">@Html.Raw(msg.MessageText != null ? msg.MessageText.MessageTxt : "فایل پیوست")</span>
+            </li>
+        }
+    </ul>
+</div>
+
+
+
+
+
+
+

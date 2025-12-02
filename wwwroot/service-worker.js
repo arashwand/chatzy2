@@ -1,66 +1,104 @@
 ﻿// service-worker.js
 
 const CACHE_NAME = 'image-lightbox-cache-v1';
-
-// *** تغییر کلیدی: این الگو را با API واقعی شما مطابقت دادیم ***
 const API_ENDPOINT_PATTERN = '/api/chat/downloadFileById';
 
-// رویداد 'install'
+// =========================
+// INSTALL
+// =========================
 self.addEventListener('install', event => {
-    //console.log('Service Worker: در حال نصب...');
-    // این دستور باعث می‌شود Service Worker جدید منتظر نماند و سریع‌تر فعال شود.
+    console.log('[SW] Installed');
     self.skipWaiting();
 });
 
-// رویداد 'activate' برای پاک‌سازی کش‌های قدیمی
+// =========================
+// ACTIVATE
+// =========================
 self.addEventListener('activate', event => {
-    //console.log('Service Worker: فعال شد.');
+    console.log('[SW] Activated');
+
     event.waitUntil(
-        caches.keys().then(keyList => {
+        caches.keys().then(keys => {
             return Promise.all(
-                keyList.map(key => {
+                keys.map(key => {
                     if (key !== CACHE_NAME && key.startsWith('image-lightbox-cache')) {
-                        //console.log('Service Worker: در حال حذف کش قدیمی:', key);
                         return caches.delete(key);
                     }
                 })
             );
         })
     );
-    return self.clients.claim();
+
+    self.clients.claim();
 });
 
-// رویداد 'fetch' برای رهگیری درخواست‌ها
+// =========================
+// FETCH (Cache Images)
+// =========================
 self.addEventListener('fetch', event => {
+    if (event.request.method === 'GET' &&
+        event.request.url.includes(API_ENDPOINT_PATTERN)) {
 
-    //console.log('SW saw a fetch for:', event.request.url);
-
-    // فقط درخواست‌های GET به API تصاویر را رهگیری می‌کنیم.
-    if (event.request.method === 'GET' && event.request.url.includes(API_ENDPOINT_PATTERN)) {
-        //console.log('Service Worker: درخواست رهگیری شد:', event.request.url);
-
-        // استراتژی "Cache First, then Network"
         event.respondWith(
             caches.open(CACHE_NAME).then(cache => {
                 return cache.match(event.request).then(response => {
-                    // اگر پاسخ در کش موجود بود، آن را برگردان.
-                    if (response) {
-                        //console.log('Service Worker: پاسخ از کش بازگردانده شد.');
-                        return response;
-                    }
 
-                    // اگر در کش نبود، درخواست را به شبکه ارسال کن.
-                    //console.log('Service Worker: پاسخ در کش نبود، ارسال درخواست به شبکه...');
+                    if (response) return response;
+
                     return fetch(event.request).then(networkResponse => {
-                        // یک کپی از پاسخ را در کش ذخیره کن.
-                       //console.log('Service Worker: پاسخ از شبکه دریافت و در کش ذخیره شد.');
                         cache.put(event.request, networkResponse.clone());
-
-                        // پاسخ اصلی را به صفحه برگردان.
                         return networkResponse;
                     });
                 });
             })
         );
     }
+});
+
+// =========================
+// PUSH NOTIFICATION
+// =========================
+self.addEventListener('push', event => {
+    console.log('[SW] Push Received');
+
+    let data = {};
+    try {
+        data = event.data.json();
+    } catch {
+        data = { body: event.data.text() };
+    }
+
+    const title = data.title || "پیام جدید";
+    const options = {
+        body: data.body,
+        icon: '/chatzy/assets/images/LOGO-118x118.png',
+        badge: '/chatzy/assets/images/72.png',
+        data: {
+            url: data.url || "/"
+        }
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(title, options)
+    );
+});
+
+// =========================
+// CLICK HANDLER
+// =========================
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    const url = event.notification.data.url || "/home/index";
+
+    event.waitUntil(
+        clients.matchAll({ type: "window", includeUncontrolled: true })
+            .then(clientList => {
+                for (const client of clientList) {
+                    if (client.url.includes(url)) {
+                        return client.focus();
+                    }
+                }
+                return clients.openWindow(url);
+            })
+    );
 });

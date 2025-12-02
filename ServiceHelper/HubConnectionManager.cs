@@ -518,6 +518,66 @@ namespace Messenger.WebApp.ServiceHelper
                 }
             });
 
+            /********** Pin Message Update Handler **********/
+            _hubConnection.On<object[]>("UpdatePinMessage", async (payload) =>
+            {
+                _logger.LogDebug("API Hub: UpdatePinMessage event triggered with {Count} elements.", payload.Length);
+
+                try
+                {
+                    var messageDtoObj = payload[0];
+                    var messageType = GetInt32FromPayload(payload[1]);
+                    int targetId = 0;
+
+                    if (payload.Length == 3)
+                    {
+                        // تلاش برای استخراج آرایه targetIds حتی اگر JsonElement باشد
+                        var rawTargetIds = payload[2];
+                        targetId = int.Parse(rawTargetIds.ToString());
+                    }
+
+                    var groupType = "";
+                    if (messageType == (int)EnumMessageType.Group)
+                    {
+                        groupType = ConstChat.ClassGroupType;
+                    }
+                    else if (messageType == (int)EnumMessageType.Channel)
+                    {
+                        groupType = ConstChat.ChannelGroupType;
+                    }
+                    else
+                    {
+                        // private message
+                    }
+
+                    var messageDto = DeserializeMessageDto(messageDtoObj);
+
+                    var payload3 = new
+                    {
+                        messageText = messageDto.MessageText?.MessageTxt ?? "",
+                        messageId = messageDto.MessageId,
+                        isPin = messageDto.IsPin
+                    };
+                    //--برای اینکه پیام به همه اعضای گروه ارسال بشه همچنین بر روی همه چت ها هم بروزرسانی بشه باید از  Clients.All استفاده کنیم
+
+                    await _webAppHubContext.Clients.All.SendAsync("UpdatePinMessage", payload3);
+                    OnReceiveMessage?.Invoke(payload3);
+
+
+
+                }
+                catch (System.Text.Json.JsonException ex)
+                {
+                    _logger.LogError(ex, "خطا در تبدیل JSON در UpdatePinMessage");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "خطای عمومی در UpdatePinMessage");
+                }
+
+            });
+
+
             // Handler for broadcasting to groups
             _hubConnection.On<object[]>("BroadcastToGroups", async (payload) =>
             {

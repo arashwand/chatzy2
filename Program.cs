@@ -153,10 +153,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-//app.UseStaticFiles();
+app.UseStaticFiles();
 app.UseMiddleware<TokenRefreshMiddleware>();
-
-
 app.UseRouting();
 
 // UseCors باید قبل از UseAuthentication و UseAuthorization قرار گیرد

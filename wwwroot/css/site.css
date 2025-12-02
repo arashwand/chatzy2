@@ -1,66 +1,104 @@
 ﻿/* ========================================================= */
-/*      START OF MERGED CSS FROM ALL THREE FILES           */
+/*      SITE.CSS - FINAL FIXED VERSION                       */
 /* ========================================================= */
 
-/* General Body Styles */
-body {
-    font-family: 'Vazir', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+@font-face {
+    font-family: 'Vazir';
+    src: url('/fonts/vazir.woff2') format('woff2'), url('/fonts/vazir.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
 }
 
-/* --- General Chat Area Styling --- */
+
+
+/* --- Global Resets & User Overrides --- */
+/* طبق درخواست شما، مارجین و پدینگ و رنگ بادی کامنت شد */
+html, body {
+    /* margin: 0;
+    padding: 0;*/
+    overflow-x: hidden; /* جلوگیری حیاتی از اسکرول افقی در آیفون */
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    font-family: 'Vazir', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+    /*background-color: #f0f2f5;*/
+}
+/* ================================== */
+/*  استایل ایکونهای چت*/
+/* ================================== */
+/* تنظیم کانتینر اصلی برای وسط‌چین کردن */
+.chat-list-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px; /* عرض ثابت برای آواتار */
+    height: 50px; /* ارتفاع ثابت */
+    min-width: 50px; /* جلوگیری از جمع شدن در موبایل */
+    flex-shrink: 0;
+}
+
+    /* استایل خود SVG (دایره سبز) */
+    .chat-list-image svg {
+        background-color: #01aa85; /* رنگ سبز اصلی قالب */
+        border-radius: 50%; /* گرد کردن کامل */
+        width: 100%;
+        height: 100%;
+        padding: 12px; /* فاصله داخلی آیکون از لبه‌های دایره */
+        box-sizing: border-box;
+        transition: background-color 0.2s ease;
+    }
+
+        /* استایل خطوط آیکون (سفید کردن رنگ) */
+        .chat-list-image svg path {
+            stroke: #ffffff !important; /* رنگ سفید برای دیده شدن روی سبز */
+        }
+
+/* (اختیاری) تغییر رنگ هنگام هاور */
+.chat-list li:hover .chat-list-image svg {
+    background-color: #008f6f; /* سبز کمی تیره‌تر هنگام انتخاب */
+}
+
+.removing {
+    opacity: 0;
+    transform: scale(0.9); /* یا هر تغییر دیگری مانند translateY(-10px) برای حرکت */
+}
+
+/* ========================================================= */
+/*      CHAT CONTENT AREA (SCROLL FIX)                       */
+/* ========================================================= */
+
 #chat_content {
     background-image: url(/assets/media/avatar/new-pattern-63.png);
     background-color: #f6f5f3;
     position: relative;
     background-position: top left;
     background-size: 44%;
+    min-height: 100vh; /* تضمین پر کردن ارتفاع صفحه */
+    width: 100%;
+    overflow-x: hidden;
+    /* 
+       FIX: این پدینگ بسیار حیاتی است.
+       فضای خالی در انتهای چت ایجاد می‌کند تا آخرین پیام
+       پشت پنل ارسال (messages-panel) مخفی نشود.
+       مقدار آن باید تقریبا برابر با ارتفاع پنل ارسال باشد.
+    */
+    padding-bottom: 200px;
 }
 
-/* --- Message Bubbles & Layout --- */
-/* Self Messages (Sent) */
-.message.self {
-    justify-content: flex-end;
-}
+/* ========================================================= */
+/*      MESSAGE LIST ALIGNMENT                               */
+/* ========================================================= */
 
-    .message.self .message-wrapper {
-        background-color: #dcf8c6; /* WhatsApp light green */
-        border-radius: 8px 0 8px 8px;
-        position: relative;
-        padding: 8px;
-        max-width: 75%;
-        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
-    }
-
-        /* Message Bubble "Tail" */
-        .message.self .message-wrapper::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: -10px;
-            width: 0;
-            height: 0;
-            border-style: solid;
-            border-width: 0 0 10px 10px;
-            border-color: transparent transparent transparent #dcf8c6;
-        }
-
-    /* Hide Avatar for Self Messages */
-    .message.self .message-options .avatar,
-    .message.self .message-options span[class="message-date"]:first-child {
-        display: none;
-    }
-
-.message-content {
-    padding-bottom: 20px;
-    position: relative;
-}
-
-/* --- Message List Layout (from site.css, takes precedence) --- */
 .message-box-list > li {
     display: flex;
     align-items: center;
     margin-bottom: 2px;
     position: relative;
+    width: 100%;
 }
 
 .message-box-list li .message-box {
@@ -72,41 +110,105 @@ body {
     margin: 0 8px;
 }
 
-/* Layout for Sent (Self) Messages */
+/* Sent (Right) */
 .message-box-list li.personal {
     flex-direction: row-reverse;
     justify-content: end;
 }
 
-/* Layout for Received (New) Messages */
+.message.self {
+    justify-content: flex-end;
+}
+
+/* Received (Left) */
 .message-box-list li.new {
     flex-direction: row;
     justify-content: flex-start;
 }
 
-/**استایل پیام سیستمی*/
+/* System (Center) */
 .message-box-list li.systemMessage {
     flex-direction: row;
     justify-content: center;
     background-color: #0dcaf059;
     margin-top: 10px;
     margin-bottom: 10px;
+    border-radius: 8px;
+    padding: 5px;
 }
 
+/* ========================================================= */
+/*      MESSAGE BUBBLES                                      */
+/* ========================================================= */
 
-.message-box-list li.systemMessage .message-box .message-box-details {
-    /*border-radius: unset;*/
+.message-box-details {
+    max-width: 85vw;
 }
-    /* --- Message Options (Three Dots Menu) --- */
-    .message-options .btn {
-        background-color: rgba(240, 242, 245, 0.9);
-        border: none;
-        box-shadow: none;
-        padding: 2px;
-        border-radius: 20%;
-        cursor: pointer;
-        transition: background-color 0.2s ease-in-out;
+
+/* Self Messages (Green) */
+.message.self .message-wrapper {
+    background-color: #dcf8c6;
+    border-radius: 8px 0 8px 8px;
+    position: relative;
+    padding: 8px;
+    max-width: 75%;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+    margin-left: auto;
+}
+
+    .message.self .message-wrapper::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -10px;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 0 0 10px 10px;
+        border-color: transparent transparent transparent #dcf8c6;
     }
+
+.message.self .message-options .avatar,
+.message.self .message-options span[class="message-date"]:first-child {
+    display: none;
+}
+
+.message-content {
+    padding-bottom: 20px;
+    position: relative;
+}
+
+/* Received Messages (White/Gray) */
+.message-box-list li.new .message-box .message-box-details {
+    background-color: ghostwhite;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    border-radius: 8px 8px 8px 0;
+}
+
+    .message-box-list li.new .message-box .message-box-details h5 {
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+
+.message-box-list li.personal .message-box .message-box-details {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+/* Three Dots Menu */
+.message-options .btn {
+    background-color: rgba(240, 242, 245, 0.9);
+    border: none;
+    box-shadow: none;
+    padding: 4px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
     .message-options .btn i {
         font-size: 20px;
@@ -119,11 +221,14 @@ body {
     background-color: #01aa85;
 }
 
+    .message-box-list > li:hover .message-options .btn i {
+        color: white;
+    }
+
 .message-options .btn[aria-expanded="true"] {
     background-color: #e9edef;
 }
 
-/* Dropdown Menu Style */
 .message-options .dropdown-menu {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     border: none;
@@ -138,39 +243,376 @@ body {
     direction: rtl;
 }
 
-
 /* ========================================================= */
-/*      Voice Recording & Preview UI (Merged & Refined)      */
+/*      DROPDOWN MENU & ICONS FIX                            */
 /* ========================================================= */
 
-#voice-input-area {
-    padding: 16px;
-    background: white;
-    flex-grow: 1;
+/* استایل کلی منوی دراپ‌داون */
+.dropdown-menu {
+    background-color: #ffffff;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 8px 0;
+    border-radius: 8px;
 }
 
-/* Main container for voice UI */
+    /* استایل آیتم‌های لیست */
+    .dropdown-menu .dropdown-item {
+        display: flex;
+        align-items: center;
+        color: #3b4a54; /* رنگ متن خاکستری تیره */
+        font-size: 14px;
+        padding: 10px 16px;
+        text-decoration: none;
+        transition: background-color 0.2s;
+        direction: rtl; /* راست‌چین کردن متن و آیکون */
+        gap: 10px; /* فاصله بین آیکون و متن (جایگزین مدرن برای &nbsp;) */
+    }
+
+        /* افکت هاور روی آیتم‌ها */
+        .dropdown-menu .dropdown-item:hover {
+            background-color: #f5f6f6;
+            color: #111b21;
+        }
+
+        /* --- اصلاح رنگ آیکون‌ها --- */
+        .dropdown-menu .dropdown-item img {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+            /* 
+       FIX COLOR:
+       این خط بسیار مهم است. 
+       1. brightness(0): آیکون را کاملاً مشکی می‌کند (حتی اگر سفید باشد).
+       2. invert(0.35): مشکی را به خاکستری تیره تبدیل می‌کند.
+       !important: برای خنثی کردن کلاس svgInvertColor ضروری است.
+    */
+            filter: brightness(0) invert(0.35) !important;
+        }
+
+
+/* ========================================================= */
+/*      FOOTER PANEL (INPUT & BANNERS)                       */
+/* ========================================================= */
+
+.messages-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background-color: #f0f2f5;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
+    height: 60px;
+    max-height: 70vh !important;
+    width: 100%;
+    padding-bottom: env(safe-area-inset-bottom);
+    transition: transform 0.25s ease-out;
+}
+
+/* 
+   FIX EMOJI HEIGHT:
+   اگر پنل ایموجی شما کلاسی مثل .emoji-menu یا .emoji-picker دارد،
+   این استایل اطمینان می‌دهد که ارتفاع خود را حفظ کند.
+   flex-shrink: 0 باعث می‌شود وقتی کیبورد یا دیگر عناصر باز می‌شوند، ایموجی له نشود.
+*/
+.emoji-menu, .emoji-picker-container, .fg-emoji-picker {
+    height: 300px !important; /* ارتفاع ثابت برای پنل ایموجی */
+    flex-shrink: 0;
+    display: block;
+    overflow-y: auto;
+}
+
+.action-banners-container {
+    order: 1;
+    width: 100%;
+    flex-shrink: 0;
+}
+
+#filePreviewContainer {
+    order: 2;
+    flex-shrink: 0;
+    display: none;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    background-color: #f0f2f5;
+    border-top: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    max-height: 30vh;
+    overflow-y: auto;
+    z-index: 999;
+}
+
+    #filePreviewContainer.visible {
+        display: flex;
+    }
+
+.message-form-container {
+    order: 3;
+    background-color: #f0f2f5;
+    padding: 8px 10px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* --- Emoji Picker Container --- */
+#emoji-picker {
+    /* بازنشانی پوزیشن برای قرارگیری صحیح در ساختار فلکس */
+    position: relative !important;
+    bottom: unset !important;
+    left: unset !important;
+    /* ابعاد و نمایش */
+    width: 100%;
+    /*height: 250px;*/ /* ارتفاع ثابت ضروری است */
+    max-height: 40vh; /* در موبایل بیشتر از 40 درصد صفحه را نگیرد */
+    background: #ffffff;
+    border-top: 1px solid #e0e0e0;
+    padding: 10px;
+    /* اسکرول و نظم‌دهی */
+    overflow-y: auto;
+    box-sizing: border-box;
+    z-index: 1000;
+    /* تنظیمات فلکس برای قرارگیری صحیح در پنل */
+    order: 2; /* قرارگیری بالای اینپوت (اگر اینپوت order: 3 باشد) */
+    flex-shrink: 0; /* جلوگیری از له شدن */
+    display: block; /* اطمینان از بلاک بودن */
+}
+
+/* --- Emoji Grid Layout --- */
+.emoji-grid {
+    display: grid;
+    /* ایجاد ستون‌های خودکار بر اساس عرض صفحه (ریسپانسیو) */
+    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+    gap: 10px;
+    width: 100%;
+    padding-bottom: 10px; /* فاصله جزئی از پایین برای راحتی اسکرول */
+}
+
+/* --- Emoji Buttons --- */
+.emoji-btn {
+    font-size: 24px;
+    background: transparent;
+    border: 1px solid transparent; /* بوردر نامرئی برای جلوگیری از پرش هنگام هاور */
+    border-radius: 8px;
+    cursor: pointer;
+    height: 45px; /* ارتفاع مناسب برای تاچ */
+    width: 100%; /* پر کردن خانه گرید */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+    .emoji-btn:hover {
+        background-color: #f0f2f5;
+        border-color: #e0e0e0;
+        transform: scale(1.1);
+    }
+
+
+
+/* Input Area */
+.messages-panel .message-inputarea {
+    position: relative !important;
+    bottom: unset !important;
+    left: unset !important;
+    transform: none !important;
+    width: 100% !important;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    max-height: 150px !important; /* کمی افزایش ارتفاع برای راحتی */
+    overflow: hidden;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+#message-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    padding: 10px 12px;
+    background: transparent;
+    color: #303030;
+    resize: none;
+    min-height: 40px;
+    max-height: 120px;
+    overflow-y: auto;
+    line-height: 24px;
+    box-shadow: none;
+}
+
+    #message-input::placeholder {
+        color: #8696a0;
+    }
+
+.message-inputarea a,
+.message-inputarea button {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 40px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    background: transparent;
+}
+
+    .message-inputarea a:hover {
+        background: #f0f2f5;
+    }
+
+.message-send-btn:hover {
+    background: #e7e7e7 !important;
+}
+
+.message-inputarea svg {
+    width: 24px;
+    height: 24px;
+}
+
+    .message-inputarea svg path {
+        stroke: #54656f !important;
+    }
+
+.message-send-btn svg, #notification-toggle svg {
+    filter: none;
+    stroke: #54656f !important;
+}
+
+/* ========================================================= */
+/*      REPLY & EDIT BANNERS                                 */
+/* ========================================================= */
+
+#cancel-edit-container,
+#reply-to-container {
+    background: #25D366;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideDown 0.2s ease-out;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    direction: rtl;
+}
+
+    #cancel-edit-container.force-hide {
+        display: none;
+    }
+
+.edit-indicator, .reply-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.edit-bar, .reply-bar {
+    width: 4px;
+    height: 32px;
+    background: white;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.edit-text, #reply-to-user {
+    font-weight: bold;
+    font-size: 14px;
+    color: white;
+}
+
+#reply-to-text {
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 95%;
+}
+
+.reply-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.reply-preview-thumbnail {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 6px;
+    background-color: #e9ecef;
+    flex-shrink: 0;
+}
+
+#cancel-edit-button, #cancel-reply {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+    #cancel-edit-button:hover, #cancel-reply:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.02);
+    }
+
+/* ========================================================= */
+/*      VOICE UI                                             */
+/* ========================================================= */
+
 .voice-ui-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    height: 73px;
-    padding: 12px 16px; /* from voiceStyle.css */
-    background: #f8f9fa; /* from voiceStyle.css */
-    border-radius: 12px; /* from voiceStyle.css */
-    margin: 8px 0; /* from voiceStyle.css */
-    border: 1px solid #e9ecef; /* from voiceStyle.css */
-    box-sizing: border-box;
+    height: 60px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin: 5px 0;
+    border: 1px solid #e9ecef;
     color: #b0b8c0;
 }
 
-/* --- Recording State --- */
-.voice-recording-content {
+.voice-recording-content,
+.voice-processing-content,
+.voice-preview-content {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 15px;
+    gap: 10px;
     width: 100%;
 }
 
@@ -179,7 +621,7 @@ body {
     align-items: center;
     gap: 8px;
     font-weight: 600;
-    color: #dc3545; /* from voiceStyle.css, overrides #e74c3c */
+    color: #dc3545;
     animation: blink-animation 1.5s infinite;
 }
 
@@ -190,62 +632,21 @@ body {
     border-radius: 50%;
 }
 
-.recording-text {
-    color: #6c757d;
-    font-size: 14px;
-}
-
-.recording-timer {
-    font-family: monospace, sans-serif;
-    font-size: 16px;
-    direction: ltr;
-}
-
-/* --- Processing State --- */
-.voice-processing-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 8px 0;
-}
-
-.spinner-container {
-    width: 24px;
-    height: 24px;
-}
-
-.processing-text {
-    color: #007bff;
-    font-weight: 500;
-}
-
-/* --- Preview State --- */
-.voice-preview-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-}
-
 .voice-action-btn {
-    font-size: 18px; /* from imported-chat-styles.css */
-    background: none; /* from voiceStyle.css */
+    font-size: 18px;
+    background: none;
     border: none;
     padding: 8px;
-    border-radius: 8px;
+    border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    color: #b0b8c0; /* from imported-chat-styles.css */
-    transition: background-color 0.2s, color 0.2s;
+    color: #54656f;
 }
 
     .voice-action-btn:hover {
-        background-color: #e9ecef; /* from voiceStyle.css */
-        color: #ffffff; /* from imported-chat-styles.css */
+        background-color: #e9ecef;
     }
 
 .delete-btn {
@@ -253,9 +654,9 @@ body {
 }
 
 .voice-player-container {
-    flex: 1; /* from voiceStyle.css, more specific */
+    flex: 1;
     min-width: 0;
-    margin: 0 15px; /* from imported-chat-styles.css */
+    margin: 0 10px;
 }
 
 .voice-timeline {
@@ -263,42 +664,15 @@ body {
     height: 4px;
     border-radius: 2px;
     background: #ddd;
-    outline: none;
-    -webkit-appearance: none;
-    appearance: none;
-    cursor: pointer;
 }
 
-    .voice-timeline::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: #007bff;
-        cursor: pointer;
-    }
-
-.voice-duration {
-    font-family: monospace, sans-serif;
-    font-size: 12px;
-    color: #6c757d;
-    min-width: 35px;
-    flex-shrink: 0;
-    text-align: left;
-}
-
-
-/* ========================================================= */
-/*      Audio Message Display (in chat)                      */
-/* ========================================================= */
-
+/* Audio Player in Chat */
 .audio-player-container {
     display: flex;
     align-items: center;
     padding: 8px;
     border-radius: 18px;
-    max-width: 210px;
+    max-width: 240px;
     min-width: 200px;
     background-color: #f0f0f0;
     direction: ltr;
@@ -322,10 +696,6 @@ body {
     justify-content: center;
     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
-
-    .voice-playback-btn .fa-play {
-        margin-left: 2px;
-    }
 
 .voice-timeline-container {
     flex-grow: 1;
@@ -354,212 +724,9 @@ body {
     left: 0;
 }
 
-.voice-timeline-handle {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background-color: #5c85d6;
-    position: absolute;
-    left: 0%;
-    transform: translateX(-7px);
-    display: none;
-}
-
-.voice-timeline-container:hover .voice-timeline-handle {
-    display: block;
-}
-
-.voice-duration-display {
-    font-size: 12px;
-    color: #666;
-    min-width: 40px;
-    text-align: center;
-    font-family: 'Vazir',monospace, sans-serif;
-}
-
-.voice-download-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    color: white;
-    cursor: pointer;
-    border: none;
-    font-size: 18px;
-    transition: background-color 0.2s;
-}
-
-    .voice-download-btn:hover {
-        background-color: #888;
-    }
-
-    .voice-download-btn .fa-spinner {
-        display: none;
-    }
-
-    .voice-download-btn.loading .fa-download {
-        display: none;
-    }
-
-    .voice-download-btn.loading .fa-spinner {
-        display: inline-block;
-        animation: fa-spin 1s infinite linear;
-    }
-
-
 /* ========================================================= */
-/*      Footer & Message Input Area Structure                */
+/*      FILE PREVIEW                                         */
 /* ========================================================= */
-
-
-
-.action-banners-container {
-    width: 100%;
-    flex-shrink: 0; /* جلوگیری از فشرده شدن این بخش */
-}
-
-
-
-.message-form-container {
-    order: 2; /* تغییر از 3 به 2 */
-    background-color: #f0f2f5;
-    padding: 8px 10px;
-    display: flex; /* این را اضافه کنید تا فرزندانش را مدیریت کند */
-    flex-direction: column; /* این را اضافه کنید */
-    flex-shrink: 0; /* از فشرده شدن این بخش جلوگیری می‌کند */
-    overflow-y: auto; /* اگر محتوا زیاد شد، اسکرول داخلی ایجاد می‌کند */
-}
-
-.message-inputarea {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    padding: 12px 16px;
-    background: white;
-    border-radius: 30px;
-    margin: 12px 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-#message-input, .message-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 15px;
-    padding: 10px 12px;
-    background: transparent;
-    color: #303030;
-    resize: none;
-    min-height: 40px; /* حداقل ارتفاع */
-    max-height: 150px; /* حداکثر ارتفاع قبل از فعال شدن اسکرول داخلی */
-    overflow-y: auto; /* اسکرول در صورت نیاز */
-    line-height: 24px;
-    box-sizing: border-box;
-}
-
-    #message-input::placeholder, .message-input::placeholder {
-        color: #8696a0;
-    }
-
-    #message-input::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    #message-input::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.3);
-        border-radius: 4px;
-    }
-
-    #message-input::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-.message-inputarea a, .message-inputarea button {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    text-decoration: none;
-    /*filter: invert(43%) sepia(99%) saturate(1967%) hue-rotate(90deg) brightness(96%) contrast(102%);*/
-    /*filter: invert(59%) sepia(77%) saturate(484%) hue-rotate(93deg) brightness(96%) contrast(91%);*/
-}
-
-    .message-inputarea a:hover {
-        background: #e7e7e7;
-    }
-
-.message-inputarea svg {
-    width: 20px;
-    height: 20px;
-}
-
-/*.message-send-btn {*/
-/*background: #25D366 !important;*/ /*#e5f6f3*/
-/*width: 44px;
-    height: 44px;
-}*/
-
-.message-send-btn:hover {
-    background: #e7e7e7 !important;
-}
-
-.message-send-btn svg {
-    filter: brightness(0) invert(1);
-}
-
-
-.message-inputarea svg path {
-    stroke: #5c5c5c !important; /* سبز واتساپ */
-}
-
-.chat-list-image svg path {
-    stroke: #e9ecef !important; /* سبز واتساپ */
-}
-
-.chat-list-image svg {
-    background-color: #01aa85;
-    padding: 12px;
-    border-radius: 50%;
-}
-
-.chat-list li:hover {
-    background-color: #f0f8ff;
-}
-
-.btn-record-voice {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* --- File Preview Container --- */
-#filePreviewContainer {
-    order: 1; /* تغییر از 2 به 1 */
-    flex-shrink: 0; /* جلوگیری از فشرده شدن این بخش */
-    display: none;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px;
-    background-color: #f0f2f5;
-    border-top: 1px solid #e0e0e0;
-    border-bottom: 1px solid #e0e0e0;
-    max-height: 30vh;
-    overflow-y: auto;
-    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
-    animation: slideDown 0.3s ease-out;
-    z-index: 998; /* کمتر از action-banners-container-inner */
-    position: relative;
-}
-
-    #filePreviewContainer.visible {
-        display: flex;
-    }
 
 .file-preview-item {
     position: relative;
@@ -570,39 +737,33 @@ body {
     padding: 8px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     width: calc(50% - 5px);
-    transition: opacity 0.4s ease, transform 0.4s ease;
+    transition: opacity 0.4s ease;
 }
 
-    .file-preview-item.removing {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-
-.file-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-grow: 1;
-    overflow: hidden;
-}
-
-.file-thumbnail {
+.file-thumbnail, .file-icon {
     width: 48px;
     height: 48px;
-    object-fit: cover;
     border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
 }
 
 .file-icon {
-    width: 48px;
-    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: #e9ecef;
-    border-radius: 6px;
     font-size: 24px;
     color: #495057;
+}
+
+.file-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-left: 8px;
+    overflow: hidden;
+    flex-grow: 1;
 }
 
 .file-name {
@@ -610,237 +771,36 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-size: 14px;
 }
 
-.file-details {
-    font-size: 0.8rem;
-    color: #6c757d;
+/* ========================================================= */
+/*      UTILITIES & RESPONSIVE                               */
+/* ========================================================= */
+
+.chatInDateLabelClass {
+    position: sticky;
+    top: 5px;
+    z-index: 1;
+    background-color: #00bf95;
+    padding: 5px 15px;
+    width: fit-content;
+    margin: 0 auto;
+    border-radius: 15px;
+    color: white;
+    font-size: 12px;
 }
 
-.status-icon {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.action-btn {
-    cursor: pointer;
-    font-size: 18px;
-    display: none;
-}
-
-.remove-file-btn {
-    color: #dc3545;
-}
-
-.retry-upload-btn {
-    color: #007bff;
-}
-
-.cancel-upload-btn {
-    color: #ffc107;
-}
-
-.status-text {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.75rem;
-}
-
-/* Spinner (from site.css, takes highest precedence) */
 .spinner {
-    width: 14px; /* from site.css */
-    height: 14px; /* from site.css */
-    border: 2px solid rgba(0, 0, 0, 0.1); /* from site.css */
-    border-left-color: #09f; /* from site.css */
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #09f;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     display: none;
 }
 
-
-/* --- Action Banners (Edit & Reply) --- */
-#cancel-edit-container {
-    background: #25D366;
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    animation: slideDown 0.2s ease-out;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    position: relative;
-    z-index: 1; /* نسبت به والد */
-}
-
-    #cancel-edit-container.force-hide {
-        display: none;
-    }
-
-.edit-indicator {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: white;
-}
-
-.edit-bar {
-    width: 4px;
-    height: 32px;
-    background: white;
-    border-radius: 2px;
-}
-
-.edit-text {
-    font-weight: 500;
-    font-size: 15px;
-}
-
-#cancel-edit-button {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    display: inline-block;
-}
-
-    #cancel-edit-button:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: scale(1.02);
-    }
-
-#reply-to-container {
-    background: #25D366; /* رنگ پس‌زمینه سبز از #cancel-edit-container */
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    animation: slideDown 0.2s ease-out;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    direction: rtl;
-    position: relative;
-    z-index: 1; /* نسبت به والد */
-}
-
-.reply-indicator {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: white;
-    flex-grow: 1;
-    overflow: hidden;
-}
-
-.reply-bar {
-    width: 4px;
-    background: white;
-    border-radius: 2px;
-    height: 32px;
-}
-
-.reply-content {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-}
-
-#reply-thumbnail-container {
-    flex-shrink: 0;
-}
-
-.reply-preview-thumbnail {
-    width: 40px;
-    height: 40px;
-    object-fit: cover;
-    border-radius: 6px;
-    background-color: #e9ecef;
-}
-
-.reply-text-content {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    overflow: hidden;
-}
-
-#reply-to-user {
-    font-weight: bold;
-    font-size: 14px;
-    color: white;
-}
-
-#reply-to-text {
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: rgba(255, 255, 255, 0.85);
-    max-width: 95%;
-}
-
-#reply-icon-container {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #555;
-}
-
-    #reply-icon-container .iconsax {
-        font-size: 20px;
-    }
-
-#cancel-reply {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    cursor: pointer;
-    display: inline-block;
-    transition: background-color 0.2s ease;
-    margin-left: 0;
-    width: auto;
-    height: auto;
-}
-
-    #cancel-reply:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: scale(1.02);
-    }
-
-
-/* --- Utility & Miscellaneous Styles --- */
-.chatInDateLabelClass {
-    position: -webkit-sticky;
-    position: sticky;
-    top: 5px;
-    z-index: 1;
-    background-color: #00bf95;
-    padding: 5px 0;
-    width: 40%;
-    margin: 0 auto;
-    border-radius: 15px;
-}
-
-.svgInvertColor {
-    filter: invert(100%) sepia(90%) saturate(500%) hue-rotate(0deg);
-}
-
-.groupIcons {
-    padding: 10px;
-    background-color: #01aa85;
-    border-radius: 50%;
-}
-
-
-/* --- Animations --- */
 @keyframes blink-animation {
     0%, 50% {
         opacity: 1;
@@ -852,12 +812,6 @@ body {
 }
 
 @keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes fa-spin {
     to {
         transform: rotate(360deg);
     }
@@ -876,278 +830,40 @@ body {
 }
 
 
-/* --- Responsive Design --- */
-@media (max-width: 768px) {
-    .message-inputarea {
-        margin: 8px 12px;
-    }
-
-    #cancel-edit-container, #reply-to-container {
-        padding: 8px 12px;
-    }
-
-    /* Voice UI Mobile Optimizations */
-    .voice-preview-content {
-        gap: 8px;
-    }
-
-    .voice-action-btn {
-        padding: 6px;
-    }
-
-        .voice-action-btn svg {
-            width: 18px;
-            height: 18px;
-        }
-
-    .voice-duration {
-        min-width: 30px;
-        font-size: 11px;
-    }
-
-}
-
-@media (max-width: 480px) {
-    /* Voice UI for very small screens */
-    .voice-preview-content {
-        gap: 6px;
-    }
-
-    .voice-action-btn {
-        padding: 4px;
-    }
-
-        .voice-action-btn svg {
-            width: 16px;
-            height: 16px;
-        }
-
-    .voice-duration {
-        min-width: 25px;
-        font-size: 10px;
-    }
-}
-
 /* ========================================================= */
-/*      END OF MERGED CSS                                  */
+/*      MESSAGE DELETION ANIMATION                           */
 /* ========================================================= */
 
-/* ========================================================= */
-/*      Override for .message-inputarea Conflicting Styles   */
-/* ========================================================= */
-/*
-   این کد استایل‌های ناخواسته از فایل دیگر را که باعث خروج
-   .message-inputarea از والد خود می‌شوند، خنثی می‌کند.
-*/
-.message-inputarea {
-    /* بازنشانی کامل استایل‌های موقعیت‌یابی */
-    position: relative !important; /* از fixed به relative تغییر می‌کند تا در جریان عادی صفحه باقی بماند */
-    bottom: unset !important; /* حذف موقعیت از پایین */
-    left: unset !important; /* حذف موقعیت از چپ */
-    transform: none !important; /* حذف هرگونه جابجایی */
-    /* بازنشانی استایل‌های ابعاد و حاشیه */
-    width: 100% !important; /* عرض به حالت خودکار برمی‌گردد تا والد آن را کنترل کند */
-    /* حاشیه (margin) از قبل به درستی در کد شما تنظیم شده است (margin: 12px 16px) */
-    /* حذف افکت بلور پس‌زمینه که دیگر کاربردی ندارد */
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-    margin: unset;
-}
-
-/* ========================================================= */
-/*      Footer & Message Input Area Structure (FINAL FIX)    */
-/* ========================================================= */
-
-.messages-panel {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    background-color: #f0f2f5;
-    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
-    overflow-y: auto;
-    height: auto;
-    transition: transform 0.25s ease-out;
-}
-
-/* Action banners داخل messages-panel با order: -1 برای قرار گرفتن در بالا */
-.action-banners-container-inner {
-    order: -1; /* قرار گرفتن در بالاترین موقعیت */
-    width: 100%;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 1010; /* بالاتر از filePreviewContainer */
-    background-color: transparent;
-    pointer-events: none; /* اجازه کلیک روی عناصر زیرین */
-}
-
-/* فرزندان action-banners-container-inner باید pointer-events داشته باشند */
-.action-banners-container-inner > * {
-    pointer-events: auto;
-}
-
-/* حذف action-banners-container قدیمی که بیرون بود */
-.action-banners-container {
-    display: none !important; /* مخفی کردن کانتینر قدیمی که بیرون است */
-}
-
-/* --- File Preview Container --- */
-#filePreviewContainer {
-    order: 1; /* بعد از action-banners-container-inner */
-    flex-shrink: 0;
-    display: none;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px;
-    background-color: #f0f2f5;
-    border-top: 1px solid #e0e0e0;
-    border-bottom: 1px solid #e0e0e0;
-    max-height: 30vh;
-    overflow-y: auto;
-    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
-    animation: slideDown 0.3s ease-out;
-    z-index: 999; /* کمتر از action-banners-container-inner ولی بیشتر از message-form */
-    position: relative;
-}
-
-    #filePreviewContainer.visible {
-        display: flex;
+/* تعریف keyframes برای انیمیشن حذف پیام */
+@keyframes messageFadeOutUp {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 
-.message-form-container {
-    order: 2;
-    background-color: #f0f2f5;
-    padding: 8px 10px;
-    flex-shrink: 0; /* از فشرده شدن این بخش جلوگیری می‌کند */
-    position: relative;
-    z-index: 997; /* کمتر از همه */
-    /* overflow-y: auto از اینجا حذف شد چون به والد منتقل شد */
-}
-
-/*
-   این بخش override که قبلاً اضافه کردید، همچنان لازم و صحیح است
-   و باید در فایل شما باقی بماند.
-*/
-.message-inputarea {
-    position: relative !important;
-    bottom: unset !important;
-    left: unset !important;
-    transform: none !important;
-    width: 100% !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-    /* استایل‌های اصلی خود عنصر را حفظ می‌کنیم */
-    display: flex;
-    align-items: center;
-    gap: 0;
-    padding: 12px 16px;
-    background: white;
-    border-radius: 30px;
-    margin: 12px 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    max-height: 120px !important;
-    overflow: hidden;
-    border-radius: 5px;
-    padding: 2px 2px;
-}
-
-/* بقیه استایل‌ها برای textarea و ... بدون تغییر باقی می‌مانند */
-#message-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 15px;
-    padding: 10px 12px;
-    background: transparent;
-    resize: none;
-    min-height: 40px;
-    max-height: 150px; /* پس از این ارتفاع، اسکرول داخلی فعال می‌شود */
-    overflow-y: auto;
-    box-shadow: none;
-}
-
-
-/* ========================================================= */
-/* تغییر استایل کانتینر Reply برای تطابق کامل با Edit   */
-/* ========================================================= */
-
-/* 1. کانتینر اصلی: تطابق با #cancel-edit-container */
-#reply-to-container {
-    /* رنگ پس‌زمینه سبز از #cancel-edit-container */
-    background: #25D366;
-}
-
-/* 2. نشانگر اصلی محتوا: تطابق با .edit-indicator */
-.reply-indicator {
-    /* رنگ متن سفید از .edit-indicator */
-    color: white;
-    /* هم‌ترازی عمودی در مرکز */
-    align-items: center;
-}
-
-/* 3. نوار رنگی کناری: تطابق با .edit-bar */
-.reply-bar {
-    /* رنگ سفید از .edit-bar */
-    background: white;
-    /* ارتفاع ثابت از .edit-bar */
-    height: 32px;
-}
-
-/* 4. دکمه انصراف: تطابق با #cancel-edit-button */
-#cancel-reply {
-    /* پس‌زمینه شفاف با کمی سفیدی از #cancel-edit-button */
-    background: rgba(255, 255, 255, 0.2);
-    /* رنگ متن سفید از #cancel-edit-button */
-    color: white;
-    /* پدینگ مستطیلی از #cancel-edit-button */
-    padding: 8px 16px;
-    /* گوشه‌های گردتر از #cancel-edit-button */
-    border-radius: 20px;
-    /* نمایش به صورت اینلاین بلاک از #cancel-edit-button */
-    display: inline-block;
-    /* حذف حاشیه اضافی و تنظیم مجدد ابعاد برای استفاده از پدینگ */
-    margin-left: 0;
-    width: auto;
-    height: auto;
-}
-
-    /* حالت هاور دکمه انصراف: تطابق با #cancel-edit-button:hover */
-    #cancel-reply:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: scale(1.02);
+    100% {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95); /* حرکت به بالا و کمی کوچک شدن */
     }
-
-/* 5. تنظیم رنگ متن داخلی Reply برای خوانایی روی پس‌زمینه سبز */
-/* نام کاربری */
-#reply-to-user {
-    /* رنگ سفید برای نام کاربری (Bold) */
-    color: white;
 }
 
-/* متن پیام اصلی */
-#reply-to-text {
-    /* رنگ سفید کم‌رنگ‌تر برای متن (Subtle) */
-    color: rgba(255, 255, 255, 0.85);
+/* کلاس جدید برای حذف پیام با انیمیشن روان */
+.message.removing {
+    animation: messageFadeOutUp 0.5s ease-in-out forwards; /* مدت زمان 0.5 ثانیه، ease-in-out برای روان بودن */
 }
 
-/*******************modal****************************/
-
-.btn-outline-light {
-    stroke: #e9ecef !important;
-    background-color: #01aa85;
-    padding: 12px;
-    transition: transform 0.45s all,
-}
-
-    .btn-outline-light:hover {
-        stroke: #e9ecef !important;
-        background-color: #008165;
+    /* اگر بخواهید رنگ پس‌زمینه را هم تغییر دهید (اختیاری) */
+    .message.removing .message-box {
+        background-color: rgba(255, 0, 0, 0.1); /* قرمز کم‌رنگ برای نشان دادن حذف */
+        transition: background-color 0.3s ease;
     }
+/*         MESSAGE DELETION ANIMATION        */
+
 
 .lightbox-image {
     max-height: 90%;
     max-width: 90%;
     opacity: 0;
-    transform: translateX(0);
     transition: transform 0.45s ease, opacity 0.45s ease;
     pointer-events: none;
 }
@@ -1157,105 +873,104 @@ body {
         pointer-events: auto;
     }
 
-    .lightbox-image.slide-in-left {
-        transform: translateX(-100%);
-        opacity: 0;
+.btn-outline-light {
+    stroke: #e9ecef !important;
+    background-color: #01aa85;
+    padding: 12px;
+    border-radius: 50%;
+    border: 1px solid white;
+}
+
+    .btn-outline-light:hover {
+        background-color: #008165;
     }
 
-    .lightbox-image.slide-in-right {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-
-    .lightbox-image.slide-center {
-        transform: translateX(0);
-        opacity: 1;
-    }
-
-
-.message-box-list li.new .message-box .message-box-details {
-    /*background-color: rgb(223 223 223);*/
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-    background-color: ghostwhite;
-}
-
-
-.message-box-list li.personal .message-box .message-box-details{
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-}
-
-
-/***********************************************/
-.chat-section .chat-list li .chat-list-box .chat-details .content .count {
-    width: 25px;
-    height: 25px;
-    padding:3px;
-}
-
-#close-group-info-panel-btn{
-    margin-left : 20px;
-}
-
-/* کلاس برای مخفی کردن عناصر هنگام انتخاب چت */
-.hidden {
-    display: none;
-}
-
-/* ========================================================= */
-/*      NEW LAYOUT & iOS FIXES (MOBILE ONLY)                 */
-/* ========================================================= */
-
-@media (max-width: 767.98px) {
-    /* --- Main Chat Panel Container (Full Screen Overlay) --- */
-    #chat-details-panel {
-        position: fixed !important;
-        top: unset; /* Allow 'bottom' to control vertical position */
-        bottom: 0; /* Default position at the bottom */
-        left: 0;
+@media (max-width: 768px) {
+    .messages-panel {
         width: 100%;
-        height: 100%;
-        background-color: #f6f5f3;
-        z-index: 1000;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-        display: flex !important; /* Ensure flex is applied */
     }
 
-    #chat-details-panel.visible {
-        opacity: 1;
-        visibility: visible;
+    .message-inputarea {
+        padding: 6px 10px;
     }
 
-    /* --- Flexbox Layout Inside the Panel --- */
-    .chat-flex-container {
-        display: flex;
-        flex-direction: column;
+    #cancel-edit-container, #reply-to-container {
+        padding: 8px 12px;
+    }
+
+    .voice-action-btn svg, .message-inputarea svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .message.self .message-wrapper {
+        max-width: 85%;
+    }
+
+    .file-preview-item {
         width: 100%;
-        height: 100%;
     }
 
-    /* --- Chat Header (Sticky) --- */
-    .chat-header {
-        flex-shrink: 0;
-        z-index: 10;
+    #chat_content {
+        padding-bottom: 28vh;
     }
 
-    /* --- Chat Body (Scrollable) --- */
-    .chat-body {
-        flex-grow: 1;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
+    /* برای ایموجی در موبایل، تعداد ستون‌ها بیشتر می‌شود */
+    /*.emoji-grid {
+        grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    }*/
+}
+
+@media (max-width: 480px) {
+    .voice-duration {
+        min-width: 25px;
+        font-size: 10px;
     }
 
-    /* --- Chat Footer (Sticky) --- */
-    .chat-footer {
-        flex-shrink: 0;
-        overflow-x: hidden; /* Prevent horizontal scroll */
+    #message-input {
+        font-size: 16px;
     }
 }
 
-/* --- Horizontal Scroll Fix for Message Panel --- */
-.messages-panel {
-    overflow-x: hidden;
+
+/* PWA guide small tweaks */
+.pwa-guide {
+    font-size: 14px;
+    color: #333;
+}
+
+    .pwa-guide svg {
+        display: block;
+        margin: 0 auto;
+    }
+
+@media (max-width: 420px) {
+    .modal-dialog {
+        margin: 1rem;
+    }
+
+    .pwa-guide svg {
+        width: 180px;
+        height: 100px;
+    }
+}
+
+
+/*****************افکت اسکرول و هایلایت برای پیام هدف *******************/
+@keyframes highlightPulse {
+    0% {
+        background-color: #fff3cd;
+    }
+
+    50% {
+        background-color: #ffe8a1;
+    }
+
+    100% {
+        background-color: transparent;
+    }
+}
+
+.highlight-message {
+    animation: highlightPulse 2s ease-in-out;
 }

@@ -1,0 +1,78 @@
+﻿/* Styles for the sliding chat details panel */
+.chat-details-panel-container {
+    position: fixed;
+    top: 0;
+    right: -100%; /* Start off-screen */
+    /* --- Fix for Width Issue --- */
+    width: 100%; /* Take full width on small screens */
+    max-width: 600px; /* But not more than 600px on larger screens */
+    left: 0;
+    right: 0;
+    margin: auto;
+    transform: translateX(150%); /* Start off-screen to the right */
+    /* --- Fix for Scrolling Issue --- */
+    height: 100vh; /* Full viewport height */
+    background-color: #fff;
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    /* --- Animation --- */
+    transition: transform 0.3s ease-in-out;
+}
+
+.overflow-clip {
+    overflow: clip;
+}
+
+.chat-details-panel-container.visible {
+    transform: translateX(0); /* Slide in to the center */
+}
+
+/* Style for online status indicator */
+.chat-list-image.online::after {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    top: 2px;
+    left: 2px;
+    background-color: #01AA85; /* Using a direct color, assuming --success-color might not be available here */
+    border: 2px solid #FFFFFF; /* Assuming --white */
+    border-radius: 100%;
+}
+
+/* --- Child element adjustments for scrolling --- */
+
+/* The header from _ChatMessageBody.cshtml */
+.chat-details-panel-container .main-header {
+    flex-shrink: 0; /* Header should not shrink */
+}
+
+/* The main content area from _ChatMessageBody.cshtml */
+.chat-details-panel-container #chat_content {
+    flex-grow: 1; /* This makes the content area take up all available space */
+    overflow-y: auto; /* Enable vertical scrolling ONLY on this element */
+    overflow-x: hidden; /* Disable horizontal scrolling */
+}
+
+/* The footer from _ChatMessageBody.cshtml */
+.chat-details-panel-container .messages-panel {
+    flex-shrink: 0; /* Footer should not shrink */
+}
+
+/* انتقال به wrapper اصلی برای اسلاید یکپارچه */
+#main-page-wrapper {
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    width: 100%; /* اطمینان از پوشش کامل عرض */
+}
+
+/* کلاس برای اسلاید به سمت چپ */
+#main-page-wrapper.slide-out {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+/* کلاس مخفی قدیمی را نگه دارید برای موارد دیگر */
+.hidden {
+    display: none;
+}
