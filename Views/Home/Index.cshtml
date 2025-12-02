@@ -1,324 +1,206 @@
-﻿@using System.Security.Claims
-@using Messenger.Tools
-@{
+﻿@{
     ViewData["Title"] = "Home Page";
-    var profileImage = "UserIcon.png";
-    if (ViewData.ContainsKey("userProfilePic"))
-    {
-        profileImage = ViewData["userProfilePic"].ToString();
-    }
-
-    var _baseUrl = "";
-    if (ViewData.ContainsKey("baseUrl"))
-    {
-        _baseUrl = ViewData["baseUrl"].ToString();
-    }
+    Layout = "~/Views/Shared/_ChatzyLayout.cshtml";
 }
+@using System.Security.Claims
+@using Messenger.Tools
 
 @section Styles {
-    <link href="~/css/indexStyle.css" rel="stylesheet" asp-append-version="true">
-
+   
 }
+
 <input type="hidden" value="@User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value" id="userId" />
 <input type="hidden" value="@User.Claims.FirstOrDefault(c => c.Type == "NameFamily")?.Value" id="fullName" />
-<input type="hidden" value="@profileImage" id="userProfilePic" />
-<input type="hidden" value="@_baseUrl" id="baseUrl" />
+<input type="hidden" value="@(ViewData["userProfilePic"] ?? "UserIcon.png")" id="userProfilePic" />
+<input type="hidden" value="@(ViewData["baseUrl"] ?? "")" id="baseUrl" />
 <input type="hidden" value="" id="groupType" />
 
-<div id="HomePageStartBody" class="h-100 w-100">
-    <partial name="_HomePageStarted" />
+<div id="main-content-body">
+    <!-- story section starts -->
+    @*   <section class="story-section pt-0">
+        <div class="left-container">
+            <h6 class="content-color fw-medium">Recent Update</h6>
+            <div class="swiper story-box">
+                <div class="swiper-wrapper">
+                    <!-- Story items can be loaded here if needed -->
+                </div>
+            </div>
+        </div>
+    </section> *@
+    <!-- story section end -->
+    <!-- chat section starts -->
+    <section class="chat-section pt-0">
+        <div class="custom-container">
+            @* <h6 class="content-color fw-medium">Chat</h6> *@
+            <ul class="chat-list" id="chatContactTab">
+                <!-- Chat list items will be dynamically inserted here by GetUserChats() -->
+            </ul>
+        </div>
+    </section>
+    <!-- chat section end -->
 </div>
-<!-- Chat Body Start -->
-<div class="chat-body d-none" id="chatBody">
-</div>
-<!-- Chat Body End -->
-<!-- Chat Info Start -->
-<div class="chat-info chat-info-visible d-none" id="chatInfo">
-</div>
-<!-- Chat Info End -->
-@section Scripts {
 
+
+
+@section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     <script src="~/lib/signalr/signalr.js"></script>
     <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
     <script src="~/js/jalaaliConverter.js"></script>
     <script src="~/js/chatHub.js" asp-append-version="true"></script>
-    <script src="~/js/audio-player.js" asp-append-version="true"></script>
     <script src="~/js/fileManagement.js" asp-append-version="true"></script>
-
-
+    <script src="~/js/audio-player.js" asp-append-version="true"></script>
+    <script src="~/js/modal-lightbox.js" asp-append-version="true"></script>
 
     <script>
-         let currentPage = 1;
-         let isLoading = false;
-         const chatArea = document.getElementById('chat-area');
+        $(document).ready(function () {
 
-         $(function (){
+        });
 
-             GetUserChats();
-         });
+        $(function () {
+            GetUserChats();
 
-         function GetUserChats() {
-             // #chatContactTab
-             $.ajax({
-                 url: '/Home/GetUserChats/',
-                 type: 'GET',
-                 success: function (data) {
-                     $('#chatContactTab').html(data);
-                     console.log("Class groups for user on loaded");
-                 },
-                 error: function (error) {
-                     console.error("Error fetching class groups:", error);
-                 }
-             });
-         };
+            // When a chat is selected
+            window.GetSelectedChatMessages = function(chatId, groupType) {
+                console.log("chatId selected = " + chatId + " and groupType : " + groupType);
+                ChatActivated(chatId, groupType);
 
-         // یک متغیر برای نگهداری گروه فعال فعلی
-         let activeGroupId = null;
+                const chatPanel = $('#chat-details-panel');
 
-        //-- input groupId
-         function ChatActivated(chatId, groupType) {
+                // ابتدا ساختار پنل را از سرور بارگذاری می‌کنیم
+                $.ajax({
+                    url: '/Home/GetChatPanel',
+                    type: 'GET',
+                    data: { chatId: chatId, groupType: groupType },
+                    success: function (partialViewHtml) {
+                        // ساختار را در پنل قرار داده و آن را با انیمیشن نمایش می‌دهیم
+                        chatPanel.html(partialViewHtml).addClass('visible');
+
+                        // پس از نمایش پنل، پیام‌ها را بارگذاری می‌کنیم
+                        // یک تأخیر کوتاه برای اطمینان از رندر شدن DOM
+                        setTimeout(() => {
+                            window.chatApp.loadChat(groupType, chatId);
+                        }, 100);
+                    },
+                    error: function (error) {
+                        console.error("Error fetching chat panel skeleton:", error);
+                        // نمایش خطا در پنل اصلی در صورت عدم بارگذاری ساختار
+                        $('#main-content-body').prepend('<div class="alert alert-danger">خطا در بارگذاری چت. لطفاً دوباره تلاش کنید.</div>');
+                    }
+                });
+            };
+
+            function createChatPanelSkeleton() {
+                return `
+                    <div class="chat-header-skeleton"></div>
+                    <div class="chat-content-skeleton">
+                        <div id="Message_Days">
+                             <div class="d-flex justify-content-center align-items-center h-100">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-footer-skeleton"></div>`;
+            }
+
+            // When "Saved Messages" is selected
+            window.GetSavedMessages = function() {
+                $.ajax({
+                    url: '/Home/GetSaveMessages',
+                    type: 'GET',
+                    success: function (data) {
+                        $('#chat-details-panel').html(data).addClass('visible');
+
+                        if (typeof init_iconsax === 'function') {
+                            init_iconsax();
+                        }
+                    },
+                    error: function (error) {
+                        console.error("Error fetching saved messages:", error);
+                    }
+                });
+            };
+
+            // When closing the chat view to go back to the list
+            $(document).on('click', '#close-chat-panel-btn', function() {
+                $('#chat-details-panel').removeClass('visible');
+                // Optional: clear content after animation
+                setTimeout(function() {
+                    $('#chat-details-panel').html('');
+                }, 300);
+            });
+
+        });
+
+        function GetUserChats() {
+            $.ajax({
+                url: '/Home/GetUserChats/',
+                type: 'GET',
+                success: function (data) {
+                    $('#chatContactTab').html(data);
+                    console.log("Class groups for user on loaded");
+                    if (typeof init_iconsax === 'function') {
+                       init_iconsax();
+                    }
+                },
+                error: function (error) {
+                    console.error("Error fetching class groups:", error);
+                }
+            });
+        };
+
+        function ChatActivated(chatId, groupType) {
              console.log(`chat Id and group type is : ${chatId} and ${groupType}`);
              var selectedChat = $(`#${groupType}_${chatId}`);
              const selectedChatId = `${groupType}_${chatId}`
-             console.log(`selected chate id created is : ${selectedChat}`)
              if(selectedChat.length) {
                  const chatItemsBody = $('#chatContactTab');
                  const chatItems = chatItemsBody.find('.active');
-
-                 // حذف کلاس active از سایر المان‌ها
                  chatItems.removeClass('active');
                  selectedChat.addClass('active');
 
-                 // ۱. گروه قبلی را ترک کن (اگر وجود داشت)
-                 if (activeGroupId && window.chatApp.connection) {
-                     // activeGroupId اکنون یک رشته است و درست ارسال می‌شود
-                     window.chatApp.connection.invoke("LeaveGroup", activeGroupId)
-                         .catch(err => console.error('Error leaving group:', err));
+                 if (window.chatApp && window.chatApp.connection) {
+                    if (window.activeGroupId) {
+                        window.chatApp.connection.invoke("LeaveGroup", window.activeGroupId).catch(err => console.error('Error leaving group:', err));
+                    }
+                    window.chatApp.connection.invoke("JoinGroup", selectedChatId).catch(err => console.error('Error joining group:', err));
                  }
-
-                 // ۲. به گروه جدید ملحق شو (ارسال متغیر 'id' که یک رشته است)
-                 if (window.chatApp.connection) {
-                     window.chatApp.connection.invoke("JoinGroup", selectedChatId)
-                         .catch(err => console.error('Error joining group:', err));
-                 }
-
-                 // ۳. شناسه گروه فعال را به‌روز کن (با مقدار رشته‌ای 'id')
-                 activeGroupId = selectedChatId;
-
-                 showSelectedChat()
+                 window.activeGroupId = selectedChatId;
              }
          }
 
-         function GetSelectedChatMessages(chatId, groupType) {
-             console.log("chatId selected = " + chatId + " and groupType : " + groupType);
-             ChatActivated(chatId, groupType);
-
-             //--پیامها لود بشه
-             //-- جزییات افراد و گروه لود بشه
+        window.GetChatDetails = function(chatId, groupType){
              $.ajax({
-                  url: '/Home/GetChatMessages',
+                 url: '/Home/GetChatDetails',
                  type: 'GET',
-                 data:{chatId : chatId, groupType : groupType},
+                 data: { chatId: chatId, groupType: groupType },
                  success: function (data) {
-                     console.log('try to fetch last messages');
-                     $('#HomePageStartBody').addClass('d-none');
-
-                     $('#chatBody').removeClass('d-none');
-                     $('#chatBody').html(data);
-                     console.log("Class groups messages loaded");
-
-                     GetChatMembers(chatId,groupType);
-                     window.chatApp.reAttachScrollListener();
-
-
-                     // ---- START: Intelligent scroll based on new messages ----
-                     const chatMessagesContainer = $('#chat_content');
-                     const allMessages = chatMessagesContainer.find('.message');
-                     const newMessagesNotice = $('#newMessagesNotice');
-                     const currentUserId = parseInt($('#userId').val());
-
-                     if (isNaN(currentUserId)) {
-                         console.error("Could not determine current user ID.");
+                     $('#group-info-panel').html(data).addClass('visible');
+                     if (typeof init_iconsax === 'function') {
+                         init_iconsax();
                      }
-
-                     const readMessages = allMessages.filter('[data-is-read="true"]');
-
-                     if (readMessages.length > 0) {
-                         const lastReadMessage = readMessages.last();
-                         const lastReadMessageId = lastReadMessage.data('message-id');
-                         let lastReadIndex = -1;
-
-                         // پیدا کردن ایندکس آخرین پیام خوانده شده
-                         allMessages.each(function(index) {
-                             if ($(this).data('message-id') == lastReadMessageId) {
-                                 lastReadIndex = index;
-                                 return false; // خروج از حلقه
-                             }
-                         });
-
-                         let newMessagesFromOthers = false;
-                         if (lastReadIndex > -1 && lastReadIndex < allMessages.length - 1) {
-                             // بررسی پیام‌های بعد از آخرین پیام خوانده شده
-                             for (let i = lastReadIndex + 1; i < allMessages.length; i++) {
-                                 const message = $(allMessages[i]);
-                                 const senderId = parseInt(message.data('sender-id'));
-                                 if (senderId !== currentUserId) {
-                                     newMessagesFromOthers = true;
-                                     break; // به محض یافتن اولین پیام از دیگران، حلقه متوقف می‌شود
-                                 }
-                             }
-                         }
-
-                         if (newMessagesFromOthers) {
-                             // --- رفتار قبلی: پیام جدید از دیگران وجود دارد ---
-                             console.log("New messages from others found. Scrolling to last read message.");
-                             // به آخرین پیام خوانده شده اسکرول کن
-                             lastReadMessage[0].scrollIntoView({ behavior: 'auto', block: 'end' });
-
-                             // شمارش پیام‌های جدید و نمایش اعلان
-                             let unreadMessagesCount = 0;
-                             let countUnread = false;
-                             allMessages.each(function() {
-                                 if (countUnread) {
-                                     const senderId = parseInt($(this).data('sender-id'));
-                                     if (senderId !== currentUserId) {
-                                         unreadMessagesCount++;
-                                     }
-                                 }
-                                 if ($(this).is(lastReadMessage)) {
-                                     countUnread = true;
-                                 }
-                             });
-
-                             if (unreadMessagesCount > 0) {
-                                 newMessagesNotice.data('newCount', unreadMessagesCount)
-                                                  .text(`مشاهده ${unreadMessagesCount} پیام جدید`)
-                                                  .show();
-                             } else {
-                                 newMessagesNotice.hide();
-                             }
-
-                         } else {
-                             // --- رفتار جدید: پیام جدیدی از دیگران نیست ---
-                             console.log("No new messages from others. Scrolling to the bottom.");
-                             // به انتهای چت اسکرول کن
-                             const chatFinished = $('#chat-finished'); // مطمئن شوید این المان در انتهای چت وجود دارد
-                             if (chatFinished.length) {
-                                 chatFinished[0].scrollIntoView({ behavior: 'auto', block: 'end' });
-                             } else {
-                                 // اگر نشانگر نبود، به آخرین پیام اسکرول کن
-                                 allMessages.last()[0]?.scrollIntoView({ behavior: 'auto', block: 'end' });
-                             }
-                             newMessagesNotice.hide(); // چون در انتها هستیم، اعلان را مخفی کن
-                         }
-                     } else {
-                         // اگر هیچ پیام خوانده شده‌ای وجود ندارد (مثلاً ورود برای اولین بار)
-                         console.log("No read messages found. Scrolling to the bottom.");
-                         const chatFinished = $('#chat-finished');
-                         if (chatFinished.length) {
-                             chatFinished[0].scrollIntoView({ behavior: 'auto', block: 'end' });
-                         } else {
-                              allMessages.last()[0]?.scrollIntoView({ behavior: 'auto', block: 'end' });
-                         }
-                         newMessagesNotice.hide();
+                     // After the panel is visible, load the online status for members
+                     if (window.chatApp && typeof window.chatApp.loadAndDisplayOnlineUsers === 'function') {
+                         window.chatApp.loadAndDisplayOnlineUsers(chatId, groupType);
                      }
-                     // ---- END: Intelligent scroll ----
-
-
-                     //window.chatApp.triggerVisibilityCheck();
-                     //window.chatApp.triggerUpdateUnreadCountForGroup(chatId);
-
-                     // پس از رندر شدن کامل پیام‌ها، وضعیت دیده شدن را بررسی کن
-                     // یک تأخیر کوتاه برای اطمینان از رندر کامل DOM مفید است
-                     setTimeout(function() {
-                         window.chatApp.triggerVisibilityCheck();
-                     }, 100); // 100 میلی‌ثانیه معمولاً کافی است
-
-                     // همچنین لیسنر اسکرول را دوباره فعال کنید
-                     window.chatApp.reAttachScrollListener();
-
-                     imojiecontent();
                  },
                  error: function (error) {
-                     console.error("Error fetching class group chats:", error);
+                     console.error("Error fetching chat members:", error);
                  }
              });
-         }
+        }
 
-         function GetChatMembers(chatId, groupType){
-             $.ajax({
-                 url: '/Home/GetChatMembers',
-                 type: 'GET',
-                 data:{chatId : chatId, groupType : groupType},
-                 success: function (data) {
-
-                     $('#chatInfo').removeClass('d-none');
-                     $('#chatInfo').html(data);
-                     console.log("Class group members loaded");
-                      window.chatApp.loadAndDisplayOnlineUsers(chatId, groupType);
-                 },
-                 error: function (error) {
-                     console.error("Error fetching class group chats:", error);
-                 }
-             });
-         }
-
-         function GetSavedMessages() {
-             console.log("select save messages ");
-             ChatActivated(0);
-
-             $.ajax({
-                 url: '/Home/GetSaveMessages',
-                 type: 'GET',
-                 success: function (data) {
-                     $('#HomePageStartBody').addClass('d-none');
-
-                     $('#chatBody').removeClass('d-none');
-                     $('#chatBody').html(); //ابتدا چت فعلی را خالی میکنیم
-                     $('#chatInfo').html();
-                     $('#chatBody').html(data);
-                     console.log("save messages loaded");
-                 },
-                 error: function (error) {
-                     console.error("Error fetching save messages.", error);
-                 }
-             });
-           }
-
-         function imojiecontent(){
-             const emojis = ['😊', '😂', '❤️', '👍', '🥰', '😎', '😢', '🎉', '🔥', '🙏'];
-
-             const emojiContainer = document.getElementById('actionemoji');
-
-            // اضافه کردن ایموجی‌ها به div
-                   emojis.forEach(emoji => {
-             const span = document.createElement('span');
-                 span.textContent = emoji;
-                 span.style.cursor = 'pointer';
-                 span.style.fontSize = '24px';
-                 span.style.margin = '5px';
-
-                 span.addEventListener('click', function (e) {
-                     e.stopPropagation(); // جلوگیری از بسته شدن دراپ‌داون
-                     insertAtCaret('message-input', emoji);
-                 });
-
-                 emojiContainer.appendChild(span);
-             });
-         }
-          // تابعی برای درج متن در محل قرارگیری نشانگر
-         function insertAtCaret(inputId, text) {
-             const input = document.getElementById(inputId);
-             const start = input.selectionStart;
-             const end = input.selectionEnd;
-             const value = input.value;
-
-             input.value = value.substring(0, start) + text + value.substring(end);
-             input.selectionStart = input.selectionEnd = start + text.length;
-             input.focus();
-         }
-
+        // When closing the group info panel to go back to the chat
+        $(document).on('click', '#close-group-info-panel-btn', function (e) {
+            e.preventDefault();
+            $('#group-info-panel').removeClass('visible');
+            // Optional: clear content after animation
+            setTimeout(function () {
+                $('#group-info-panel').html('');
+            }, 300);
+        });
 
     </script>
 }

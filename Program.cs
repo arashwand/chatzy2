@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using Messenger.DTOs;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -128,6 +129,8 @@ builder.Services.AddScoped<IFileManagementServiceClient, FileManagementServiceCl
 
 builder.Services.AddScoped<IManageUserServiceClient, ManageUserServiceClient>(provider =>
    new ManageUserServiceClient(provider.GetRequiredService<IHttpClientFactory>(), "ManageUserService", provider.GetRequiredService<ILogger<ManageUserServiceClient>>()));
+
+
 
 // Register ApiSettings
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));

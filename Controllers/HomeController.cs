@@ -1,21 +1,20 @@
 ﻿using Messenger.DTOs;
-using Messenger.Models.Models;
 using Messenger.Tools;
 using Messenger.WebApp.Models;
 using Messenger.WebApp.Models.ViewModels;
-using Messenger.WebApp.ServiceHelper;
 using Messenger.WebApp.ServiceHelper.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Messenger.WebApp.Controllers
 {
     [Authorize]
     public class HomeController : Controller
     {
+        private readonly HttpClient _httpClient;
         private readonly ILogger<HomeController> _logger;
         private readonly IUserServiceClient _redisUserService;
         private readonly IClassGroupServiceClient _classGroupServiceClient;
@@ -37,7 +36,7 @@ namespace Messenger.WebApp.Controllers
             IClassGroupServiceClient classGroupServiceClient, IMessageServiceClient messageService,
             IFileManagementServiceClient fileManagementServiceClient, IChannelServiceClient channelServiceClient,
             IUserServiceClient userServiceClient, IOptions<ApiSettings> apiSettings,
-            IOptions<FileConfigSetting> fileConfigSettings, IManageUserServiceClient manageUserServiceClient)
+            IOptions<FileConfigSetting> fileConfigSettings, IManageUserServiceClient manageUserServiceClient, HttpClient httpClient)
         {
             _logger = logger;
             _redisUserService = redisUserServiceClient;
@@ -51,6 +50,7 @@ namespace Messenger.WebApp.Controllers
             _allowedDocExtentions = fileConfigSettings.Value.AllowedExtensions;
             _allowedAudioExtentions = fileConfigSettings.Value.AllowedAudioExtentions;
             _manageUserServiceClient = manageUserServiceClient;
+            _httpClient = httpClient;
         }
 
         public async Task<IActionResult> Index()
@@ -67,9 +67,9 @@ namespace Messenger.WebApp.Controllers
 
             var user = await _userService.GetUserByIdAsync(userId);
 
-            if (user !=null)
+            if (user != null)
             {
-                if (user.NameFamily !=null && user.NameFamily != "")
+                if (user.NameFamily != null && user.NameFamily != "")
                 {
                     ViewData["userProfilePic"] = user.ProfilePicName;
                 }
@@ -138,6 +138,18 @@ namespace Messenger.WebApp.Controllers
         /// <param name="pageNumber"></param>
         /// <param name="pageSize"></param>
         /// <returns></returns>
+        public IActionResult GetChatPanel(int chatId, string groupType)
+        {
+            // This action only returns the panel structure with necessary hidden fields populated.
+            // Messages will be loaded dynamically by chatHub.js.
+            ViewData["classGroupId"] = chatId;
+            ViewData["chatType"] = groupType;
+            ViewData["baseUrl"] = _baseUrl;
+
+            // Pass a null or empty list as the model, since we are only loading the skeleton.
+            return PartialView("_ChatMessageBody", new List<MessageDto>());
+        }
+
         public async Task<IActionResult> GetChatMessages(int chatId, string groupType, int pageNumber = 1, int pageSize = 50, long messageId = 0)
         {
             try
@@ -248,11 +260,50 @@ namespace Messenger.WebApp.Controllers
         }
 
         /// <summary>
+        /// A helper method to fetch detailed information for a chat (group or channel),
+        /// including its name, description, and file counts.
+        /// </summary>
+        /// <param name="chatId">The ID of the chat.</param>
+        /// <param name="groupType">The type of the chat ('ClassGroup' or 'Channel').</param>
+        /// <returns>A tuple containing the chat's name, description, and file counts.</returns>
+        private async Task<(string Name, string Description, CountSharedContentDto FileCounts)> GetChatDetailsAsync(int chatId, string groupType)
+        {
+            string name = "نام یافت نشد";
+            string description = "";
+            CountSharedContentDto fileCounts;
+
+            // Fetch name and description based on chat type
+            if (groupType == ConstChat.ClassGroupType)
+            {
+                var group = await _classGroupServiceClient.GetClassGroupByIdAsync(chatId);
+                if (group != null)
+                {
+                    name = group.LevelName;
+                    description = group.ClassTiming;//.Description;
+                }
+            }
+            else
+            {
+                var channel = await _channelServiceClient.GetChannelByIdAsync(chatId);
+                if (channel != null)
+                {
+                    name = channel.ChannelName;
+                    description = channel.ChannelTitle;
+                }
+            }
+
+            // Fetch file counts from the dedicated service, handling potential nulls
+            fileCounts = await _fileManagementServiceClient.GetFileCountsForChatAsync(chatId, groupType);
+
+            return (name, description, fileCounts);
+        }
+
+        /// <summary>
         /// گرفتن اعضای یک گروه
         /// </summary>
         /// <param name="chatId"></param>
         /// <returns></returns>
-        public async Task<IActionResult> GetChatMembers(int chatId, string groupType)
+        public async Task<IActionResult> GetChatDetails(int chatId, string groupType)
         {
             var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
             if (userId == null)
@@ -260,19 +311,44 @@ namespace Messenger.WebApp.Controllers
                 return BadRequest("User ID not found in claims.");
             }
 
-            var members = groupType == ConstChat.ClassGroupType ?
-               await _classGroupServiceClient.GetClassGroupMembersAsync(chatId) :
-               await _channelServiceClient.GetChannelMembersAsync(chatId);
+            // Fetch members in parallel with chat details for better performance
+            var membersTask = groupType == ConstChat.ClassGroupType ?
+               _classGroupServiceClient.GetClassGroupMembersAsync(chatId) :
+               _channelServiceClient.GetChannelMembersAsync(chatId);
 
-            var modelForView = new ChatViewModel
+            var chatDetailsTask = GetChatDetailsAsync(chatId, groupType);
+
+            var chatfileCount = 1;
+
+            // Await both tasks
+            await Task.WhenAll(membersTask, chatDetailsTask);
+
+            var membersDto = await membersTask;
+            var chatDetails = await chatDetailsTask;
+
+            bool isAdmin = User.IsInRole(ConstRoles.Manager);
+            // Map DTOs to ViewModel
+            var memberViewModels = membersDto.Select(m => new ChatMemberViewModel
             {
-                ClassGroupId = chatId,
-                ClassGroupName = chatId.ToString(),
-                GroupType = ConstChat.ClassGroupType,
-                MemberCount = members.Count(),
-                Members = members
+                UserId = m.UserId,
+                FullName = m.NameFamily,
+                Status = "Offline", // Default status, will be updated by SignalR on the client
+                //ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/assets/media/avatar/UserIcon.png" : $"{_baseUrl}/{m.ProfilePicName}",
+                ImagePath = string.IsNullOrEmpty(m.ProfilePicName) ? "/assets/media/avatar/UserIcon.png" : $"/{m.ProfilePicName}",
+                RoleName = m.RoleName//m.IsAdmin
+            }).ToList();
+
+            var chatDetailsViewModel = new ChatDetailsViewModel
+            {
+                GroupName = chatDetails.Name,
+                GroupDescription = chatDetails.Description,
+                Members = memberViewModels,
+                MediaFilesCount = chatDetails.FileCounts.MediaFilesCount,
+                DocumentFilesCount = chatDetails.FileCounts.DocumentFilesCount,
+                LinkFilesCount = chatDetails.FileCounts.LinkFilesCount
             };
-            return PartialView("_ChatInfoBody", modelForView);
+
+            return PartialView("~/Views/Shared/_ChatMembersPanel.cshtml", chatDetailsViewModel);
         }
 
         [HttpPost]
@@ -316,7 +392,7 @@ namespace Messenger.WebApp.Controllers
             catch (Exception ex)
             {
                 // لاگ کردن خطا برای بررسی‌های بعدی بسیار مهم است
-                // Log.Error(ex, "An error occurred while uploading file."); 
+                // Log.Error(ex, "An error occurred while uploading file.");
                 return Json(new { success = false, message = "خطا در آپلود فایل: " + ex.Message });
             }
         }
@@ -425,5 +501,276 @@ namespace Messenger.WebApp.Controllers
             });
         }
 
+
+        [HttpGet]
+        public IActionResult GetBaseURL()
+        {
+            return Ok(new { baseUrl = _baseUrl });
+        }
+
+        /// <summary>
+        /// داده‌های اولیه چت را به صورت یکپارچه دریافت می‌کند.
+        /// این متد به عنوان پروکسی برای سرویس اصلی عمل می‌کند.
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> GetInitialChatData([FromBody] GetInitialChatDataRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+            {
+                return Unauthorized("Auth token not found.");
+            }
+
+            try
+            {
+                // آدرس اندپوینت واقعی در سرویس اصلی
+                var url = $"{_baseUrl}api/Chat/GetInitialChatData";
+
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, url);
+                requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                // سریالایز کردن بدنه درخواست
+                var jsonRequest = JsonSerializer.Serialize(request);
+                requestMessage.Content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
+
+                using var response = await _httpClient.SendAsync(requestMessage);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    // اگر سرویس با خطا مواجه شد، پاسخ خطا را به کلاینت برگردان
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Error from external API for GetInitialChatData: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                    return StatusCode((int)response.StatusCode, errorContent);
+                }
+
+                var responseBody = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var result = JsonSerializer.Deserialize<GetInitialChatDataResult>(responseBody, options);
+
+                // بازگرداندن نتیجه موفقیت‌آمیز به کلاینت
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error proxying GetInitialChatData for chatId {ChatId}", request.ChatId);
+                return StatusCode(500, "Internal server error while fetching initial chat data.");
+            }
+        }
+
+        //[HttpGet("GetGroupSharedFilesPartial")]
+        public async Task<IActionResult> GetGroupSharedFilesPartial(int chatId, string groupType, string activeTab = "media-tab")
+        {
+            if (chatId <= 0 || string.IsNullOrEmpty(groupType))
+                return BadRequest("Invalid chat ID or group type.");
+
+            var token = Request.Cookies["AuthToken"];
+            if (string.IsNullOrEmpty(token))
+                return Unauthorized("Auth token not found.");
+
+            try
+            {
+                var url = $"{_baseUrl}api/FileManagement/GetSharedFiles?chatId={chatId}&groupType={groupType}";
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
+                requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                using var response = await _httpClient.SendAsync(requestMessage);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    // اگر سرویس با خطا مواجه شد، یک پیام مناسب در Partial View نمایش می‌دهیم
+                    return PartialView("_GroupFilesSharedContent", new SharedContentDto());
+                }
+
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                // Deserialize کردن JSON به ViewModel
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var viewModel = JsonSerializer.Deserialize<SharedContentDto>(responseBody, options);
+
+                viewModel.ActiveTab = activeTab;
+                viewModel.BaseUrl = _baseUrl;
+
+                // بازگرداندن Partial View به همراه مدل
+                return PartialView("_GroupFilesSharedContent", viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting shared files for chatId {ChatId}", chatId);
+                return StatusCode(500, "Internal server error while getting shared files.");
+            }
+        }
+
+
     }
 }
+
+/*
+======================================================================================================================
+// کد پیشنهادی برای پیاده‌سازی در سرویس بیرونی شما (External Web Service)
+// لطفاً این متد و کلاس‌های DTO زیر را در MessageService و کنترلر مربوطه در پروژه API اصلی خود قرار دهید.
+======================================================================================================================
+
+//-------------------------------------------------------------------------------------
+// 1. مدل‌های درخواست و پاسخ (DTOs)
+// این مدل‌ها باید در دسترس پروژه API شما باشند.
+//-------------------------------------------------------------------------------------
+
+/// <summary>
+/// مدل درخواست برای دریافت داده‌های اولیه چت.
+/// </summary>
+public class GetInitialChatDataRequest
+{
+    [Required]
+    public string GroupType { get; set; }
+
+    [Required]
+    public string ChatId { get; set; }
+
+    /// <summary>
+    /// آخرین زمان فعالیت کاربر که از localStorage خوانده می‌شود.
+    /// برای همگام‌سازی پیام‌های ویرایش/حذف شده استفاده می‌شود.
+    /// </summary>
+    public DateTime? LastActivityTimestamp { get; set; }
+}
+
+/// <summary>
+/// مدل پاسخ برای داده‌های اولیه چت.
+/// </summary>
+public class GetInitialChatDataResult
+{
+    public List<MessageDto> Messages { get; set; } = new List<MessageDto>();
+    public List<MessageDto> EditedMessages { get; set; } = new List<MessageDto>();
+    public List<long> DeletedMessageIds { get; set; } = new List<long>();
+    public long? LastReadMessageId { get; set; }
+    public int TotalUnreadCount { get; set; }
+    public bool HasMoreOldMessages { get; set; }
+}
+
+
+//-------------------------------------------------------------------------------------
+// 2. منطق جدید در MessageService
+// این متد جایگزین SyncChatHistoryAsync شده و تمام سناریوها را پوشش می‌دهد.
+//-------------------------------------------------------------------------------------
+
+public async Task<GetInitialChatDataResult> GetInitialChatDataAsync(GetInitialChatDataRequest request, long currentUserId)
+{
+    try
+    {
+        var result = new GetInitialChatDataResult();
+        var chatIdLong = long.Parse(request.ChatId);
+
+        // ایجاد کوئری پایه برای پیام‌ها
+        var baseQuery = GetMessagesQuery(); // از متد کمکی فعلی شما استفاده می‌کنیم
+
+        // فیلتر کردن کوئری بر اساس نوع گروه و شناسه چت
+        switch (request.GroupType)
+        {
+            case "ClassGroup":
+                baseQuery = baseQuery.Where(m => m.ClassGroupMessages.Any(cg => cg.ClassId == chatIdLong));
+                break;
+            case "ChannelGroup":
+                baseQuery = baseQuery.Where(m => m.ChannelMessages.Any(ch => ch.ChannelId == chatIdLong));
+                break;
+        }
+
+        // --- بخش همگام‌سازی (Sync) ---
+        if (request.LastActivityTimestamp.HasValue)
+        {
+            var syncTime = request.LastActivityTimestamp.Value.AddMinutes(-5); // یک تلورانس 5 دقیقه‌ای
+
+            // یافتن پیام‌های ویرایش شده از آخرین فعالیت کاربر
+            var editedMessages = await baseQuery
+                .Where(m => m.IsEdited == true && m.MessageDateTime >= syncTime) // فرض: EditDate وجود ندارد، از تاریخ پیام استفاده می‌کنیم
+                .ToListAsync();
+            result.EditedMessages = MapMessagesToDto(editedMessages, currentUserId);
+
+            // یافتن پیام‌های حذف شده از آخرین فعالیت کاربر
+            result.DeletedMessageIds = await baseQuery
+                .Where(m => m.IsHidden == true && m.MessageDateTime >= syncTime)
+                .Select(m => m.MessageId)
+                .ToListAsync();
+        }
+
+        // --- بخش بارگذاری هوشمند پیام‌ها ---
+
+        // 1. محاسبه تعداد پیام‌های خوانده نشده
+        var unreadMessagesQuery = baseQuery.Where(m => !m.MessageReads.Any(r => r.UserId == currentUserId));
+        result.TotalUnreadCount = await unreadMessagesQuery.CountAsync();
+
+        List<Message> finalMessages;
+
+        if (result.TotalUnreadCount > 100)
+        {
+            // سناریو 1: بیش از 100 پیام خوانده نشده
+            // ۱۰۰ پیام آخر خوانده نشده را انتخاب می‌کنیم
+            var last100Unread = await unreadMessagesQuery
+                .OrderByDescending(m => m.MessageDateTime)
+                .Take(100)
+                .ToListAsync();
+
+            result.LastReadMessageId = last100Unread.FirstOrDefault()?.MessageId;
+            var oldestOfUnread = last100Unread.LastOrDefault();
+
+            // ۲۰ پیام خوانده شده قبل از آنها را برای ایجاد زمینه گفتگو واکشی می‌کنیم
+            var previousReadMessages = await baseQuery
+                .Where(m => m.MessageDateTime < oldestOfUnread.MessageDateTime && m.MessageReads.Any(r => r.UserId == currentUserId))
+                .OrderByDescending(m => m.MessageDateTime)
+                .Take(20)
+                .ToListAsync();
+
+            finalMessages = last100Unread.Concat(previousReadMessages).OrderBy(m => m.MessageDateTime).ToList();
+        }
+        else if (result.TotalUnreadCount > 0)
+        {
+            // سناریو 2: بین 1 تا 100 پیام خوانده نشده
+            var allUnread = await unreadMessagesQuery.OrderBy(m => m.MessageDateTime).ToListAsync();
+            result.LastReadMessageId = allUnread.LastOrDefault()?.MessageId;
+            var oldestUnread = allUnread.FirstOrDefault();
+
+            // ۲۰ پیام خوانده شده قبل از آنها را واکشی می‌کنیم
+            var previousReadMessages = await baseQuery
+                .Where(m => m.MessageDateTime < oldestUnread.MessageDateTime && m.MessageReads.Any(r => r.UserId == currentUserId))
+                .OrderByDescending(m => m.MessageDateTime)
+                .Take(20)
+                .ToListAsync();
+
+            finalMessages = allUnread.Concat(previousReadMessages).OrderBy(m => m.MessageDateTime).ToList();
+        }
+        else
+        {
+            // سناریو 3: هیچ پیام خوانده نشده‌ای وجود ندارد
+            result.LastReadMessageId = null; // اسکرول به انتها
+            finalMessages = await baseQuery
+                .OrderByDescending(m => m.MessageDateTime)
+                .Take(30) // ۳۰ پیام آخر را نمایش بده
+                .ToListAsync();
+            finalMessages.Reverse(); // مرتب‌سازی از قدیم به جدید
+        }
+
+        result.Messages = MapMessagesToDto(finalMessages, currentUserId);
+
+        // 3. بررسی وجود پیام‌های قدیمی‌تر
+        var oldestMessageInResult = finalMessages.FirstOrDefault();
+        if (oldestMessageInResult != null)
+        {
+            result.HasMoreOldMessages = await baseQuery.AnyAsync(m => m.MessageDateTime < oldestMessageInResult.MessageDateTime);
+        }
+        else
+        {
+            result.HasMoreOldMessages = false;
+        }
+
+        return result;
+    }
+    catch (Exception ex)
+    {
+        // لاگ کردن خطا
+        return new GetInitialChatDataResult(); // بازگرداندن نتیجه خالی در صورت بروز خطا
+    }
+}
+*/

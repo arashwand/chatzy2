@@ -13,8 +13,13 @@ namespace Messenger.WebApp.ServiceHelper.Interfaces
         Task<MessageDto> EditMessageAsync(long messageId, int groupId, string groupType, string newText, List<long>? fileIds, List<long>? fileIdsToRemove);
         //Task<MessageDto> EditChannelMessageAsync(long messageId, string newText, List<long>? fileIds, List<long>? fileIdsToRemove);
 
-
-
+        /// <summary>
+        /// این متد اخرین اطلاعات و ویرایشات را از وبسرویس میگیره و به کلاینت بر میگردونه
+        /// چون در مرورگر دیتابیس برای کشینگ استفاده کردیم.لازمه همیشه بروزرسانی بشه
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        Task<SyncChatResult> GetNewMessagesForSync(SyncChatRequest request);
 
         Task<MessageDto?> GetMessageByIdAsync(long messageId);
         Task<IEnumerable<MessageDto>> GetPrivateMessagesAsync(long userId1, long userId2, int pageNumber, int pageSize, long messageId);
