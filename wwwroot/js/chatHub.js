@@ -118,10 +118,10 @@ window.chatApp = (function ($) {
      */
     function loadPinnedMessages(chatId, groupType) {
         console.log(`Loading pinned messages for chat ${chatId} (${groupType})`);
-        const pinnedContainer = $('#pinnedMessagesContainer'); // والد اصلی
+        const placeholder = $('#pinnedMessagesPlaceholder'); // والد اصلی (Placeholder)
 
-        if (!pinnedContainer.length) {
-            console.error("Main pinned messages container (#pinnedMessagesContainer) not found.");
+        if (!placeholder.length) {
+            console.error("Pinned messages placeholder (#pinnedMessagesPlaceholder) not found.");
             return;
         }
 
@@ -134,58 +134,18 @@ window.chatApp = (function ($) {
             },
             success: function (responseHtml) {
                 // محتوای Partial View را مستقیماً در والد قرار می‌دهیم
-                pinnedContainer.html(responseHtml);
+                placeholder.html(responseHtml);
 
-                // بررسی می‌کنیم که آیا واقعاً پیامی برای نمایش وجود دارد یا خیر
-                // این سلکتور حالا باید درست کار کند چون محتوا لود شده است
-                if (pinnedContainer.find('.pinned-message-item').length > 0) {
-                    pinnedContainer.show();
+                // بررسی می‌کنیم که آیا پیامی برای نمایش در محتوای جدید وجود دارد یا خیر
+                if (placeholder.find('.pinned-message-item').length > 0) {
+                    placeholder.show(); // نمایش والد
                 } else {
-                    pinnedContainer.hide();
+                    placeholder.hide(); // مخفی کردن والد
                 }
             },
             error: function (xhr, status, error) {
                 console.error('Error loading pinned messages:', error);
-                pinnedContainer.hide(); // در صورت خطا، کانتینر را مخفی کن
-            }
-        });
-    }
-
-    /**
-     * پیام‌های پین‌شده را برای یک چت خاص بارگذاری و نمایش می‌دهد.
-     * @param {number} chatId - شناسه چت.
-     * @param {string} groupType - نوع چت.
-     */
-    function loadPinnedMessages(chatId, groupType) {
-        console.log(`Loading pinned messages for chat ${chatId} (${groupType})`);
-        const pinnedContainer = $('#pinnedMessagesContainer');
-
-        if (!pinnedContainer.length) {
-            console.error("Pinned messages container not found.");
-            return;
-        }
-
-        $.ajax({
-            url: '/Home/GetChatPinnedMessages',
-            type: 'GET',
-            data: {
-                chatId: chatId,
-                groupType: groupType
-            },
-            success: function (responseHtml) {
-                // محتوای HTML را مستقیماً در کانتینر قرار می‌دهیم
-                pinnedContainer.html(responseHtml);
-
-                // بررسی می‌کنیم که آیا پیامی برای نمایش وجود دارد یا خیر
-                if (pinnedContainer.find('.pinned-message-item').length > 0) {
-                    pinnedContainer.show();
-                } else {
-                    pinnedContainer.hide();
-                }
-            },
-            error: function (xhr, status, error) {
-                console.error('Error loading pinned messages:', error);
-                pinnedContainer.hide(); // در صورت خطا، کانتینر را مخفی کن
+                placeholder.hide(); // در صورت خطا، والد را مخفی کن
             }
         });
     }
@@ -1360,9 +1320,10 @@ window.chatApp = (function ($) {
     function handlerUpdatePinMessage(messageId, messageText, isPin) {
         console.log('handlerUpdatePinMessage called with messageId:', messageId, 'isPin:', isPin);
 
-        // اصلاح سلکتورها از کلاس به شناسه
-        const pinnedContainer = $('#pinnedMessagesContainer');
-        const pinnedList = $('#pinnedMessagesList');
+        // اصلاح سلکتورها برای جستجو در والد مشخص
+        const placeholder = $('#pinnedMessagesPlaceholder');
+        const pinnedContainer = placeholder.find('.pinned-messages-container');
+        const pinnedList = placeholder.find('.pinned-messages-list');
 
         // بررسی وجود کانتینر پیام‌های پین شده
         if (!pinnedContainer.length || !pinnedList.length) {
