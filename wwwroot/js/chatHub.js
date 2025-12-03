@@ -23,7 +23,227 @@ window.chatApp = (function ($) {
 
     let heartbeatTimer = null; // متغیر برای نگهداری تایمر Heartbeat
     const HEARTBEAT_INTERVAL = 180 * 1000; // ارسال Heartbeat هر 90 ثانیه (90000 میلی‌ثانیه)
-    let hasMoreMessages = true;
+
+    // =================================================
+    //            MESSAGE STATE MANAGEMENT
+    // =================================================
+    // مدیریت وضعیت پیام‌های بارگذاری شده برای پشتیبانی از "خلا"
+    let messageRanges = []; // آرایه‌ای از بازه‌ها { oldestId: number, newestId: number }
+    let hasReachedOldestMessage = false; // آیا به قدیمی‌ترین پیام رسیده‌ایم؟
+
+    /**
+     * وضعیت پیام‌ها را برای یک چت جدید ریست می‌کند.
+     */
+    function resetMessageState() {
+        console.log("Resetting message state.");
+        messageRanges = [];
+        hasReachedOldestMessage = false;
+        // ریست کردن مقدار اینپوت مخفی که در کد قدیمی استفاده می‌شد
+        $('#lastMessageIdLoad').val(0);
+    }
+
+
+    /**
+     * پیام‌های اولیه برای یک چت را بارگذاری می‌کند.
+     * @param {number} chatId - شناسه چت.
+     * @param {string} groupType - نوع چت.
+     */
+    function loadInitialMessages(chatId, groupType) {
+        console.log(`Loading initial messages for chat ${chatId} (${groupType})`);
+        resetMessageState(); // ریست کردن وضعیت برای چت جدید
+        const chatContent = $('#Message_Days');
+        chatContent.html('<div class="loader text-center my-5">...درحال بارگذاری پیام‌ها</div>'); // نمایش لودر
+
+        $.ajax({
+            url: '/Home/GetChatMessagesJson', // **اکشن جدید که جیسون برمی‌گرداند**
+            type: 'GET',
+            data: {
+                chatId: chatId,
+                groupType: groupType
+            },
+            success: function (response) {
+                chatContent.empty(); // پاک کردن لودر
+                if (response.success && response.data.length > 0) {
+                    // به‌روزرسانی بازه‌ها و رندر پیام‌ها
+                    updateMessageRanges(response.data);
+                    groupMessagesByDate(response.data, false); // Append messages
+
+                    // اسکرول به پایین‌ترین نقطه
+                    const chatScroller = $('#chat_content');
+                    chatScroller.scrollTop(chatScroller.prop("scrollHeight"));
+                } else {
+                    chatContent.html('<div class="text-center my-5">هنوز پیامی در این چت وجود ندارد.</div>');
+                }
+                 // فعال کردن مجدد لیسنر اسکرول
+                publicApi.setScrollListenerActive(true);
+            },
+            error: function (xhr, status, error) {
+                chatContent.html('<div class="text-center my-5 text-danger">خطا در بارگذاری پیام‌ها.</div>');
+                console.error('Error loading initial messages:', error);
+            }
+        });
+    }
+
+    /**
+     * به یک پیام خاص در تاریخچه چت پرش می‌کند.
+     * اگر پیام در DOM نباشد، آن را به همراه پیام‌های اطرافش بارگذاری می‌کند.
+     * @param {number} targetMessageId - شناسه پیام هدف.
+     */
+    function jumpToMessage(targetMessageId) {
+        console.log(`Jumping to message ID: ${targetMessageId}`);
+
+        // مرحله ۱: بررسی وجود پیام در DOM
+        const existingElement = document.getElementById(`message-${targetMessageId}`);
+        if (existingElement) {
+            console.log(`Message ${targetMessageId} already in DOM. Scrolling.`);
+            scrollToMessage(targetMessageId);
+            return;
+        }
+
+        // مرحله ۲: اگر پیام وجود نداشت، بارگذاری کن
+        console.log(`Message ${targetMessageId} not found in DOM. Fetching from server.`);
+
+        // پاک کردن محتوای فعلی و نمایش لودر
+        const chatContent = $('#Message_Days');
+        chatContent.html('<div class="loader text-center my-5">...درحال پرش به پیام</div>');
+
+        // فراخوانی getOldData در حالت پرش
+        getOldData(targetMessageId, true);
+    }
+
+    /**
+     * نشانگرهای بصری برای "خلا" بین بازه‌های پیام را در UI مدیریت می‌کند.
+     */
+    function updateGapIndicators() {
+        // ۱. پاک کردن تمام نشانگرهای قبلی
+        $('.gap-indicator').remove();
+
+        // ۲. اگر کمتر از دو بازه وجود دارد، خروجی چون خلائی وجود ندارد
+        if (messageRanges.length < 2) {
+            return;
+        }
+
+        console.log("Updating gap indicators...");
+
+        // ۳. بررسی وجود خلا بین هر دو بازه متوالی
+        for (let i = 0; i < messageRanges.length - 1; i++) {
+            const currentRange = messageRanges[i];
+            const nextRange = messageRanges[i+1];
+
+            // اگر دو بازه به هم متصل نیستند، یک خلا وجود دارد
+            if (currentRange.newestId + 1 !== nextRange.oldestId) {
+                const lastMessageOfRange = $(`#message-${currentRange.newestId}`);
+                if (lastMessageOfRange.length) {
+                    const parentList = lastMessageOfRange.closest('ul.message-box-list');
+                    const indicatorHtml = `
+                        <div class="gap-indicator text-center p-3 my-2 text-muted fst-italic">
+                            ... پیام‌های بیشتر ...
+                        </div>`;
+                    // نشانگر را بعد از لیست حاوی آخرین پیام بازه قرار بده
+                    parentList.after(indicatorHtml);
+                }
+            }
+        }
+    }
+
+    let getNewerDataRunning = false;
+    /**
+     * پیام‌های جدیدتر از یک شناسه مشخص را بارگذاری می‌کند (برای پر کردن خلا).
+     * @param {number} startMessageId - شناسه‌ای که می‌خواهیم پیام‌های جدیدتر از آن را بگیریم.
+     */
+    function getNewerData(startMessageId) {
+        if (getNewerDataRunning) {
+            console.log("getNewerData is already running.");
+            return;
+        }
+        console.log(`Fetching newer messages starting after ID: ${startMessageId}`);
+        getNewerDataRunning = true;
+
+        const chatId = parseInt($('#current-group-id-hidden-input').val());
+        const currentGroupType = $('#current-group-type-hidden-input').val();
+
+        $.ajax({
+            url: '/Home/GetNewerMessages', // استفاده از اکشن جدید
+            type: 'GET',
+            data: {
+                chatId: chatId,
+                groupType: currentGroupType,
+                messageId: startMessageId,
+                pageSize: 50
+            },
+            success: function(response) {
+                if (response.success && response.data.length > 0) {
+                    console.log(`✅ Loaded ${response.data.length} newer messages.`);
+                    updateMessageRanges(response.data);
+                    groupMessagesByDate(response.data, false); // Append to the end
+                } else {
+                    console.log("No newer messages found or error occurred.");
+                }
+            },
+            complete: function() {
+                getNewerDataRunning = false;
+            },
+            error: function(xhr, status, error) {
+                console.error("Error fetching newer messages:", error);
+            }
+        });
+    }
+
+    /**
+     * بازه‌های پیام را بر اساس پیام‌های جدید به‌روز می‌کند.
+     * این تابع بازه‌های جدید را با بازه‌های موجود ادغام می‌کند.
+     * @param {Array<object>} messages - آرایه‌ای از اشیاء پیام که هرکدام messageId دارند.
+     */
+    function updateMessageRanges(messages) {
+        if (!messages || messages.length === 0) return;
+
+        // پیدا کردن کمترین و بیشترین شناسه در پیام‌های جدید
+        const ids = messages.map(m => m.messageId);
+        const newOldestId = Math.min(...ids);
+        const newNewestId = Math.max(...ids);
+
+        console.log(`Updating ranges with new messages: ${newOldestId} -> ${newNewestId}`);
+
+        // پیدا کردن بازه‌هایی که با بازه جدید تلاقی یا همپوشانی دارند
+        let overlappingRanges = [];
+        let otherRanges = [];
+
+        for (const range of messageRanges) {
+            // شرط همپوشانی: (شروع۱ <= پایان۲) و (پایان۱ >= شروع۲)
+            // با یک پیکسل فاصله برای اتصال (range.newestId + 1 === newOldestId)
+            if ((range.oldestId <= newNewestId + 1) && (range.newestId + 1 >= newOldestId)) {
+                overlappingRanges.push(range);
+            } else {
+                otherRanges.push(range);
+            }
+        }
+
+        if (overlappingRanges.length === 0) {
+            // هیچ همپوشانی وجود ندارد، یک بازه جدید اضافه کن
+            otherRanges.push({ oldestId: newOldestId, newestId: newNewestId });
+            messageRanges = otherRanges;
+        } else {
+            // ادغام بازه جدید با تمام بازه‌های همپوشان
+            const allOverlappingIds = overlappingRanges.flatMap(r => [r.oldestId, r.newestId]);
+            const mergedOldestId = Math.min(newOldestId, ...allOverlappingIds);
+            const mergedNewestId = Math.max(newNewestId, ...allOverlappingIds);
+
+            otherRanges.push({ oldestId: mergedOldestId, newestId: mergedNewestId });
+            messageRanges = otherRanges;
+        }
+
+        // مرتب‌سازی بازه‌ها بر اساس شناسه قدیمی‌ترین پیام
+        messageRanges.sort((a, b) => a.oldestId - b.oldestId);
+
+        // به‌روزرسانی مقدار اینپوت مخفی برای سازگاری با کد قدیمی‌تر
+        if (messageRanges.length > 0) {
+            $('#lastMessageIdLoad').val(messageRanges[0].oldestId);
+        }
+
+        console.log("Updated message ranges:", JSON.stringify(messageRanges));
+        updateGapIndicators(); // نشانگرهای خلا را به‌روز کن
+    }
+
 
     // متغیرهای جدید برای مدیریت بار اول لود
     let isInitialLoad = true;
@@ -130,7 +350,7 @@ window.chatApp = (function ($) {
     // ---- بخش getOldData - اسکرول به پیام هدف (حل قطعی و بهتر) ----
     function getOldData(targetMessageId = null, loadBothDirections = false) {
 
-        console.log('hasMoreMessages : ' + hasMoreMessages + ' and getOldDataRunning is: ' + getOldDataRunning);
+        console.log('hasReachedOldestMessage : ' + hasReachedOldestMessage + ' and getOldDataRunning is: ' + getOldDataRunning);
         console.log('targetMessageId: ' + targetMessageId + ', loadBothDirections: ' + loadBothDirections);
 
         if (getOldDataRunning) {
@@ -156,10 +376,13 @@ window.chatApp = (function ($) {
             isLoadingAroundMessage = true;
             getOldDataRunning = true;
 
+            // چون در حال پرش به یک نقطه جدید هستیم، وضعیت قبلی را ریست می‌کنیم
+            resetMessageState();
+
             const chatId = parseInt($('#current-group-id-hidden-input').val());
             const currentGroupType = $('#current-group-type-hidden-input').val();
 
-            console.log(`Loading 50 messages around message ID: ${targetMessageId}`);
+            console.log(`Loading messages around message ID: ${targetMessageId}`);
 
             // غیرفعال کردن لیسنر اسکرول موقتاً
             window.chatApp.setScrollListenerActive(false);
@@ -178,11 +401,13 @@ window.chatApp = (function ($) {
                     if (response.success && response.data.length > 0) {
                         console.log(`✅ Loaded ${response.data.length} messages around target message`);
 
-                        // ۱. بارگذاری پیام‌ها در DOM
+                        // ۱. به‌روزرسانی وضعیت بازه‌ها
+                        updateMessageRanges(response.data);
+
+                        // ۲. بارگذاری پیام‌ها در DOM
                         groupMessagesByDate(response.data);
 
-                        // ۲. منتظر رندر کامل DOM
-                        // استفاده از MutationObserver برای اطمینان از رندر کامل
+                        // ۳. منتظر رندر کامل DOM و اسکرول
                         waitForElementAndScroll(targetMessageId);
 
                     } else {
@@ -205,7 +430,7 @@ window.chatApp = (function ($) {
         }
 
         // ---- بقیه کد برای بارگذاری قدیمی‌تر ----
-        if (!hasMoreMessages) {
+        if (hasReachedOldestMessage) {
             console.log('No more messages to load');
             return;
         }
@@ -214,6 +439,10 @@ window.chatApp = (function ($) {
         var lastmessageId = $('#lastMessageIdLoad').val();
 
         if (lastmessageId == 0) {
+            // اگر هیچ پیامی لود نشده، این شرط می‌تواند درست باشد.
+            // در حالت عادی، پس از لود اولیه، این مقدار باید غیر صفر باشد.
+            console.log("lastMessageId is 0, stopping.");
+            getOldDataRunning = false; // فراموش نشود
             return;
         }
 
@@ -234,16 +463,17 @@ window.chatApp = (function ($) {
             success: function (response) {
                 if (response.success) {
                     if (response.data.length < 50) {
-                        hasMoreMessages = false;
+                        hasReachedOldestMessage = true;
                     }
 
                     if (response.data.length > 0) {
+                        // ۱. به‌روزرسانی بازه‌ها قبل از رندر
+                        updateMessageRanges(response.data);
+                        // ۲. رندر پیام‌ها
                         groupMessagesByDate(response.data);
-                        var lastMessageIdRecived = parseInt(response.lastMessageId);
-                        $('#lastMessageIdLoad').val(lastMessageIdRecived);
                     }
 
-                    console.log('✅ Messages loaded successfully!');
+                    console.log('✅ Older messages loaded successfully!');
 
                 } else {
                     console.error('❌ Error loading old messages: ' + response.message);
@@ -383,16 +613,17 @@ window.chatApp = (function ($) {
     }
 
     /**
-    * پیامهای قدیمی دریافت شده را در بالا اضافه میکند
-    * @param {any} messages
+    * پیام‌ها را بر اساس تاریخ گروه‌بندی کرده و به UI اضافه می‌کند.
+    * @param {Array<object>} messages - آرایه‌ای از پیام‌ها.
+    * @param {boolean} prepend - اگر true باشد، پیام‌ها به ابتدای لیست اضافه می‌شوند.
     */
-    function groupMessagesByDate(messages) {
-        // مرتب‌سازی پیام‌ها بر اساس زمان (از قدیم به جدید) تا به ترتیب درست prepend شوند
-        //messages.sort((a, b) => new Date(a.messageDateTime) - new Date(b.messageDateTime));
+    function groupMessagesByDate(messages, prepend = true) {
+        // مرتب‌سازی پیام‌ها بر اساس شناسه برای اطمینان از ترتیب صحیح
+        messages.sort((a, b) => a.messageId - b.messageId);
 
         // به ازای هر پیام، آن را با استفاده از تابع مرکزی به UI اضافه کن
         messages.forEach(function (message) {
-            addMessageToUI(message, true); // true یعنی به ابتدا اضافه شود (prepend)
+            addMessageToUI(message, prepend);
         });
 
         // پس از افزودن تمام پیام‌ها، آیکون‌ها را یکجا رندر کن
@@ -1480,6 +1711,8 @@ window.chatApp = (function ($) {
 
         connection: null,
         displayMessage: displayMessage,
+        loadInitialMessages: loadInitialMessages, // تابع جدید را عمومی کن
+        jumpToMessage: jumpToMessage, // تابع پرش را عمومی کن
         /**
          * ماژول چت را راه‌اندازی کرده و به SignalR متصل می‌شود.
          * این تابع باید در ابتدای بارگذاری صفحه فراخوانی شود.
@@ -1831,22 +2064,39 @@ window.chatApp = (function ($) {
             if (active) {
                 console.log("Scroll listener activated.");
                 chatContentScroller.on('scroll.chatApp', function () {
-                    var scrollTopLength = chatContentScroller.scrollTop();
-                    if (scrollTopLength <= 200 && scrollTopLength > 0 && chatContentScroller.is(':visible')) {
-                        getOldData();
+                    const scroller = $(this);
+                    const scrollTop = scroller.scrollTop();
+                    const scrollHeight = scroller.prop("scrollHeight");
+                    const clientHeight = scroller.innerHeight();
+
+                    // --- منطق اسکرول به بالا ---
+                    if (scrollTop <= 200) {
+                        getOldData(); // این تابع وضعیت hasReachedOldestMessage را چک می‌کند
                     }
 
-                    const scrollHeight = chatContentScroller.prop("scrollHeight");
-                    const clientHeight = chatContentScroller.innerHeight();
-                    if (scrollHeight - (scrollTopLength + clientHeight) <= 5) {
-                        if (newMessagesNotice.is(':visible')) {
+                    // --- منطق اسکرول به پایین (پر کردن خلا) ---
+                    if (scrollHeight - (scrollTop + clientHeight) <= 200) {
+                        const lastMessageInDom = $('#Message_Days .message').last();
+                        if (lastMessageInDom.length) {
+                            const lastMessageIdInDom = lastMessageInDom.data('message-id');
+                            const currentRange = messageRanges.find(r => lastMessageIdInDom >= r.oldestId && lastMessageIdInDom <= r.newestId);
+
+                            if (currentRange) {
+                                const rangeIndex = messageRanges.findIndex(r => r.oldestId === currentRange.oldestId);
+                                if (rangeIndex < messageRanges.length - 1) {
+                                    console.log(`Gap detected below. Loading newer messages after ${currentRange.newestId}`);
+                                    getNewerData(currentRange.newestId);
+                                }
+                            }
+                        }
+                        // مخفی کردن اعلان پیام جدید
+                         if (newMessagesNotice.is(':visible')) {
                             newMessagesNotice.hide().data('newCount', 0).text('');
                         }
                     }
 
                     clearTimeout(scrollTimer);
                     scrollTimer = setTimeout(function () {
-                        console.log("Chat scrolled (#chat_content), running global checkVisibleMessages.");
                         checkVisibleMessages();
                     }, 250);
                 });
@@ -1938,5 +2188,12 @@ $(document).ready(function () {
     //  ماژول چت را راه‌اندازی کن
     window.chatApp.init();
 
+    // Event Delegation برای کلیک روی پیام‌های پین‌شده
+    $(document).on('click', '.pinned-message-item', function() {
+        const messageId = $(this).data('message-id');
+        if (messageId) {
+            window.chatApp.jumpToMessage(parseInt(messageId));
+        }
+    });
 
 });
