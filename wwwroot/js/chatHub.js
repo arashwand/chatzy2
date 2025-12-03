@@ -49,7 +49,7 @@ window.chatApp = (function ($) {
             return null;
         }
 
-        const messageDate = new Date(message.messageDateTime); // یا messageDate
+        const messageDate = new Date(message.messageDateTime);
         const dateStr = formatDate(messageDate);
         const dateId = `date-${dateStr}`;
 
@@ -57,36 +57,33 @@ window.chatApp = (function ($) {
 
         // اگر کانتینر برای این تاریخ وجود نداشت، هدر و کانتینر پیام را بساز
         if (!dateContainer.length) {
-            const persianDate = convertGregorianToJalaaliSimple(dateStr); // فرض بر وجود این تابع است
+            const persianDate = convertGregorianToJalaaliSimple(dateStr);
             const newDateHeaderHtml = `<h6 class="fw-normal text-center heading chatInDateLabelClass" data-label="${persianDate}" id="${dateId}">${persianDate}</h6>`;
-            const newDateContainerHtml = `<div class="message-box-list" data-message-date="${dateId}"></div>`;
+
+            // ✅ تصحیح: باید <ul> استفاده شود، نه <div>
+            const newDateContainerHtml = `<ul class="message-box-list" data-message-date="${dateId}"></ul>`;
 
             // اگر پیام قدیمی است (prepend)، هدر و کانتینر را در بالا اضافه کن
             if (prepend) {
                 chatContent.prepend(newDateContainerHtml);
                 chatContent.prepend(newDateHeaderHtml);
-            } else { // در غیر این صورت (پیام جدید)، آن‌ها را در پایین اضافه کن
+            } else {
                 chatContent.append(newDateHeaderHtml);
                 chatContent.append(newDateContainerHtml);
             }
-            // کانتینر جدید را پیدا کن
             dateContainer = chatContent.find(`.message-box-list[data-message-date="${dateId}"]`);
         }
 
         const $messageBody = $(createMessageHtmlBody(message));
 
-        // پیام را به کانتینر تاریخ مربوطه اضافه کن
         if (prepend) {
-            // پیام‌های قدیمی را در ابتدای کانتینر اضافه کن
             dateContainer.prepend($messageBody);
         } else {
-            // پیام‌های جدید را به انتهای کانتینر اضافه کن
             dateContainer.append($messageBody);
         }
 
         return $messageBody;
     }
-
 
 
     //تابع اعلام وضعیت کاربر انلاین شده
@@ -126,8 +123,11 @@ window.chatApp = (function ($) {
     }
 
 
+    // ---- جایگزینی بخش getOldData برای بارگذاری پیام دور هدف ----
+
     // دریافت اطلاعات قدیمی تر جهت نمایش به کاربر
-    let getOldDataRunning = false;// پرچم برای نشان دادن در حال بارگذاری است
+    let getOldDataRunning = false;
+    // ---- بخش getOldData - اسکرول به پیام هدف (حل قطعی و بهتر) ----
     function getOldData(targetMessageId = null, loadBothDirections = false) {
 
         console.log('hasMoreMessages : ' + hasMoreMessages + ' and getOldDataRunning is: ' + getOldDataRunning);
@@ -138,12 +138,21 @@ window.chatApp = (function ($) {
             return;
         }
 
-        // اگر targetMessageId داریم، حول آن بارگذاری کن (نه فقط قدیمی‌ها)
+        // اگر targetMessageId داریم، حول آن بارگذاری کن
         if (targetMessageId && loadBothDirections) {
             if (isLoadingAroundMessage) {
                 console.log('Already loading around a target message');
                 return;
             }
+
+            // ✅ مرحله اول: بررسی اینکه آیا پیام قبلاً در DOM وجود دارد
+            const existingElement = document.getElementById(`message-${targetMessageId}`);
+            if (existingElement) {
+                console.log(`✅ Message ${targetMessageId} already exists in DOM. Scrolling to it.`);
+                scrollToMessage(targetMessageId);
+                return; // از درخواست جدید جلوگیری کن
+            }
+
             isLoadingAroundMessage = true;
             getOldDataRunning = true;
 
@@ -152,6 +161,9 @@ window.chatApp = (function ($) {
 
             console.log(`Loading 50 messages around message ID: ${targetMessageId}`);
 
+            // غیرفعال کردن لیسنر اسکرول موقتاً
+            window.chatApp.setScrollListenerActive(false);
+
             $.ajax({
                 url: '/Home/GetOldMessage',
                 type: 'POST',
@@ -159,34 +171,23 @@ window.chatApp = (function ($) {
                     chatId: chatId,
                     groupType: currentGroupType,
                     messageId: targetMessageId,
-                    loadOlder: false, // false = بارگذاری دور این پیام، نه فقط قدیمی‌ها
-                    loadBothDirections: true // 25 قدیمی + 25 جدید
+                    loadOlder: false,
+                    loadBothDirections: true
                 },
                 success: function (response) {
                     if (response.success && response.data.length > 0) {
-                        console.log(`Loaded ${response.data.length} messages around target message`);
-                        
-                        // ابتدا تمام پیام‌ها را بارگذاری کن
+                        console.log(`✅ Loaded ${response.data.length} messages around target message`);
+
+                        // ۱. بارگذاری پیام‌ها در DOM
                         groupMessagesByDate(response.data);
 
-                        // سپس به پیام هدف اسکرول کن
-                        setTimeout(() => {
-                            const targetElement = $(`#message-${targetMessageId}`);
-                            if (targetElement.length) {
-                                const chatContent = $('#chat_content');
-                                const elementTop = targetElement.offset().top - chatContent.offset().top + chatContent.scrollTop();
-                                chatContent.scrollTop(elementTop - 100); // تا حدی بالاتر برای دیدن کامل
-                                
-                                // Highlight پیام هدف
-                                targetElement.addClass('highlight-message');
-                                setTimeout(() => {
-                                    targetElement.removeClass('highlight-message');
-                                }, 2000);
-                            }
-                        }, 100);
+                        // ۲. منتظر رندر کامل DOM
+                        // استفاده از MutationObserver برای اطمینان از رندر کامل
+                        waitForElementAndScroll(targetMessageId);
 
                     } else {
-                        console.log('No messages found around target message');
+                        console.warn('❌ No messages found around target message');
+                        window.chatApp.setScrollListenerActive(true);
                     }
                 },
                 complete: function () {
@@ -194,15 +195,16 @@ window.chatApp = (function ($) {
                     isLoadingAroundMessage = false;
                 },
                 error: function (xhr, status, error) {
-                    console.log('Error loading messages around target: ' + error);
+                    console.error('❌ Error loading messages around target:', error);
                     isLoadingAroundMessage = false;
+                    window.chatApp.setScrollListenerActive(true);
                 }
             });
 
-            return; // از اجرای کد پایین‌تر جلوگیری کن
+            return;
         }
 
-        // ---- کد اصلی برای بارگذاری قدیمی‌تر در حین اسکرول ----
+        // ---- بقیه کد برای بارگذاری قدیمی‌تر ----
         if (!hasMoreMessages) {
             console.log('No more messages to load');
             return;
@@ -210,7 +212,7 @@ window.chatApp = (function ($) {
 
         getOldDataRunning = true;
         var lastmessageId = $('#lastMessageIdLoad').val();
-        
+
         if (lastmessageId == 0) {
             return;
         }
@@ -226,12 +228,11 @@ window.chatApp = (function ($) {
                 chatId: chatId,
                 groupType: currentGroupType,
                 messageId: lastmessageId,
-                loadOlder: true, // true = فقط قدیمی‌تر
+                loadOlder: true,
                 loadBothDirections: false
             },
             success: function (response) {
                 if (response.success) {
-                    
                     if (response.data.length < 50) {
                         hasMoreMessages = false;
                     }
@@ -242,20 +243,124 @@ window.chatApp = (function ($) {
                         $('#lastMessageIdLoad').val(lastMessageIdRecived);
                     }
 
-                    console.log('Messages loaded successfully!');
+                    console.log('✅ Messages loaded successfully!');
 
                 } else {
-                    console.log('Error loading old messages: ' + response.message);
+                    console.error('❌ Error loading old messages: ' + response.message);
                 }
             },
             complete: function () {
                 getOldDataRunning = false;
             },
             error: function () {
-                console.log('Network error while loading messages.');
+                console.error('❌ Network error while loading messages.');
             }
         });
     }
+
+    /**
+     * ✅ تابع کمکی: منتظر رندر شدن پیام و سپس اسکرول
+     * @param {number} messageId - شناسه پیام
+     */
+    function waitForElementAndScroll(messageId, maxAttempts = 10, currentAttempt = 0) {
+        const targetElement = document.getElementById(`message-${messageId}`);
+
+        if (targetElement) {
+            console.log(`✅ Element found on attempt ${currentAttempt + 1}`);
+            scrollToMessage(messageId);
+            window.chatApp.setScrollListenerActive(true);
+            return;
+        }
+
+        if (currentAttempt < maxAttempts) {
+            console.log(`⏳ Waiting for element... attempt ${currentAttempt + 1}/${maxAttempts}`);
+            setTimeout(() => {
+                waitForElementAndScroll(messageId, maxAttempts, currentAttempt + 1);
+            }, 100);
+        } else {
+            console.error(`❌ Element not found after ${maxAttempts} attempts`);
+            window.chatApp.setScrollListenerActive(true);
+        }
+    }
+
+    /**
+   * ✅ تابع اسکرول دقیق به پیام - یک بار و برای همیشه
+   * @param {number} messageId - شناسه پیام
+   */
+    function scrollToMessage(messageId) {
+        const targetElement = document.getElementById(`message-${messageId}`);
+        const chatContent = document.getElementById('chat_content');
+
+        if (!targetElement || !chatContent) {
+            console.error(`❌ Cannot scroll: element not found. messageId: ${messageId}`);
+            return;
+        }
+
+        try {
+            // ✅ روش درست: استفاده از getBoundingClientRect
+            const elementRect = targetElement.getBoundingClientRect();
+            const containerRect = chatContent.getBoundingClientRect();
+
+            // موقعیت فعلی اسکرول
+            const currentScroll = chatContent.scrollTop;
+
+            // محاسبه فاصله عنصر از بالای container (شامل همه margin/padding)
+            const elementTopRelativeToContainer = elementRect.top - containerRect.top + currentScroll;
+
+            // ارتفاع container
+            const containerHeight = chatContent.clientHeight;
+
+            // ارتفاع عنصر
+            const elementHeight = elementRect.height;
+
+            // ✅ فرمول صحیح برای قرار دادن در وسط
+            const scrollPosition = Math.max(
+                0,
+                elementTopRelativeToContainer - (containerHeight / 2) + (elementHeight / 2)+200
+            );
+
+            console.log(`📍 SCROLL DEBUG:
+                ├─ Element Top (relative): ${elementTopRelativeToContainer}px
+                ├─ Container Height: ${containerHeight}px
+                ├─ Element Height: ${elementHeight}px
+                ├─ Current Scroll: ${currentScroll}px
+                └─ Target Scroll: ${scrollPosition}px`);
+
+            // ✅ اسکرول فوری (بدون انیمیشن برای دقت)
+            chatContent.scrollTop = scrollPosition;
+
+            // تاخیر کوچک برای اطمینان از رندر
+            setTimeout(() => {
+                // بررسی تایید: آیا اسکرول به جای درست رفت؟
+                const finalScroll = chatContent.scrollTop;
+                const difference = Math.abs(finalScroll - scrollPosition);
+
+                if (difference < 10) {
+                    console.log(`✅ Scroll successful! Final position: ${finalScroll}px`);
+                } else {
+                    console.warn(`⚠️ Scroll difference: ${difference}px - Retrying...`);
+                    // تلاش دوباره اگر نتیجه گرفتیم
+                    chatContent.scrollTop = scrollPosition;
+                }
+
+                // ۴. Highlight برای جلب توجه
+                const $element = $(targetElement);
+                $element.addClass('highlight-message');
+
+                setTimeout(() => {
+                    $element.removeClass('highlight-message');
+                    console.log('✅ Highlight removed');
+                }, 2500);
+
+            }, 50); // تاخیر برای رندرینگ
+
+            console.log(`✅ Scroll initiated to message ${messageId}`);
+
+        } catch (error) {
+            console.error(`❌ Error during scroll:`, error);
+        }
+    }
+
 
     function formatDate(date) {
         const year = date.getFullYear();

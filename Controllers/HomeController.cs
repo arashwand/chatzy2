@@ -94,8 +94,8 @@ namespace Messenger.WebApp.Controllers
                 ViewData["userProfilePic"] = "UserIcon.png";
                 //throw;
             }
-           
-            
+
+
             //ViewData["userProfilePic"] = userId.ToString();
             ViewData["baseUrl"] = _baseUrl;
             ViewData["allowedImagesExtention"] = _allowedImageExtentions;
@@ -146,43 +146,7 @@ namespace Messenger.WebApp.Controllers
 
         }
 
-        /// <summary>
-        /// گرفتن پیامهای یک گروه
-        /// </summary>
-        /// <param name="classGroupId"></param>
-        /// <param name="pageNumber"></param>
-        /// <param name="pageSize"></param>
-        /// <returns></returns>
-        public async Task<IActionResult> GetChatMessages(int chatId, string groupType, int pageNumber = 1, int pageSize = 50,
-            long messageId = 0, bool loadOlder = false)
-        {
-            try
-            {
-                var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
-                if (userId == null)
-                {
-                    return BadRequest("User ID not found in claims.");
-                }
-
-                var messages = groupType == ConstChat.ClassGroupType ?
-                    await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder) :
-                    await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder);
-
-                //var lastReadMessageId = await GetLastReadMessageIdPlaceholderAsync(chatId, groupType, long.Parse(userId));
-                ViewData["LastReadMessageId"] = messageId;
-                ViewData["classGroupId"] = chatId;
-                ViewData["baseUrl"] = _baseUrl;
-                ViewData["chatType"] = groupType;
-                //ViewData["ChatTitle"] = "عنوان گروه";
-                return PartialView("_ChatMessageBody", messages);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Error in GetChatMessages " + ex);
-                throw;
-            }
-
-        }
+       
 
         /// <summary>
         /// بدست آوردن پیامهای سنجاق شده یک گروه
@@ -204,7 +168,7 @@ namespace Messenger.WebApp.Controllers
                 var messages = await _messageService.GetChatPinnedMessagesAsync(chatId, groupType, pageSize);
 
                 //var lastReadMessageId = await GetLastReadMessageIdPlaceholderAsync(chatId, groupType, long.Parse(userId));
-                
+
                 return PartialView("_ChatPinnedMessageBody", messages);
             }
             catch (Exception ex)
@@ -224,9 +188,9 @@ namespace Messenger.WebApp.Controllers
         /// <param name="pageSize"></param>
         /// <returns></returns>
         public async Task<IActionResult> GetOldMessage(
-            int chatId, 
-            string groupType, 
-            int pageNumber = 1, 
+            int chatId,
+            string groupType,
+            int pageNumber = 1,
             int pageSize = 50,
             long messageId = 0,
             bool loadOlder = true,
@@ -244,22 +208,23 @@ namespace Messenger.WebApp.Controllers
 
                 if (loadBothDirections && messageId > 0)
                 {
-                    // بارگذاری 25 پیام قدیمی‌تر و 25 پیام جدیدتر از messageId
-                    var olderMessages = groupType == ConstChat.ClassGroupType ?
-                        await _messageService.GetClassGroupMessagesAsync(chatId, 1, 25, messageId, true) :
-                        await _messageService.GetChannelMessagesAsync(chatId, 1, 25, messageId, true);
-                    // ترکیب: قدیمی‌ها + جدید‌ها
+                    // برای دریافت پیامهای پین شده که ممکن است خیلی قدیمی باشند 25 واحد به ایدی اضافه میکنم
+                    // به این دلیل که 25 واحد جدید تر باشه و 25 تا قدیمی تر از ایدی مورد نظر
+                   // messageId += 25;
+                    var olderMessages = await _messageService.GetChatMessagesAsync(chatId, groupType, 1, 25, messageId, true, loadBothDirections);
+
                     messages.AddRange(olderMessages ?? new List<MessageDto>());
 
-                    // مرتب‌سازی بر اساس زمان
-                    messages = messages.OrderBy(m => m.MessageDateTime).ToList();
+                    // ✅ تصحیح: مرتب‌سازی صعودی (قدیم → جدید)
+                    messages = messages.OrderByDescending(m => m.MessageDateTime).ToList();
                 }
                 else
                 {
                     // کد اصلی: فقط قدیمی‌ها
-                    messages = (List<MessageDto>)(groupType == ConstChat.ClassGroupType ?
-                        await _messageService.GetClassGroupMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder) :
-                        await _messageService.GetChannelMessagesAsync(chatId, pageNumber, pageSize, messageId, loadOlder));
+                   var olderMessages = await _messageService.GetChatMessagesAsync(chatId, groupType, pageNumber, pageSize, messageId, loadOlder, false);
+
+                    // ✅ مرتب‌سازی صعودی برای بارگذاری قدیمی
+                    messages = olderMessages.OrderBy(m => m.MessageId).ToList();
                 }
 
                 var payloadList = new List<object>();
@@ -282,9 +247,9 @@ namespace Messenger.WebApp.Controllers
                         object messageFiles = null;
                         if (messageDto.MessageFiles != null && messageDto.MessageFiles.Any())
                         {
-                            messageFiles = messageDto.MessageFiles.Select(mf => new 
-                            { 
-                                FileName = mf.FileName, 
+                            messageFiles = messageDto.MessageFiles.Select(mf => new
+                            {
+                                FileName = mf.FileName,
                                 FileThumbPath = mf.FileThumbPath,
                                 MessageFileId = mf.MessageFileId,
                                 OriginalFileName = mf.OriginalFileName,
@@ -322,6 +287,221 @@ namespace Messenger.WebApp.Controllers
                 return Json(new { success = false, message = "An error occurred." });
             }
         }
+
+
+        #region دریافت چهار حالت پیامها
+
+        /// <summary>
+        /// ✅ حالت 1: دریافت پیامهای اولیه بعد از انتخاب چت (اولین بار)
+        /// - آخرین 50 پیام را دریافت میکند
+        /// - اگر کاربر قبلاً وارد شده، پیامهای حول lastReadMessageId دریافت میکند
+        /// </summary>
+        /// <param name="chatId">آیدی گروه یا کانال</param>
+        /// <param name="groupType">نوع چت (ClassGroup یا Channel)</param>
+        /// <param name="pageNumber">شماره صفحه</param>
+        /// <param name="pageSize">تعداد پیام در هر صفحه</param>
+        /// <returns></returns>
+        public async Task<IActionResult> GetChatMessages(int chatId, string groupType, int pageNumber = 1, int pageSize = 50)
+        {
+            try
+            {
+                var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+                if (userId == null)
+                {
+                    return BadRequest("User ID not found in claims.");
+                }
+
+                _logger.LogInformation($"GetChatMessages: Loading initial messages for chat {chatId} (type: {groupType})");
+
+                // دریافت پیامهای اولیه بدون شناخت یک پیام هدف
+                // سرور خود تصمیم میگیرد که کدام پیامها را بفرستد
+                var messages = await _messageService.GetChatMessagesAsync(
+                    chatId,
+                    groupType,
+                    pageNumber,
+                    pageSize,
+                    messageId: 0,  // عدم تعیین پیام خاص
+                    loadOlder: false,
+                    loadBothDirections: false
+                );
+
+                ViewData["chatGroupId"] = chatId;
+                ViewData["baseUrl"] = _baseUrl;
+                ViewData["chatType"] = groupType;
+
+                return PartialView("_ChatMessageBody", messages);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetChatMessages");
+                return StatusCode(500, "Error loading messages");
+            }
+        }
+
+        /// <summary>
+        /// ✅ حالت 2: دریافت پیامهای قدیمی‌تر (اسکرول به بالا)
+        /// - پیامهایی که ID آنها کوچک‌تر از messageId است را دریافت میکند
+        /// - استفاده میشود زمانی که کاربر در چت اسکرول کند
+        /// </summary>
+        /// <param name="chatId">آیدی گروه یا کانال</param>
+        /// <param name="groupType">نوع چت</param>
+        /// <param name="messageId">آیدی آخرین پیام لود شده (پایین‌ترین)</param>
+        /// <param name="pageSize">تعداد پیام برای دریافت</param>
+        /// <returns></returns>
+        public async Task<IActionResult> GetOlderMessages(int chatId, string groupType, long messageId, int pageSize = 50)
+        {
+            try
+            {
+                var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest("User ID not found in claims.");
+                }
+
+                if (messageId <= 0)
+                {
+                    return BadRequest("Valid messageId is required for loading older messages.");
+                }
+
+                _logger.LogInformation($"GetOlderMessages: Loading messages before ID {messageId} for chat {chatId}");
+
+                // دریافت پیامهای قدیمی‌تر
+                var messages = await _messageService.GetChatMessagesAsync(
+                    chatId,
+                    groupType,
+                    pageNumber: 1,
+                    pageSize: pageSize,
+                    messageId: messageId,
+                    loadOlder: true,
+                    loadBothDirections: false
+                );
+
+                return Json(new
+                {
+                    success = true,
+                    data = messages,
+                    lastMessageId = messages?.LastOrDefault()?.MessageId ?? 0
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetOlderMessages");
+                return Json(new { success = false, message = "Error loading older messages" });
+            }
+        }
+
+        /// <summary>
+        /// ✅ حالت 3: دریافت پیامهای جدید‌تر (اسکرول به پایین)
+        /// - پیامهایی که ID آنها بزرگ‌تر از messageId است را دریافت میکند
+        /// - استفاده میشود هنگام اسکرول به پایین برای دریافت پیامهای جدیدتر
+        /// </summary>
+        /// <param name="chatId">آیدی گروه یا کانال</param>
+        /// <param name="groupType">نوع چت</param>
+        /// <param name="messageId">آیدی آخرین پیام نمایش داده شده (بالاترین)</param>
+        /// <param name="pageSize">تعداد پیام برای دریافت</param>
+        /// <returns></returns>
+        public async Task<IActionResult> GetNewerMessages(int chatId, string groupType, long messageId, int pageSize = 50)
+        {
+            try
+            {
+                var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest("User ID not found in claims.");
+                }
+
+                if (messageId <= 0)
+                {
+                    return BadRequest("Valid messageId is required for loading newer messages.");
+                }
+
+                _logger.LogInformation($"GetNewerMessages: Loading messages after ID {messageId} for chat {chatId}");
+
+                // دریافت پیامهای جدید‌تر (تقریباً به همان روش قدیمی‌ها اما از سرور آن را تشخیص میدهد)
+                var messages = await _messageService.GetChatMessagesAsync(
+                    chatId,
+                    groupType,
+                    pageNumber: 1,
+                    pageSize: pageSize,
+                    messageId: messageId,
+                    loadOlder: false,  // false یعنی جدیدتر
+                    loadBothDirections: false
+                );
+
+                return Json(new
+                {
+                    success = true,
+                    data = messages,
+                    lastMessageId = messages?.FirstOrDefault()?.MessageId ?? 0
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetNewerMessages");
+                return Json(new { success = false, message = "Error loading newer messages" });
+            }
+        }
+
+        /// <summary>
+        /// ✅ حالت 4: دریافت پیامهای اطراف یک پیام هدف (برای پیامهای پین شده)
+        /// - 25 پیام قبل از پیام هدف
+        /// - 20 پیام بعد از پیام هدف
+        /// - استفاده میشود زمانی که کاربر بر روی پیام پین شده کلیک کند
+        /// </summary>
+        /// <param name="chatId">آیدی گروه یا کانال</param>
+        /// <param name="groupType">نوع چت</param>
+        /// <param name="targetMessageId">آیدی پیام هدف (پیام پین شده)</param>
+        /// <returns></returns>
+        public async Task<IActionResult> GetMessagesAroundTarget(int chatId, string groupType, long targetMessageId)
+        {
+            try
+            {
+                var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest("User ID not found in claims.");
+                }
+
+                if (targetMessageId <= 0)
+                {
+                    return BadRequest("Valid targetMessageId is required.");
+                }
+
+                _logger.LogInformation($"GetMessagesAroundTarget: Loading messages around target ID {targetMessageId} in chat {chatId}");
+
+                // دریافت پیامهای اطراف پیام هدف
+                // pageSize = 25 سیگنال است برای سرور که بخواهد از هر دو سمت بارگذاری کند
+                var messages = await _messageService.GetChatMessagesAsync(
+                    chatId,
+                    groupType,
+                    pageNumber: 1,
+                    pageSize: 25,  // پیام خاص برای loadBothDirections
+                    messageId: targetMessageId,
+                    loadOlder: true,
+                    loadBothDirections: true  // دریافت از هر دو سمت
+                );
+
+                // ترتیب پیامها از قدیم به جدید برای نمایش صحیح
+                var orderedMessages = messages?.OrderBy(m => m.MessageId).ToList() ?? new List<MessageDto>();
+
+                return Json(new
+                {
+                    success = true,
+                    data = orderedMessages,
+                    targetMessageId = targetMessageId,
+                    firstMessageId = orderedMessages.FirstOrDefault()?.MessageId ?? 0,
+                    lastMessageId = orderedMessages.LastOrDefault()?.MessageId ?? 0
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetMessagesAroundTarget");
+                return Json(new { success = false, message = "Error loading messages around target" });
+            }
+        }
+
+        #endregion
+
 
         /// <summary>
         /// A helper method to fetch detailed information for a chat (group or channel),

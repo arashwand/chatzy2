@@ -64,7 +64,8 @@
     {
         if (item == null) { continue; }
         <li id="@(ConstChat.ChannelGroup + item.ChannelId)">
-            <a class="chat-list-box" onclick="GetSelectedChatMessages(@item.ChannelId, '@ConstChat.ChannelGroupType')" style="cursor: pointer;">
+            <a class="chat-list-box" onclick="GetSelectedChatMessages(@item.ChannelId, '@ConstChat.ChannelGroupType',@item.LastReadMessageId)" style="cursor: pointer;">
+                @* <input type="hidden" value="@item.LastReadMessageId" id="LastReadMessageIdOnChatList" /> *@
                 <div class="chat-list-image">
                     <i class="iconsax icon-btn" data-icon="channel-icon"> </i>
                 </div>

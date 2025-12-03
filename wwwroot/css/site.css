@@ -86,7 +86,7 @@ body {
        پشت پنل ارسال (messages-panel) مخفی نشود.
        مقدار آن باید تقریبا برابر با ارتفاع پنل ارسال باشد.
     */
-    padding-bottom: 200px;
+    padding-bottom: 140px;
 }
 
 /* ========================================================= */
@@ -956,21 +956,19 @@ body {
 }
 
 
-/*****************افکت اسکرول و هایلایت برای پیام هدف *******************/
-@keyframes highlightPulse {
+/* Highlight animation for target message */
+@keyframes highlight-animation {
     0% {
-        background-color: #fff3cd;
-    }
-
-    50% {
-        background-color: #ffe8a1;
+        background-color: chartreuse;
+        box-shadow: 0 0 10px rgba(255, 235, 59, 0.8);
     }
 
     100% {
         background-color: transparent;
+        box-shadow: none;
     }
 }
 
 .highlight-message {
-    animation: highlightPulse 2s ease-in-out;
+    animation: highlight-animation 4s ease-in-out;
 }

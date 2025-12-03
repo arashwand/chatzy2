@@ -59,28 +59,29 @@ namespace Messenger.WebApp.ServiceHelper
             return response ?? new List<MessageDto>();
         }
 
-        public async Task<IEnumerable<MessageDto>> GetClassGroupMessagesAsync(int classId, int pageNumber, int pageSize, long messageId, bool loadOlder)
+        public async Task<IEnumerable<MessageDto>> GetChatMessagesAsync(int chatId, string chatType, int pageNumber,
+            int pageSize, long messageId, bool loadOlder, bool loadBothDirections = false)
         {
             try
             {
                 var response = await _httpClient.GetAsync(
-                $"api/messages/classgroup/{classId}?pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}&loadOlder={loadOlder}");
+                $"api/messages/chatMessages/{chatId}?chatType={chatType}&pageNumber={pageNumber}&pageSize={pageSize}&messageId={messageId}&loadOlder={loadOlder}");
                 response.EnsureSuccessStatusCode();
                 return await response.Content.ReadFromJsonAsync<IEnumerable<MessageDto>>() ?? new List<MessageDto>();
             }
             catch (HttpRequestException httpEx)
             {
-                _logger.LogError(httpEx, "HTTP error fetching class group messages for classId {classId}: {statusCode} {reason}", classId, httpEx.StatusCode, httpEx.Message);
+                _logger.LogError(httpEx, "HTTP error fetching class group messages for classId {classId}: {statusCode} {reason}", chatId, httpEx.StatusCode, httpEx.Message);
                 throw;
             }
             catch (System.Text.Json.JsonException jsonEx)
             {
-                _logger.LogError(jsonEx, "JSON deserialization error for class group messages classId {classId}", classId);
+                _logger.LogError(jsonEx, "JSON deserialization error for class group messages classId {classId}", chatId);
                 throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching class group messages for classId {classId}", classId);
+                _logger.LogError(ex, "Error fetching class group messages for classId {classId}", chatId);
                 throw;
             }
         }
