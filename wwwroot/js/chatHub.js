@@ -112,6 +112,85 @@ window.chatApp = (function ($) {
     }
 
     /**
+     * پیام‌های پین‌شده را برای یک چت خاص بارگذاری و نمایش می‌دهد.
+     * @param {number} chatId - شناسه چت.
+     * @param {string} groupType - نوع چت.
+     */
+    function loadPinnedMessages(chatId, groupType) {
+        console.log(`Loading pinned messages for chat ${chatId} (${groupType})`);
+        const pinnedContainer = $('#pinnedMessagesContainer'); // والد اصلی
+
+        if (!pinnedContainer.length) {
+            console.error("Main pinned messages container (#pinnedMessagesContainer) not found.");
+            return;
+        }
+
+        $.ajax({
+            url: '/Home/GetChatPinnedMessages',
+            type: 'GET',
+            data: {
+                chatId: chatId,
+                groupType: groupType
+            },
+            success: function (responseHtml) {
+                // محتوای Partial View را مستقیماً در والد قرار می‌دهیم
+                pinnedContainer.html(responseHtml);
+
+                // بررسی می‌کنیم که آیا واقعاً پیامی برای نمایش وجود دارد یا خیر
+                // این سلکتور حالا باید درست کار کند چون محتوا لود شده است
+                if (pinnedContainer.find('.pinned-message-item').length > 0) {
+                    pinnedContainer.show();
+                } else {
+                    pinnedContainer.hide();
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error loading pinned messages:', error);
+                pinnedContainer.hide(); // در صورت خطا، کانتینر را مخفی کن
+            }
+        });
+    }
+
+    /**
+     * پیام‌های پین‌شده را برای یک چت خاص بارگذاری و نمایش می‌دهد.
+     * @param {number} chatId - شناسه چت.
+     * @param {string} groupType - نوع چت.
+     */
+    function loadPinnedMessages(chatId, groupType) {
+        console.log(`Loading pinned messages for chat ${chatId} (${groupType})`);
+        const pinnedContainer = $('#pinnedMessagesContainer');
+
+        if (!pinnedContainer.length) {
+            console.error("Pinned messages container not found.");
+            return;
+        }
+
+        $.ajax({
+            url: '/Home/GetChatPinnedMessages',
+            type: 'GET',
+            data: {
+                chatId: chatId,
+                groupType: groupType
+            },
+            success: function (responseHtml) {
+                // محتوای HTML را مستقیماً در کانتینر قرار می‌دهیم
+                pinnedContainer.html(responseHtml);
+
+                // بررسی می‌کنیم که آیا پیامی برای نمایش وجود دارد یا خیر
+                if (pinnedContainer.find('.pinned-message-item').length > 0) {
+                    pinnedContainer.show();
+                } else {
+                    pinnedContainer.hide();
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error loading pinned messages:', error);
+                pinnedContainer.hide(); // در صورت خطا، کانتینر را مخفی کن
+            }
+        });
+    }
+
+    /**
      * نشانگرهای بصری برای "خلا" بین بازه‌های پیام را در UI مدیریت می‌کند.
      */
     function updateGapIndicators() {
@@ -1281,8 +1360,9 @@ window.chatApp = (function ($) {
     function handlerUpdatePinMessage(messageId, messageText, isPin) {
         console.log('handlerUpdatePinMessage called with messageId:', messageId, 'isPin:', isPin);
 
-        const pinnedContainer = $('.pinned-messages-container');
-        const pinnedList = $('.pinned-messages-list');
+        // اصلاح سلکتورها از کلاس به شناسه
+        const pinnedContainer = $('#pinnedMessagesContainer');
+        const pinnedList = $('#pinnedMessagesList');
 
         // بررسی وجود کانتینر پیام‌های پین شده
         if (!pinnedContainer.length || !pinnedList.length) {
@@ -1713,6 +1793,7 @@ window.chatApp = (function ($) {
         displayMessage: displayMessage,
         loadInitialMessages: loadInitialMessages, // تابع جدید را عمومی کن
         jumpToMessage: jumpToMessage, // تابع پرش را عمومی کن
+        loadPinnedMessages: loadPinnedMessages, // تابع بارگذاری پین‌ها را عمومی کن
         /**
          * ماژول چت را راه‌اندازی کرده و به SignalR متصل می‌شود.
          * این تابع باید در ابتدای بارگذاری صفحه فراخوانی شود.
