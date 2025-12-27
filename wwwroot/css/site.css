@@ -1,454 +1,616 @@
-﻿html {
-    font-size: 14px;
-}
-
-@media (min-width: 768px) {
-    html {
-        font-size: 16px;
-    }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-    position: relative;
-    min-height: 100%;
-}
-
+﻿/*
+            #bcf6d1 بک گراند پیام ارسالی کاربر
+            #f6f5f3 بک گراند صفحه چت
+            #ffffff بکگراند پیام دیگران
+            075E54 هدر چت
+        */
 body {
-    margin-bottom: 60px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /*  background: #E5DDD5;
+            direction: rtl; */
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
-    text-align: end;
+
+/*دیزاین قسمت ویرایش*/
+/* استایل‌های کانتینر پیش‌نمایش فایل */
+#filePreviewContainer {
+    position: fixed;
+    bottom: 89px; /* همیشه 100px بالاتر از پایین صفحه */
+    left: 0;
+    right: 0;
+    display: none; /* مخفی به صورت پیش‌فرض */
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    background-color: #f0f2f5;
+    border-top: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    max-height: 30vh; /* تا حداکثر 30٪ ارتفاع صفحه */
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+    animation: slideDown 0.3s ease-out;
+    z-index: 999; /* بالاتر از سایر المان‌ها */
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-    text-align: start;
+    #filePreviewContainer.visible {
+        display: flex;
+    }
+
+@keyframes slideDown {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
-.force-hide {
-    display: none !important;
-}
 
-/*تغیرات ظاهری چت*/
-.form-row {
-    display: flex;
-    align-items: flex-end; /* تراز عمودی به پایین */
+.file-preview-item {
     position: relative;
-    width: 100%;
-    padding-bottom: 10px; /* فاصله از پایین برای جلوگیری از تداخل */
-}
-
-.input-group {
     display: flex;
-    align-items: center; /* تراز افقی */
-    width: 100%;
-}
-
-.col-auto-input {
-    position: sticky;
-    bottom: 10px; /* چسبیده به پایین با فاصله 10px */
-    display: flex;
-    align-items: center; /* دکمه در وسط عمودی تراز شود */
-    margin-left: 10px; /* فاصله از ورودی پیام */
-}
-
-
-#message-input {
-    resize: none;
-    width: 100%;
-    min-height: 40px; /* حداقل ارتفاع برای 2 سطر */
-    max-height: 150px; /* حداکثر ارتفاع برای حدود 5 سطر */
-    overflow-y: auto; /* اسکرول عمودی در صورت نیاز */
-    line-height: 24px; /* ارتفاع خط */
+    align-items: center;
+    background-color: #ffffff;
+    border-radius: 8px;
     padding: 8px;
-    box-sizing: border-box;
-    font-size: 16px; /* فونت هماهنگ با line-height */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    width: calc(50% - 5px); /* دو آیتم در هر ردیف با فاصله */
+    transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-    /* اطمینان از نمایش اسکرول */
-    #message-input::-webkit-scrollbar {
-        width: 8px;
+    .file-preview-item.removing {
+        opacity: 0;
+        transform: scale(0.9);
     }
 
-    #message-input::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.3);
-        border-radius: 4px;
-    }
-
-    #message-input::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-/* نادیده گرفتن hide-scrollbar برای message-input */
-textarea#message-input.hide-scrollbar::-webkit-scrollbar {
-    display: block;
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-grow: 1;
+    overflow: hidden;
 }
 
-#chat_content {
-    background-image: url(/assets/media/avatar/new-pattern-6.png);
-    /*background-repeat: repeat-x;*/
+.file-thumbnail {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.file-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e9ecef;
+    border-radius: 6px;
+    font-size: 24px;
+    color: #495057;
+}
+
+.file-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-details {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.status-icon {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.action-btn {
+    cursor: pointer;
+    font-size: 18px;
+    display: none; /* همه دکمه‌ها در حالت عادی مخفی هستند */
+}
+
+.remove-file-btn {
+    color: #dc3545;
+}
+
+.retry-upload-btn {
+    color: #007bff;
+}
+
+.cancel-upload-btn {
+    color: #ffc107;
+}
+
+
+.status-text {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+}
+
+.spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #09f;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: none; /* در حالت عادی مخفی */
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/*ایکون هایی که رنگ روشن دارند را با فیلتر، رنگ مشکلی دادم*/
+.svgInvertColor {
+    filter: invert(100%) sepia(90%) saturate(500%) hue-rotate(0deg);
+}
+
+/*استایل برای نمایش ایکون چت ها*/
+.groupIcons {
+    padding: 10px;
+    background-color: #01aa85;
+    border-radius: 50%;
+}
+
+.message-box-list > li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
     position: relative;
-    background-position: top left;
-    background-size: 30%;
-
 }
 
-/*-------------------------------------------------------------------------------------------------------------------------*/
-/* --- 1. تنظیمات کلی برای پیام ارسالی --- */
-.message.self {
-    /* پیام را در سمت راست صفحه قرار می‌دهد */
-    justify-content: flex-end;
+/* کانتینر اصلی بدنه پیام */
+.message-box-list li .message-box {
+    order: 1;
 }
 
-    /* --- 2. استایل اصلی حباب پیام (کادر آبی شما) --- */
-    .message.self .message-wrapper {
-        background-color: #dcf8c6; /* رنگ سبز روشن واتس‌اپ */
-        border-radius: 8px 0 8px 8px; /* گرد کردن گوشه‌ها به جز بالا سمت راست */
-        position: relative; /* برای موقعیت‌دهی "دُم" پیام */
-        padding: 8px;
-        max-width: 75%; /* محدود کردن عرض پیام */
-        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); /* سایه بسیار ملایم */
+/* کانتینر اصلی منوی سه نقطه */
+.message-box-list li .message-options {
+    order: 2;
+    margin: 0 8px;
+}
+
+/* چیدمان پیام‌های ارسالی (شخصی) */
+.message-box-list li.personal {
+    flex-direction: row-reverse; /* ترتیب عناصر را معکوس می‌کند (منو، پیام) */
+    justify-content: end; /* <<< این خط اضافه شده و مشکل را حل می‌کند >>> */
+}
+
+/* چیدمان پیام‌های دریافتی (جدید) */
+.message-box-list li.new {
+    flex-direction: row;
+    justify-content: flex-start; /* برای اطمینان از چیدمان صحیح از چپ */
+}
+
+
+/* استایل  برای دکمه و آیکون سه نقطه*/
+/* استایل دکمه سه نقطه */
+.message-options .btn {
+    background-color: rgba(240, 242, 245, 0.9);
+    border: none;
+    box-shadow: none;
+    padding: 2px;
+    border-radius: 20%;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+    /* استایل آیکون سه نقطه (عمودی شده) */
+    .message-options .btn i {
+        font-size: 20px;
+        display: block;
+        transform: rotate(90deg);
+        color: #54656f;
     }
 
-        /* --- 3. ایجاد "دُم" یا زائده‌ی حباب پیام --- */
-        .message.self .message-wrapper::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: -10px; /* بیرون بردن زائده از کادر اصلی */
-            width: 0;
-            height: 0;
-            /* ایجاد مثلث با استفاده از border */
-            border-style: solid;
-            border-width: 0 0 10px 10px;
-            border-color: transparent transparent transparent #dcf8c6;
-        }
+/* افکت هاور: وقتی موس روی کل ردیف پیام قرار می‌گیرد */
+.message-box-list > li:hover .message-options .btn {
+    background-color: #01aa85;
+}
 
-    /* --- 4. مخفی کردن آواتار و نام برای پیام شخصی --- */
-    .message.self .message-options .avatar,
-    .message.self .message-options span[class="message-date"]:first-child { /* نام "آرش کارگر" را مخفی می‌کند */
+/* پررنگ ماندن پس‌زمینه وقتی منو باز است */
+.message-options .btn[aria-expanded="true"] {
+    background-color: #e9edef;
+}
+
+
+/* استایل منوی باز شونده (Dropdown)*/
+.message-options .dropdown-menu {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: none;
+    border-radius: 8px;
+    z-index: 1050;
+    text-align: right;
+}
+
+.dropdown-menu .dropdown-item {
+    text-align: right;
+    direction: rtl;
+}
+
+/*برای تاریخ چسبان هر روز*/
+.chatInDateLabelClass {
+    position: -webkit-sticky; /* برای سازگاری با مرورگرهای قدیمی سافاری */
+    position: sticky;
+    top: 5px; /* در بالاترین نقطه کانتینر والد می‌چسبد */
+    z-index: 9; /* برای اینکه روی محتوای دیگر قرار بگیرد */
+    background-color: #00bf95; /* رنگ پس‌زمینه برای پوشاندن متن زیرین (رنگ را به دلخواه تغییر دهید) */
+    padding-top: 5px;
+    padding-bottom: 5px;
+    width: 30%;
+    margin: 0 auto;
+    border-radius: 15px;
+}
+
+.messages-panel {
+    z-index: 10 !important;
+}
+
+
+
+/* Messages Panel Container */
+.messages-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #F0F0F0;
+    border-top: 1px solid #D1D1D1;
+    z-index: 1000;
+}
+
+/* Edit Banner Styles */
+#cancel-edit-container {
+    margin-top: -50px;
+    background: #25D366;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideDown 0.2s ease-out;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+    #cancel-edit-container.force-hide {
         display: none;
     }
 
-/* --- 5. استایل و چیدمان متادیتا (زمان و تیک‌ها) --- */
-.message-content {
-    /* اطمینان از وجود فضای کافی برای متادیتا */
-    padding-bottom: 20px;
-    position: relative;
-}
-
-.message-options {
-    position: absolute; /* شناور کردن متادیتا روی محتوا */
-    bottom: 5px; /* فاصله از پایین کادر محتوا */
-    right: 8px; /* فاصله از راست کادر محتوا */
-
+.edit-indicator {
     display: flex;
     align-items: center;
-    gap: 5px; /* ایجاد فاصله بین زمان و تیک */
-    background-color: transparent !important; /* حذف هرگونه پس‌زمینه سفید */
+    gap: 12px;
+    color: white;
 }
 
-    /* --- 6. استایل نهایی زمان و تیک‌ها --- */
-    .message-options .message-date {
-        font-size: 0.75rem; /* کوچک کردن فونت زمان */
-        color: #667781; /* رنگ خاکستری متادیتا در واتس‌اپ */
-    }
-
-    .message-options .message-status-ticks img {
-        width: 16px; /* تنظیم اندازه تیک‌ها */
-        vertical-align: middle;
-    }
-
-    /* استایل دکمه منو (...) برای هماهنگی بیشتر */
-    .message-options .dropdown a svg {
-        stroke: #667781; /* همرنگ کردن با بقیه متادیتا */
-    }
-
-
-
-
-/*-------------------------------------------------------------------------------------------------------------------------*/
-
-/*---start--------تغیر استایل برای موبایل*/
-/* Media Query برای صفحه‌نمایش‌های کوچکتر از 1199.98 پیکسل */
-@media screen and (max-width: 1199.98px) {
-    .message {
-        font-size: 1.25rem; 
-    }
-
-    .message .message-options {
-        font-size: .85rem;
-    }
-
-    .chat-body .chat-footer textarea {
-        font-size: 1rem;
-    }
-
-    .contacts-list .contacts-content .contacts-info .chat-name,
-    .contacts-list .contacts-content .contacts-texts p,
-    .contacts-list .contacts-content .contacts-info .chat-time {
-        font-size: 1rem;
-    }
-
-    .dropdown .btn .hw-20 {
-        height: 2.25rem;
-        width: 2.25rem;
-    }
-
-    .chat-info h6 {
-        font-size: 1rem;
-    }
-    .list-group-item .media .media-body p {
-        font-size: 1rem;
-    }
-
-    .list-group-item .media .avatar {
-        height: 5rem;
-        width: 5rem;
-    }
-
-    .avatar.avatar-offline:before, .avatar.avatar-online:before {
-        height: 1rem;
-        width: 1rem;
-    }
-
-    .sidebar-sub-header .btn, .sidebar-sub-header .dropdown .dropdown-menu a {
-        font-size: 1rem;
-    }
+.edit-bar {
+    width: 4px;
+    height: 32px;
+    background: white;
+    border-radius: 2px;
 }
 
-
-/* ========================================================= */
-/*      کد نهایی CSS برای رابط کاربری جدید ضبط صدا         */
-/* ========================================================= */
-
-/* کانتینر ورودی صدا باید بتواند فضای خالی را پر کند */
-#voice-input-area {
-    flex-grow: 1;
+.edit-text {
+    font-weight: 500;
+    font-size: 15px;
 }
 
-/* -- استایل اصلی نوار UI صدا -- */
-#voice-ui-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between; /* چیدمان با فاصله بین آیتم‌ها */
-    width: 100%;
-    height: 40px;
-    padding: 0 15px;
-    background-color: #484f58; /* رنگ پس‌زمینه تیره‌تر مطابق تصویر */
+#cancel-edit-button {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    padding: 8px 16px;
     border-radius: 20px;
-    box-sizing: border-box;
-    color: #b0b8c0;
-}
-
-    /* -- استایل‌های حالت ضبط (Recording) -- */
-    #voice-ui-container.recording-state .recording-timer {
-        font-family: monospace, sans-serif;
-        font-size: 16px;
-        direction: ltr;
-    }
-
-    #voice-ui-container.recording-state .recording-indicator {
-        font-size: 10px; /* دایره کوچک‌تر */
-        color: #e74c3c;
-        animation: blink-animation 1.5s infinite;
-    }
-
-@keyframes blink-animation {
-    0% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.3;
-    }
-
-    100% {
-        opacity: 1;
-    }
-}
-
-/* -- استایل‌های حالت پیش‌نمایش (Preview) -- */
-#voice-ui-container.preview-state .voice-duration {
-    font-family: monospace, sans-serif;
+    cursor: pointer;
     font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
 }
 
-#voice-ui-container.preview-state .voice-player-container {
-    flex-grow: 1;
-    margin: 0 15px;
-}
-
-#voice-ui-container.preview-state .voice-action-btn {
-    font-size: 18px;
-    cursor: pointer;
-    color: #b0b8c0;
-    margin-left: 10px; /* فاصله بین دکمه‌های راست */
-    transition: color 0.2s;
-}
-
-    #voice-ui-container.preview-state .voice-action-btn:hover {
-        color: #ffffff;
+    #cancel-edit-button:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.02);
     }
 
-#voice-ui-container.preview-state .delete-btn {
-    color: #e74c3c;
+/* Message Input Area */
+.message-inputarea {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 30px;
+    margin: 12px 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* استایل نوار پیشرفت (تایم‌لاین) */
-.voice-player-container input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 4px;
-    background: #5e6670; /* رنگ ترک تیره‌تر */
-    border-radius: 5px;
-    cursor: pointer;
-    outline: none;
-}
-    /* هندل (دایره) روی نوار پیشرفت */
-    .voice-player-container input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 14px;
-        height: 14px;
-        background: #8e44ad; /* رنگ بنفش */
+    .message-inputarea a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
+        transition: all 0.2s ease;
         cursor: pointer;
+        text-decoration: none;
     }
 
-/* ========================================================= */
-/*      Styles for Audio Message Display                     */
-/* ========================================================= */
+        .message-inputarea a:hover {
+            background: #F0F0F0;
+        }
 
-.audio-player-container {
-    display: flex;
-    align-items: center;
-    padding: 8px;
-    border-radius: 18px;
-    max-width: 280px;
-    min-width: 250px;
-    background-color: #f0f0f0;
-    direction: ltr;
+    .message-inputarea svg {
+        width: 24px;
+        height: 24px;
+    }
+
+.message-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    padding: 10px 12px;
+    background: transparent;
+    color: #303030;
 }
 
-.message.self .audio-player-container {
-    background-color: #e7ffdb; /* A WhatsApp-like color for sent messages */
-}
+    .message-input::placeholder {
+        color: #8696A0;
+    }
 
-.voice-playback-btn {
-    cursor: pointer;
-    font-size: 18px;
-    color: #555;
-    background: #fff;
-    border: 1px solid #ccc;
+.message-send-btn {
+    background: #25D366 !important;
     border-radius: 50%;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
 }
 
-.voice-playback-btn .fa-play {
-    margin-left: 2px;
-}
+    .message-send-btn:hover {
+        background: #20BA5A !important;
+        /* transform: scale(1.05); */
+    }
 
-.voice-timeline-container {
-    flex-grow: 1;
-    margin: 0 10px;
-    position: relative;
-    height: 10px;
+    .message-send-btn svg {
+        filter: brightness(0) invert(1);
+    }
+
+.btn-record-voice {
     display: flex;
     align-items: center;
-    cursor: pointer;
+    justify-content: center;
 }
 
-.voice-timeline-bg {
-    width: 100%;
-    height: 4px;
-    background-color: #ccc;
-    border-radius: 2px;
-    position: absolute;
+/* Animation */
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
-.voice-timeline-progress {
-    height: 4px;
-    background-color: #5c85d6;
-    border-radius: 2px;
-    width: 0%; /* Initially no progress */
-    position: absolute;
+/* Voice Input Area (Hidden by default) */
+#voice-input-area {
+    padding: 16px;
+    background: white;
+}
+
+/* Demo Content */
+.demo-content {
+    padding: 60px 20px 120px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.demo-message {
+    background: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    max-width: 70%;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+    .demo-message.sent {
+        background: #D9FDD3;
+        margin-right: auto;
+        margin-left: 30%;
+    }
+
+.demo-header {
+    position: fixed;
+    top: 0;
     left: 0;
-}
-
-.voice-timeline-handle {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background-color: #5c85d6;
-    position: absolute;
-    left: 0%; /* Initially at the start */
-    transform: translateX(-7px);
-    display: none; /* Hidden by default, shown on hover/drag */
-}
-
-.voice-timeline-container:hover .voice-timeline-handle {
-    display: block;
-}
-
-
-.voice-duration-display {
-    font-size: 12px;
-    color: #666;
-    min-width: 40px; /* Prevent layout shifts */
+    right: 0;
+    background: #075E54;
+    color: white;
+    padding: 16px;
     text-align: center;
-    font-family: monospace, sans-serif;
+    z-index: 999;
 }
 
-.voice-download-btn {
+/* Responsive */
+@media (max-width: 768px) {
+    .message-inputarea {
+        margin: 8px 12px;
+    }
+
+    #cancel-edit-container {
+        padding: 8px 12px;
+    }
+}
+
+
+/*
+=================================================
+            Reply Banner Styles
+=================================================
+*/
+#reply-to-container {
+    background: #f0f2f5; /* یک رنگ متفاوت برای تمایز از حالت ویرایش */
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideDown 0.2s ease-out;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    direction: rtl; /* برای چیدمان صحیح راست-به-چپ */
+}
+
+.reply-indicator {
+    display: flex;
+    align-items: stretch; /* برای هم‌قد شدن خط عمودی با محتوا */
+    gap: 12px;
+    color: #333; /* رنگ متن تیره‌تر برای خوانایی روی پس‌زمینه روشن */
+    flex-grow: 1; /* برای گرفتن فضای باقی‌مانده */
+    overflow: hidden; /* جلوگیری از بیرون زدن محتوا */
+}
+
+.reply-bar {
+    width: 4px;
+    background: #007bff; /* رنگ آبی برای تمایز بصری */
+    border-radius: 2px;
+}
+
+.reply-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+}
+
+#reply-to-user {
+    font-weight: bold;
+    font-size: 14px;
+    color: #007bff;
+}
+
+#reply-to-text {
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* نمایش سه‌نقطه برای متن‌های طولانی */
+    color: #555;
+    max-width: 95%; /* برای اطمینان از اینکه متن از کادر بیرون نمی‌زند */
+}
+
+#cancel-reply {
+    background: transparent;
+    color: #555;
+    border: none;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background-color 0.2s ease;
+    margin-left: 10px; /* ایجاد فاصله از محتوای پاسخ */
+}
+
+    #cancel-reply svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    #cancel-reply:hover {
+        background-color: #e0e0e0;
+    }
+
+
+    /*--------------اصلاح بدنه ورودی پیام--------------*/
+.messages-panel {
+    display: flex;
+    flex-direction: column; /* چیدمان فرزندان به صورت عمودی */
+}
+
+.message-form-container {
+    /* این کلاس باعث می‌شود فرم همیشه در پایین‌ترین بخش باشد */
+    order: 3;
+}
+
+.action-banners-container {
+    order: 1;
+    position: fixed;
+    margin-top: -70px;
+    right: 0;
+}
+
+#filePreviewContainer {
+    order: 2;
+    /* برای اینکه این کانتینر همیشه بالای فرم باشد، موقعیت آن را کمی تغییر می‌دهیم */
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+/*
+=================================================
+    استایل‌های پیشرفته برای پیش‌نمایش پاسخ
+=================================================
+*/
+
+/* چیدمان افقی برای تصویر و متن */
+.reply-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px; /* فاصله بین تصویر و متن */
+}
+
+/* استایل کانتینر و خود تصویر پیش‌نمایش */
+#reply-thumbnail-container {
+    flex-shrink: 0; /* جلوگیری از کوچک شدن تصویر */
+}
+
+.reply-preview-thumbnail {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
-    background-color: #a0a0a0;
-    color: white;
-    cursor: pointer;
-    border: none;
-    font-size: 18px;
-    transition: background-color 0.2s;
+    object-fit: cover; /* تصویر را بدون تغییر نسبت ابعاد، کادر را پر می‌کند */
+    border-radius: 6px;
+    background-color: #e9ecef; /* رنگ پس‌زمینه تا زمان بارگذاری تصویر */
 }
 
-.voice-download-btn:hover {
-    background-color: #888;
+/* کانتینر برای بخش متنی */
+.reply-text-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden; /* برای کارکرد صحیح text-overflow */
 }
 
-.voice-download-btn .fa-spinner {
-    display: none; /* Hidden by default */
+#reply-icon-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #555; /* رنگ آیکون */
 }
 
-.voice-download-btn.loading .fa-download {
-    display: none; /* Hide download icon when loading */
-}
-
-.voice-download-btn.loading .fa-spinner {
-    display: inline-block;
-    animation: fa-spin 1s infinite linear;
-}
-
-    .voice-player-container input[type="range"]::-moz-range-thumb {
-        width: 14px;
-        height: 14px;
-        background: #8e44ad;
-        border-radius: 50%;
-        cursor: pointer;
+    #reply-icon-container .iconsax {
+        font-size: 20px; /* اندازه آیکون */
     }
-
-
