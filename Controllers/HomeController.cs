@@ -301,6 +301,65 @@ namespace Messenger.WebApp.Controllers
         /// <param name="pageNumber">شماره صفحه</param>
         /// <param name="pageSize">تعداد پیام در هر صفحه</param>
         /// <returns></returns>
+        public async Task<IActionResult> GetChatMessagesJson(int chatId, string groupType, int pageSize = 50)
+        {
+            try
+            {
+                var userId = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+                if (userId == null)
+                {
+                    return Unauthorized("User ID not found.");
+                }
+
+                var messages = await _messageService.GetChatMessagesAsync(
+                    chatId,
+                    groupType,
+                    pageNumber: 1,
+                    pageSize: pageSize,
+                    messageId: 0,
+                    loadOlder: false,
+                    loadBothDirections: false
+                );
+
+                // تبدیل DTOs به همان فرمتی که GetOldMessage استفاده می‌کند
+                var payloadList = messages.Select(m => new
+                {
+                    senderUserId = m.SenderUserId,
+                    senderUserName = m.SenderUser.NameFamily,
+                    messageText = m.MessageText?.MessageTxt,
+                    groupId = m.ClassGroupId,
+                    messageDateTime = m.MessageDateTime,
+                    messageDate = m.MessageDateTime.Date,
+                    profilePicName = m.SenderUser.ProfilePicName,
+                    messageId = m.MessageId,
+                    replyToMessageId = m.ReplyMessageId,
+                    replyMessage = m.ReplyMessage != null ? new {
+                        replyToMessageId = m.ReplyMessageId,
+                        senderUserName = m.ReplyMessage?.SenderUser?.NameFamily,
+                        messageText = m.ReplyMessage?.MessageText?.MessageTxt,
+                    } : null,
+                    messageFiles = m.MessageFiles?.Select(mf => new {
+                        FileName = mf.FileName,
+                        FileThumbPath = mf.FileThumbPath,
+                        MessageFileId = mf.MessageFileId,
+                        OriginalFileName = mf.OriginalFileName,
+                        FileType = mf.FileType,
+                        FileSize = mf.FileSize
+                    }).ToList(),
+                    isPin = m.IsPin,
+                    isReadByAnyRecipient = m.IsReadByAnyRecipient
+                }).ToList();
+
+                return Json(new { success = true, data = payloadList });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetChatMessagesJson");
+                return Json(new { success = false, message = "Error loading initial messages." });
+            }
+        }
+
+
         public async Task<IActionResult> GetChatMessages(int chatId, string groupType, int pageNumber = 1, int pageSize = 50)
         {
             try
