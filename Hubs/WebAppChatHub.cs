@@ -116,8 +116,15 @@ namespace Messenger.WebApp.Hubs
             // شناسه کاربر را از Context استخراج کنید
             var userId = long.Parse(Context.UserIdentifier);
 
-            // به سرویس Bridge اعلام کن که این کاربر آفلاین شده است
-            await _hubBridgeService.AnnounceUserDepartureAsync(userId);
+            // اگر سرویس bridge متصل است، اعلام خروج کاربر را ارسال کنید
+            if (_hubBridgeService.IsConnected)
+            {
+                await _hubBridgeService.AnnounceUserDepartureAsync(userId);
+            }
+            else
+            {
+                _logger.LogWarning($"Hub bridge service is not connected. Skipping AnnounceUserDeparture for user {userId}.");
+            }
 
             await base.OnDisconnectedAsync(exception);
         }

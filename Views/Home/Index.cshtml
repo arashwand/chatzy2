@@ -15,31 +15,129 @@
 <input type="hidden" value="@(ViewData["baseUrl"] ?? "")" id="baseUrl" />
 <input type="hidden" value="" id="groupType" />
 
-<div id="main-content-body">
-    <!-- story section starts -->
-    @*   <section class="story-section pt-0">
-        <div class="left-container">
-            <h6 class="content-color fw-medium">Recent Update</h6>
-            <div class="swiper story-box">
-                <div class="swiper-wrapper">
-                    <!-- Story items can be loaded here if needed -->
+<!-- header starts -->
+<header id="header-main" class="main-header section-b-space hide-on-chat-select">
+    <div class="custom-container">
+        <div class="header-panel">
+            <div class="d-flex align-items-center gap-2">
+                <a href="#" data-bs-toggle="offcanvas" data-bs-target="#offcanvasLeft">
+                    <i class="iconsax icon-btn" data-icon="text-align-left"> </i>
+                </a>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <img class="img-fluid logo" src="~/chatzy/assets/images/LOGO-118x118.png" alt="logo">
+                <span class="fw-bold dark-text">Iran-europe</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-sm-3 gap-2">
+               
+                <div class="dropdown more-options dropdown-menu-end">
+                    <a class="btn dropdown-toggle mt-0 p-0" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="iconsax icon-btn" data-icon="menu-meatballs"> </i>
+                    </a>
+
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="#" onclick="GetSavedMessages()" class="dropdown-item">
+                                <i class="iconsax icon" data-icon="save-2"></i>
+                                Saved Message
+                            </a>
+                        </li>
+
+                    </ul>
                 </div>
             </div>
         </div>
-    </section> *@
-    <!-- story section end -->
+    </div>
+</header>
+<!-- header end -->
+<!-- sidebar starts -->
+<div class="offcanvas sidebar-offcanvas offcanvas-start" tabindex="-1" id="offcanvasLeft">
+    <div class="offcanvas-header sidebar-header">
+        <div class="sidebar-logo">
+            <img class="img-fluid logo" src="~/chatzy/assets/images/LOGO-118x118.png" alt="logo">
+            <span class="fw-bold dark-text">Iran-europe</span>
+        </div>
+    </div>
+
+    <div class="offcanvas-body">
+        <ul class="link-section switch-section">
+            <li class="active">
+                <a href="#" class="pages">
+                    <i class="iconsax sidebar-icon" data-icon="messages-2"> </i>
+                    <h3>خوش آمدید</h3>
+                </a>
+            </li>
+
+            <li>
+                <form action="/Account/Logout" method="post">
+                    <a href="#" onclick="event.preventDefault(); this.closest('form').submit();" class="pages">
+                        <i class="iconsax sidebar-icon" data-icon="logout-2"> </i>
+                        <h3>خروج</h3>
+                    </a>
+                </form>
+
+            </li>
+        </ul>
+    </div>
+</div>
+<!-- sidebar end -->
+<div id="main-content-body" class="hide-on-chat-select">
+   
     <!-- chat section starts -->
     <section class="chat-section pt-0">
         <div class="custom-container">
-            @* <h6 class="content-color fw-medium">Chat</h6> *@
             <ul class="chat-list" id="chatContactTab">
-                <!-- Chat list items will be dynamically inserted here by GetUserChats() -->
             </ul>
         </div>
     </section>
     <!-- chat section end -->
 </div>
 
+<!-- bottom navbar start -->
+<div class="navbar-menu hide-on-chat-select">
+    <ul>
+        <li class="active">
+            <a href="/">
+                <div class="icon">
+                    <img class="unactive" src="~/chatzy/assets/images/svg/chat.svg" alt="chat">
+                    <img class="active" src="~/chatzy/assets/images/svg/chat-fill.svg" alt="chat">
+                </div>
+                <span class="active">Chat</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="#" onclick="GetSavedMessages()">
+                <div class="icon">
+                    <img class="unactive" style="filter: brightness(0.5);" src="~/chatzy/assets/iconsax/save-2.svg" alt="SavedMessage">
+                    <img class="active" src="~/chatzy/assets/images/svg/setting-fill.svg" alt="setting">
+                </div>
+                <span>Saved Message</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="#">
+                <div class="icon">
+                    <img class="unactive" src="~/chatzy/assets/images/svg/profile.svg" alt="profile">
+                    <img class="active" src="~/chatzy/assets/images/svg/profile-fill.svg" alt="profile">
+                </div>
+                <span>profile</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<!-- bottom navbar end -->
+<!-- Sliding Chat Details Panel -->
+<div id="chat-details-panel" class="chat-details-panel-container">
+    <!-- Chat content will be loaded here -->
+</div>
+
+<!-- Sliding Group Info Panel -->
+<div id="group-info-panel" class="chat-details-panel-container overflow-auto">
+    <!-- Group info content will be loaded here -->
+</div>
 
 
 @section Scripts {
@@ -48,14 +146,40 @@
     <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
     <script src="~/js/jalaaliConverter.js"></script>
     <script src="~/js/chatHub.js" asp-append-version="true"></script>
+    <script src="~/js/chatHubEvents.js" asp-append-version="true"></script>
     <script src="~/js/fileManagement.js" asp-append-version="true"></script>
     <script src="~/js/audio-player.js" asp-append-version="true"></script>
     <script src="~/js/modal-lightbox.js" asp-append-version="true"></script>
+    <script src="~/js/mobile-layout-handler.js" asp-append-version="true"></script>
 
     <script>
         $(document).ready(function () {
+            // Emoji picker functionality
+            $(document).on('click','.btn-emoji-picker', function(e) {
+                e.preventDefault();
+                $('#emoji-picker').toggle();
+            });
 
+            $(document).on('click','.emoji-btn', function() {
+                const emoji = $(this).data('emoji');
+                const input = $('#message-input');
+                input.val(input.val() + emoji);
+                input.focus();
+            });
+
+            // Hide emoji picker when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.btn-emoji-picker, #emoji-picker').length) {
+                    $('#emoji-picker').hide();
+                }
+            });
         });
+
+        
+
+
+        
+
 
         $(function () {
             GetUserChats();
@@ -85,6 +209,8 @@
                         }
 
                         $('.groupName').text(chatSelectedTitle);//--عنوان گروه
+                        // مخفی کردن عناصر هنگام انتخاب چت
+                        $('.hide-on-chat-select').addClass('hidden');
                     },
                     error: function (error) {
                         console.error("Error fetching chat messages:", error);
@@ -103,6 +229,8 @@
                         if (typeof init_iconsax === 'function') {
                             init_iconsax();
                         }
+                        // مخفی کردن عناصر هنگام انتخاب saved messages
+                        $('.hide-on-chat-select').addClass('hidden');
                     },
                     error: function (error) {
                         console.error("Error fetching saved messages:", error);
@@ -117,6 +245,8 @@
                 setTimeout(function() {
                     $('#chat-details-panel').html('');
                 }, 300);
+                // نمایش دوباره عناصر هنگام برگشت از چت
+                $('.hide-on-chat-select').removeClass('hidden');
             });
 
         });
@@ -196,5 +326,83 @@
             }, 300);
         });
 
+        const ua = navigator.userAgent || '';
+        const isAndroid = /Android/i.test(ua);
+        // شرط دوم برای شناسایی iPad های جدید است
+        //const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        // --- مدیریت کیبورد برای اندروید ---
+        if (isAndroid) {
+            console.log("Android detected. Applying standard scroll-into-view.");
+            $(document).on("focus", "#message-input", function() {
+                setTimeout(() => {
+                    // برای اندروید، اسکرول کردن به پایین معمولاً کافی است
+                    window.scrollTo(0, document.body.scrollHeight);
+                    this.scrollIntoView({ block: "center", behavior: "smooth" });
+                }, 300); // یک تأخیر کوچک برای اطمینان از بالا آمدن کیبورد
+            });
+        
+
+            // --- Mobile Keyboard Layout Fix ---
+            function adjustChatLayout() {
+                const chatPanel = $('#chat-details-panel');
+                if (!chatPanel.length || !chatPanel.hasClass('visible')) {
+                    return;
+                }
+
+                const initialHeight = window.innerHeight;
+                chatPanel.css('height', `${initialHeight}px`);
+                console.log(`Chat panel height set to: ${initialHeight}px`);
+
+                // Adjust on keyboard show/hide
+                $(window).on('resize.chatLayout', function () {
+                    const newHeight = window.innerHeight;
+                    chatPanel.css('height', `${newHeight}px`);
+                    console.log(`Chat panel resized to: ${newHeight}px`);
+                    // Scroll to the bottom of the messages
+                    const chatContent = $('#chat_content');
+                    if (chatContent.length) {
+                        chatContent.scrollTop(chatContent.prop("scrollHeight"));
+                    }
+                });
+            }
+
+            // Detach the listener when the panel is closed
+            function cleanupChatLayout() {
+                $(window).off('resize.chatLayout');
+                console.log('Chat layout resize listener removed.');
+            }
+
+            // Observe the body for when the chat panel is added and made visible
+            const observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    if (mutation.addedNodes.length) {
+                        const chatPanel = $(mutation.addedNodes).find('#chat-details-panel').addBack('#chat-details-panel');
+                        if (chatPanel.length && chatPanel.hasClass('visible')) {
+                            console.log('Chat panel is now visible. Attaching layout adjuster.');
+                            adjustChatLayout();
+                        }
+                    }
+                    // Also check for attribute changes (like the 'visible' class)
+                    if (mutation.type === 'attributes' && $(mutation.target).is('#chat-details-panel')) {
+                        const chatPanel = $(mutation.target);
+                        if (chatPanel.hasClass('visible')) {
+                            console.log('Chat panel became visible. Attaching layout adjuster.');
+                            adjustChatLayout();
+                        } else {
+                            console.log('Chat panel is hidden. Cleaning up.');
+                            cleanupChatLayout();
+                        }
+                    }
+                });
+            });
+
+            // Start observing the main content body for changes
+            const config = { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] };
+            const targetNode = document.getElementById('main-content-body');
+            // We need to observe a parent that is always present.
+            // Let's observe the body itself for the #chat-details-panel.
+            observer.observe(document.body, config);
+        }
     </script>
 }

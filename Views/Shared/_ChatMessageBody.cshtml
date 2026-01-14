@@ -31,20 +31,43 @@
 <input type="hidden" id="current-group-type-hidden-input" value="@chatType" />
 
 <!-- header starts -->
-<header id="header" class=" section-t-space main-header inner-page-header">
+<header id="header-chat" class="section-t-space main-header inner-page-header" style="padding-top:15px;">
     <div class="custom-container">
-        <div class="header-panel contact-panel">
+        <div class="header-panel contact-panel" style="padding-bottom:5px;">
             <div class="d-flex align-items-center gap-2">
                 <a href="#" id="close-chat-panel-btn">
                     <i class="iconsax icon-btn" data-icon="chevron-left"> </i>
                 </a>
                 <div class="profile-head">
                     <div class="profile-img">
-                       @* <img src="/chatzy/assets/iconsax/group.svg" alt="group" />*@
+                        @* <img src="/chatzy/assets/iconsax/group.svg" alt="group" />*@
                     </div>
                     <div>
                         <h4 class="fw-semibold groupName"></h4>
                         <small class="text-muted" id="typing-indicator-@classGroupId"></small>
+                        @{
+                            var pinnedMessages = Model.Where(m => m.IsPin).OrderBy(m => m.MessageDateTime);
+                        }
+                        @if (pinnedMessages.Any())
+                        {
+                            <div class="pinned-messages-container" style="background: rgba(255,255,255,0.9);margin-top:5px; border: 1px solid #e0e0e0; max-height: 30px; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <style>
+                                    .pinned-messages-container::-webkit-scrollbar { display: none; }
+                                    .pinned-messages-list { display: flex; flex-direction: column; }
+                                    .pinned-message-item { padding: 4px 12px; border-bottom: 1px solid #f0f0f0; display: block; }
+                                    .pinned-message-item:last-child { border-bottom: none; }
+                                </style>
+                                <ul class="pinned-messages-list" style="list-style: none; padding: 0; margin: 0;">
+                                    @foreach (var msg in pinnedMessages)
+                                    {
+                                        <li class="pinned-message-item" style="position: relative; padding-left: 20px; margin-bottom: 0;">
+                                            <span style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 60%; background-color: #28a745; border-radius: 2px;"></span>
+                                            <span style="font-size: 14px; color: #333; line-height: 1.4;">@Html.Raw(msg.MessageText?.MessageTxt)</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -57,8 +80,8 @@
                     <ul class="dropdown-menu">
                         <li>
                             <a class="dropdown-item align-items-center d-flex" href="#" onclick="GetChatDetails('@classGroupId', '@chatType')">
-                                 <img src="/chatzy/assets/iconsax/group.svg" alt="group" />                               
-                                
+                                <img src="/chatzy/assets/iconsax/group.svg" alt="group" />
+
                                 &nbsp;
                                 <span>اعضای گروه</span>
                             </a>
@@ -75,7 +98,7 @@
 <section class="section-lg-b-space position-relative pt-0" id="chat_content">
     <img class="img-fluid chat-bg" src="" alt="wallpaper">
     <div class="custom-container">
-       
+
         <div id="newMessagesNotice" class="sticky-top mt-4 pb-2 btn btn-primary" style="display:none; cursor:pointer; z-index: 10; padding-bottom: 5px !important; margin-bottom: 5px;" data-newCount="0">
             مشاهده پیام‌های جدید
         </div>
@@ -85,14 +108,14 @@
 
         <div id="Message_Days">
             @{
-               
+
                 var today = DateTime.Today;
                 var yesterday = today.AddDays(-1);
                 bool createdTodayBodyMessage = false;
 
                 var groupedMessages = Model.OrderBy(m => m.MessageDateTime).GroupBy(m => m.MessageDateTime.Date);
             }
-            
+
             @foreach (var group in groupedMessages)
             {
                 string dateLabel;
@@ -117,15 +140,22 @@
                 var chatInDateLabel = @group.Key.ToString("yyyy-MM-dd");
                 <h6 class="fw-normal text-center heading chatInDateLabelClass" data-label="@dateLabel" id="@dateClass">@dateLabel</h6>
                 <ul class="message-box-list" id="chatMessages-@chatInDateLabel">
-                   
+
                     @foreach (var message in group)
                     {
                         bool isSelf = message.SenderUserId == selfUserId;
+                        bool IsSystemMessage = message.IsSystemMessage;
                         bool hasRecorderFile = message.MessageFiles?.Any(f => f.FileExtension.Extension == ".webm") ?? false;
                         bool isRead = message.IsReadByCurrentUser;
                         if (isSelf)
                         {
                             isRead = true;
+                        }
+
+                        if (IsSystemMessage)
+                        {
+                            isSelf = false;
+                            message.SenderUser.NameFamily = "systembot";
                         }
 
                         object messageDetailsForEdit = new
@@ -150,7 +180,7 @@
                         };
                         var messageDetailsJson = JsonConvert.SerializeObject(messageDetailsForEdit);
 
-                        <li class="message @(isSelf ? "personal" : "new")" id="message-@message.MessageId"
+                        <li class="message @(isSelf ? "personal" : "new") @(IsSystemMessage ? "systemMessage" : "")" id="message-@message.MessageId"
                             data-message-id="@message.MessageId"
                             data-sender-id="@message.SenderUserId"
                             data-sender-username="@message.SenderUser.NameFamily"
@@ -158,48 +188,61 @@
                             data-message-details='@Html.Raw(messageDetailsJson)'>
 
                             <!--message option menu-->
+
                             <div class="dropdown message-options">
                                 <a class="btn" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <img src="~/chatzy/assets/iconsax/menu-meatballs.svg" alt="menu" />
                                 </a>
                                 <div class="dropdown-menu">
-                                    @if (isSelf)
+                                    @if (IsSystemMessage)
                                     {
-                                        // اگر فایل ضبظ شده نبود میتونه ویرایش کنه
-                                        if (!@hasRecorderFile)
-                                        {
-                                            <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="@message.MessageId" href="#">
-                                                <img src="~/chatzy/assets/iconsax/edit.svg" alt="ویرایش" class="svgInvertColor" />&nbsp;
-                                                <span>ویرایش</span>
-                                            </a>
-                                        }                                      
-                                        
-
-                                        <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="@message.MessageId" href="#">
-                                            <img src="~/chatzy/assets/iconsax/trash.svg" />&nbsp;
-                                            <span>حذف</span>
+                                        <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="@message.MessageId" href="#">
+                                            <img src="~/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
+                                            <span>ذخیره</span>
                                         </a>
                                     }
-                                    <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="@message.MessageId" href="#">
-                                        <img src="~/chatzy/assets/iconsax/redo-arrow.svg" class="svgInvertColor" />&nbsp;
-                                        <span>پاسخ دادن</span>
-                                    </a>
-                                    <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="@message.MessageId" href="#">
-                                        <img src="~/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
-                                        <span>ذخیره</span>
-                                    </a>
-
-                                    @if (message.MessageFiles != null)
+                                    else
                                     {
-                                        if (message.MessageFiles.Any(a => a.FileExtension.Extension == ".webm"))
+                                        @if (isSelf)
                                         {
-                                            var file = message.MessageFiles.First(a => a.FileExtension.Extension == ".webm");
-                                            <a class="dropdown-item d-flex align-items-center btn-download-file" data-file-id="@file.MessageFileId" data-messageid="@message.MessageId" href="#">
-                                                <img src="~/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
-                                                <span>دانلود فایل</span>
+                                            // اگر فایل ضبظ شده نبود میتونه ویرایش کنه
+                                            if (!@hasRecorderFile)
+                                            {
+                                                <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="@message.MessageId" href="#">
+                                                    <img src="~/chatzy/assets/iconsax/edit.svg" alt="ویرایش" class="svgInvertColor" />&nbsp;
+                                                    <span>ویرایش</span>
+                                                </a>
+                                            }
+
+
+                                            <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="@message.MessageId" href="#">
+                                                <img src="~/chatzy/assets/iconsax/trash.svg" />&nbsp;
+                                                <span>حذف</span>
                                             </a>
                                         }
+                                        <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="@message.MessageId" href="#">
+                                            <img src="~/chatzy/assets/iconsax/redo-arrow.svg" class="svgInvertColor" />&nbsp;
+                                            <span>پاسخ دادن</span>
+                                        </a>
+                                        <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="@message.MessageId" href="#">
+                                            <img src="~/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
+                                            <span>ذخیره</span>
+                                        </a>
+
+                                        @if (message.MessageFiles != null)
+                                        {
+                                            if (message.MessageFiles.Any(a => a.FileExtension.Extension == ".webm"))
+                                            {
+                                                var file = message.MessageFiles.First(a => a.FileExtension.Extension == ".webm");
+                                                <a class="dropdown-item d-flex align-items-center btn-download-file" data-file-id="@file.MessageFileId" data-messageid="@message.MessageId" href="#">
+                                                    <img src="~/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
+                                                    <span>دانلود فایل</span>
+                                                </a>
+                                            }
+                                        }
                                     }
+
+
 
                                 </div>
                             </div>
@@ -209,7 +252,15 @@
                             <div class="message-box @(message.IsReadByAnyRecipient ? "read" : "")">
                                 @if (!isSelf)
                                 {
-                                    <img class="img-fluid person-img" src="~/assets/media/avatar/@message.SenderUser.ProfilePicName" alt="p9">
+                                    if (IsSystemMessage)
+                                    {
+                                        <img class="img-fluid person-img" src="~/assets/media/shared-photos/03.jpg" alt="p9">
+                                    }
+                                    else
+                                    {
+                                        <img class="img-fluid person-img" src="@(string.IsNullOrEmpty(message.SenderUser.ProfilePicName) ? "/assets/media/avatar/UserIcon.png" : "/assets/media/avatar/" + message.SenderUser.ProfilePicName)" alt="p9">
+
+                                    }
                                 }
                                 <div class="message-box-details">
                                     @if (message.ReplyMessageId != null)
@@ -231,6 +282,8 @@
                                                 string fileTumbPath = System.IO.Path.Combine(_baseUrl, file.FileThumbPath);
 
                                                 <div class="col file-attachment-item" data-file-id="@file.MessageFileId" style="display: flex; flex-direction: column;">
+
+                                                    <!--if attach file is image-->
                                                     @if (AllowedImages.Contains(file.FileExtension.Extension, StringComparer.OrdinalIgnoreCase))
                                                     {
                                                         <img class="img-thumbnail chat-thumbnail"
@@ -248,10 +301,10 @@
                                                                 <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
 
                                                             </button>
-                                                            
+
                                                             <div class="file-meta text-light mx-1 text-dark">@FileSizeConverter.ConvertToReadableSize(file.FileSize)</div>
                                                             <div class="voice-duration-display mx-1" style="margin-right: 15px;">صدای ضبط شده</div>
-                                                            
+
                                                         </div>
                                                     }
                                                     else
@@ -272,11 +325,19 @@
                                     }
 
                                     <div class="timing">
-                                        <h6>@message.MessageDateTime.ToString("hh:mm")</h6>
+                                        <h6>@message.MessageDateTime.ToLocalTime().ToString("HH:mm")</h6>
                                         @if (isSelf)
                                         {
                                             <img class="img-fluid tick-all" src="~/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: @(message.IsReadByAnyRecipient ? "inline" : "none");">
                                             <img class="img-fluid tick" src="~/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: @(message.IsReadByAnyRecipient ? "none" : "inline");">
+                                        }
+
+                                        @if (IsSystemMessage)
+                                        {
+                                            <h6>آموزشگاه</h6>
+                                        } else if (!isSelf)
+                                        {
+                                            <h6>@message.SenderUser.NameFamily</h6>
                                         }
                                     </div>
                                 </div>
@@ -285,58 +346,67 @@
                     }
                 </ul>
             }
-   
+
 
         </div>
-         <div class="chat-finished" id="chat-finished"></div>
+        <div class="chat-finished" id="chat-finished"></div>
     </div>
 </section>
 <!-- group chat section end -->
 
 <!--  message input section starts -->
-<div class="messages-panel">
-    <!-- کانتینر برای بنرهای عملیاتی (پاسخ و ویرایش) -->
-    <div class="action-banners-container">
+<div class="messages-panel" id="messages-panel">
+    <!-- بنرهای عملیاتی (ویرایش و پاسخ) - اولین عنصر با order: -1 -->
+    <div class="action-banners-container-inner" id="action-banners-container-inner">
         <div id="cancel-edit-container" class="force-hide">
-            <a href="#" id="cancel-edit-button">انصراف</a>
+            <a href="#" id="cancel-edit-button" onclick="event.preventDefault(); event.stopPropagation();">انصراف</a>
             <div class="edit-indicator">
                 <span class="edit-text">در حال ویرایش</span>
                 <div class="edit-bar"></div>
             </div>
         </div>
-        
 
         <div id="reply-to-container" style="display: none;">
-           
             <div class="reply-indicator">
                 <div class="reply-bar"></div>
                 <div class="reply-content">
                     <!-- کانتینر تصویر کوچک (برای پیام‌های عکس) -->
                     <div id="reply-thumbnail-container"></div>
-
                     <!-- کانتینر جدید برای آیکون (برای صوت و فایل) -->
                     <span id="reply-icon-container"></span>
-
                     <!-- کانتینر برای متون -->
                     <div class="reply-text-content">
                         <span id="reply-to-user"></span>
                         <span id="reply-to-text"></span>
                     </div>
                 </div>
-                
             </div>
-            <a href="#" id="cancel-reply">
+            <a href="#" id="cancel-reply" onclick="event.preventDefault(); event.stopPropagation();">
                 انصراف
             </a>
         </div>
-
     </div>
 
     <!-- کانتینر پیش‌نمایش فایل‌ها -->
-    <div id="filePreviewContainer">        
+    <div id="filePreviewContainer">
         <!-- File previews will be dynamically inserted here -->
     </div>
-
+   
+    <div id="emoji-picker" style="display: none; position: sticky; bottom: 100%; left: 0; background: white; border: 1px solid #ccc; padding: 10px; max-height: 200px; overflow-y: auto; z-index: 1000;">
+        <div class="emoji-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;">
+            <button class="emoji-btn border border-0 bg-white" data-emoji="😀">😀</button>
+            <button class="emoji-btn border border-0 bg-white" data-emoji="😂">😂</button>
+            <button class="emoji-btn border border-0 bg-white" data-emoji="😊">😊</button>
+            <button class="emoji-btn border border-0 bg-white" data-emoji="❤️">❤️</button>
+            <button class="emoji-btn border border-0 bg-white" data-emoji="👍">👍</button>
+            <button class="emoji-btn border border-0 bg-white" data-emoji="👎">👎</button>
+            <button class="emoji-btn border border-0 bg-white" data-emoji="😢">😢</button>
+            <button class="emoji-btn border border-0 bg-white" data-emoji="😭">😭</button>
+            <button class="emoji-btn border border-0 bg-white" data-emoji="🔥">🔥</button>
+            <button class="emoji-btn border border-0 bg-white" data-emoji="💯">💯</button>
+        </div>
+    </div>
+    
     <!-- فرم اصلی ورود پیام -->
     <form onsubmit="return false;" class="message-form-container">
         <div id="text-input-area" class="message-inputarea">
@@ -344,10 +414,13 @@
                 <i class="iconsax icon-btn" data-icon="picture-add"> </i>
             </a>
             <a class="btn-record-voice">
-                <i class="iconsax icon-btn" data-icon="mic-2"> </i>               
+                <i class="iconsax icon-btn" data-icon="mic-2"> </i>
+            </a>
+            <a href="#" class="btn-emoji-picker">
+                <i class="iconsax icon-btn" data-icon="emoji-happy"> </i>
             </a>
             <textarea type="text" class="message-input" id="message-input" placeholder="Type here..." rows="1"></textarea>
-            <a href="#" class="" id="send-message-button">              
+            <a href="#" class="" id="send-message-button">
                 <i class="iconsax icon-btn" data-icon="send-btn1"> </i>
             </a>
         </div>
@@ -359,14 +432,54 @@
         <input type="hidden" id="message-context-id" value="">
         <input type="hidden" id="message-action-type" value="">
     </form>
+   
 </div>
-
-
 <!--  message input section end -->
-
 
 <script>
     $(document).ready(function () {
+        // تشخیص iOS و اضافه کردن کلاس به body
+        const ua = navigator.userAgent || '';
+        const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
+        if (isIOS) {
+            document.body.classList.add('ios-device');
+            console.log('iOS device detected. Applied ios-device class to body.');
+        }
+
+        // تابع برای به‌روزرسانی ارتفاع پنل
+        function updatePanelHeight() {
+            const messagesPanel = document.getElementById('messages-panel');
+            
+            if (messagesPanel) {
+                const panelHeight = messagesPanel.offsetHeight;
+                document.documentElement.style.setProperty('--messages-panel-height', `${panelHeight}px`);
+                console.log(`Panel height set to: ${panelHeight}px`);
+            }
+        }
+
+        // فراخوانی اولیه
+        updatePanelHeight();
+
+        // به‌روزرسانی هنگام تغییر اندازه پنل
+        const resizeObserver = new ResizeObserver(updatePanelHeight);
+        const messagesPanel = document.getElementById('messages-panel');
+        if (messagesPanel) {
+            resizeObserver.observe(messagesPanel);
+        }
+
+        // به‌روزرسانی هنگام نمایش/مخفی کردن بنرها
+        const observer = new MutationObserver(updatePanelHeight);
+        const actionBannersInner = document.getElementById('action-banners-container-inner');
+        if (actionBannersInner) {
+            observer.observe(actionBannersInner, {
+                attributes: true,
+                childList: true,
+                subtree: true,
+                attributeFilter: ['style', 'class']
+            });
+        }
+
         // تاخیر کوتاهی برای اطمینان از رندر شدن کامل DOM
         setTimeout(function () {
             const lastReadMessageId = parseInt($('#lastReadMessageId').val(), 10);
@@ -394,6 +507,106 @@
                 }
                 console.log("No last read message ID. Scrolling to bottom.");
             }
-        }, 100); // 100 میلی‌ثانیه تاخیر
+
+            // اسکرول pinned messages container به پایین برای نمایش جدیدترین
+            const pinnedContainer = $('.pinned-messages-container');
+            if (pinnedContainer.length) {
+                pinnedContainer.scrollTop(pinnedContainer[0].scrollHeight);
+            }
+        }, 100);
+
+        const isAndroid = /Android/i.test(ua);
+
+        // --- مدیریت کیبورد برای iOS با Visual Viewport API ---
+        if (isIOS) {
+            console.log("iOS detected. Applying Visual Viewport API handler.");
+
+            const messageInput = document.getElementById('message-input');
+            const messagesPanel = document.querySelector('.messages-panel');
+            const chatContent = document.getElementById('chat_content');
+
+            if (messageInput && messagesPanel && window.visualViewport) {
+                
+                // تابعی برای جابجایی پنل ورودی و اسکرول محتوای چت
+                const movePanel = () => {
+                    const viewportHeight = window.innerHeight; 
+                    const visualViewportHeight = window.visualViewport.height;
+                    const offset = viewportHeight - visualViewportHeight;
+
+                    if (offset > 0) {
+                        // پنل را به اندازه ارتفاع کیبورد به بالا منتقل کن
+                        messagesPanel.style.transform = `translateY(-${offset}px)`;
+                        console.log(`iOS: Adjusted messages-panel position to: -${offset}px`);
+                        
+                        // به‌روزرسانی ارتفاع و اسکرول چت به پایین
+                        updatePanelHeight();
+                        
+                        // اسکرول محتوای چت به پایین
+                        if (chatContent) {
+                            setTimeout(() => {
+                                chatContent.scrollTop = chatContent.scrollHeight;
+                                console.log('iOS: Scrolled chat content to bottom');
+                            }, 100);
+                        }
+                    } else {
+                        // کیبورد بسته است
+                        messagesPanel.style.transform = 'translateY(0)';
+                    }
+                };
+                
+                // هنگامی که کاربر روی اینپوت کلیک می‌کند
+                messageInput.addEventListener('focus', () => {
+                    console.log('iOS: Input focused');
+                    setTimeout(movePanel, 250);
+                });
+
+                // هنگامی که کاربر از اینپوت خارج می‌شود (کیبورد بسته می‌شود)
+                messageInput.addEventListener('blur', () => {
+                    console.log('iOS: Input blurred');
+                    messagesPanel.style.transform = 'translateY(0)';
+                    setTimeout(updatePanelHeight, 300);
+                });
+
+                // این رویداد تغییرات در ابعاد بخش قابل مشاهده را تشخیص می‌دهد
+                window.visualViewport.addEventListener('resize', () => {
+                    if (document.activeElement === messageInput) {
+                        console.log('iOS: Visual viewport resized while input focused');
+                        movePanel();
+                    }
+                });
+
+                // لیسنر اضافی برای scroll
+                window.visualViewport.addEventListener('scroll', () => {
+                    if (document.activeElement === messageInput) {
+                        console.log('iOS: Visual viewport scrolled while input focused');
+                        // جلوگیری از scroll ناخواسته
+                        window.visualViewport.scrollTo(0, 0);
+                    }
+                });
+
+            } else {
+                console.warn("Visual Viewport API not supported or required elements not found.");
+            }
+        }
+
     });
+
+    
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -18,7 +18,13 @@ $(document).ready(function () {
 
     $(document).on('click', '.chat-thumbnail', async function () {
         const $group = $(this).closest('.image-group');
-        const $thumbs = $group.find('.chat-thumbnail');
+        let $thumbs;
+        if ($group.length) {
+            $thumbs = $group.find('.chat-thumbnail');
+        } else {
+            // For optimistic messages or single images, treat as a single image group
+            $thumbs = $(this);
+        }
         imageList = $thumbs.map(function () {
             return {
                 id: $(this).closest('.file-attachment-item').data('file-id'),

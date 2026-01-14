@@ -85,16 +85,29 @@ body {
     justify-content: flex-start;
 }
 
-/* --- Message Options (Three Dots Menu) --- */
-.message-options .btn {
-    background-color: rgba(240, 242, 245, 0.9);
-    border: none;
-    box-shadow: none;
-    padding: 2px;
-    border-radius: 20%;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
+/**استایل پیام سیستمی*/
+.message-box-list li.systemMessage {
+    flex-direction: row;
+    justify-content: center;
+    background-color: #0dcaf059;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
+
+
+.message-box-list li.systemMessage .message-box .message-box-details {
+    /*border-radius: unset;*/
+}
+    /* --- Message Options (Three Dots Menu) --- */
+    .message-options .btn {
+        background-color: rgba(240, 242, 245, 0.9);
+        border: none;
+        box-shadow: none;
+        padding: 2px;
+        border-radius: 20%;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out;
+    }
 
     .message-options .btn i {
         font-size: 20px;
@@ -400,21 +413,9 @@ body {
 /*      Footer & Message Input Area Structure                */
 /* ========================================================= */
 
-.messages-panel {
-    position: fixed; /* پنل را در پایین صفحه ثابت نگه می‌دارد */
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000; /* اطمینان از قرارگیری روی محتوای دیگر */
-    display: flex;
-    flex-direction: column; /* فرزندان را به صورت ستونی مرتب می‌کند */
-    background-color: #f0f2f5;
-    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
-    max-height: 70vh; /* تعیین یک ارتفاع حداکثری برای جلوگیری از پوشاندن کل صفحه */
-}
+
 
 .action-banners-container {
-    order: 1; /* اولین آیتم در ترتیب نمایش */
     width: 100%;
     flex-shrink: 0; /* جلوگیری از فشرده شدن این بخش */
 }
@@ -422,11 +423,12 @@ body {
 
 
 .message-form-container {
-    order: 3; /* سومین آیتم در ترتیب نمایش */
+    order: 2; /* تغییر از 3 به 2 */
     background-color: #f0f2f5;
     padding: 8px 10px;
     display: flex; /* این را اضافه کنید تا فرزندانش را مدیریت کند */
     flex-direction: column; /* این را اضافه کنید */
+    flex-shrink: 0; /* از فشرده شدن این بخش جلوگیری می‌کند */
     overflow-y: auto; /* اگر محتوا زیاد شد، اسکرول داخلی ایجاد می‌کند */
 }
 
@@ -539,7 +541,7 @@ body {
 
 /* --- File Preview Container --- */
 #filePreviewContainer {
-    order: 2; /* دومین آیتم در ترتیب نمایش */
+    order: 1; /* تغییر از 2 به 1 */
     flex-shrink: 0; /* جلوگیری از فشرده شدن این بخش */
     display: none;
     flex-wrap: wrap;
@@ -552,7 +554,8 @@ body {
     overflow-y: auto;
     box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
     animation: slideDown 0.3s ease-out;
-    z-index: 999;
+    z-index: 998; /* کمتر از action-banners-container-inner */
+    position: relative;
 }
 
     #filePreviewContainer.visible {
@@ -667,6 +670,8 @@ body {
     justify-content: space-between;
     animation: slideDown 0.2s ease-out;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    position: relative;
+    z-index: 1; /* نسبت به والد */
 }
 
     #cancel-edit-container.force-hide {
@@ -712,7 +717,7 @@ body {
     }
 
 #reply-to-container {
-    background: #f0f2f5;
+    background: #25D366; /* رنگ پس‌زمینه سبز از #cancel-edit-container */
     padding: 10px 16px;
     display: flex;
     align-items: center;
@@ -720,21 +725,24 @@ body {
     animation: slideDown 0.2s ease-out;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     direction: rtl;
+    position: relative;
+    z-index: 1; /* نسبت به والد */
 }
 
 .reply-indicator {
     display: flex;
-    align-items: stretch;
+    align-items: center;
     gap: 12px;
-    color: #333;
+    color: white;
     flex-grow: 1;
     overflow: hidden;
 }
 
 .reply-bar {
     width: 4px;
-    background: #007bff;
+    background: white;
     border-radius: 2px;
+    height: 32px;
 }
 
 .reply-content {
@@ -766,7 +774,7 @@ body {
 #reply-to-user {
     font-weight: bold;
     font-size: 14px;
-    color: #007bff;
+    color: white;
 }
 
 #reply-to-text {
@@ -774,7 +782,7 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: #555;
+    color: rgba(255, 255, 255, 0.85);
     max-width: 95%;
 }
 
@@ -790,26 +798,22 @@ body {
     }
 
 #cancel-reply {
-    background: transparent;
-    color: #555;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
     border: none;
-    padding: 8px;
-    border-radius: 50%;
+    padding: 8px 16px;
+    border-radius: 20px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-block;
     transition: background-color 0.2s ease;
-    margin-left: 10px;
+    margin-left: 0;
+    width: auto;
+    height: auto;
 }
 
-    #cancel-reply svg {
-        width: 20px;
-        height: 20px;
-    }
-
     #cancel-reply:hover {
-        background-color: #e0e0e0;
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.02);
     }
 
 
@@ -901,6 +905,7 @@ body {
         min-width: 30px;
         font-size: 11px;
     }
+
 }
 
 @media (max-width: 480px) {
@@ -956,47 +961,73 @@ body {
 
 .messages-panel {
     position: fixed;
-    bottom: 0;
+    bottom: 0; /* پنل را در پایین صفحه ثابت نگه می‌دارد */
     left: 0;
     right: 0;
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    /* 
-      این کلید حل مشکل است!
-      محتوا را به انتهای (پایین) کانتینر می‌چسباند.
-    */
     justify-content: flex-end;
     background-color: #f0f2f5;
     box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
-    /* یک ارتفاع حداکثری تعیین می‌کنیم تا از پوشاندن کل صفحه جلوگیری شود */
-    max-height: 80vh;
-    /* اسکرول را به خود پنل اصلی منتقل می‌کنیم */
+    max-height: calc(var(--vh, 1vh) * 80);
     overflow-y: auto;
     height: auto;
+    padding-bottom: env(safe-area-inset-bottom);
+    transition: transform 0.25s ease-out;
 }
 
-.action-banners-container {
-    order: 1;
+/* Action banners داخل messages-panel با order: -1 برای قرار گرفتن در بالا */
+.action-banners-container-inner {
+    order: -1; /* قرار گرفتن در بالاترین موقعیت */
     width: 100%;
-    flex-shrink: 0; /* از فشرده شدن این بخش جلوگیری می‌کند */
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1010; /* بالاتر از filePreviewContainer */
+    background-color: transparent;
+    pointer-events: none; /* اجازه کلیک روی عناصر زیرین */
 }
 
+/* فرزندان action-banners-container-inner باید pointer-events داشته باشند */
+.action-banners-container-inner > * {
+    pointer-events: auto;
+}
+
+/* حذف action-banners-container قدیمی که بیرون بود */
+.action-banners-container {
+    display: none !important; /* مخفی کردن کانتینر قدیمی که بیرون است */
+}
+
+/* --- File Preview Container --- */
 #filePreviewContainer {
-    order: 2;
-    flex-shrink: 0; /* از فشرده شدن این بخش جلوگیری می‌کند */
+    order: 1; /* بعد از action-banners-container-inner */
+    flex-shrink: 0;
+    display: none;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    background-color: #f0f2f5;
+    border-top: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    max-height: 30vh;
+    overflow-y: auto;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+    animation: slideDown 0.3s ease-out;
+    z-index: 999; /* کمتر از action-banners-container-inner ولی بیشتر از message-form */
+    position: relative;
 }
 
-    /* اطمینان حاصل کنید این کلاس برای نمایش استفاده می‌شود */
     #filePreviewContainer.visible {
         display: flex;
     }
 
 .message-form-container {
-    order: 3;
+    order: 2;
     background-color: #f0f2f5;
     padding: 8px 10px;
     flex-shrink: 0; /* از فشرده شدن این بخش جلوگیری می‌کند */
+    position: relative;
+    z-index: 997; /* کمتر از همه */
     /* overflow-y: auto از اینجا حذف شد چون به والد منتقل شد */
 }
 
@@ -1121,7 +1152,7 @@ body {
     }
 
 .lightbox-image {
-    max-height: 80vh;
+    max-height: 90%;
     max-width: 90%;
     opacity: 0;
     transform: translateX(0);
@@ -1151,8 +1182,17 @@ body {
 
 
 .message-box-list li.new .message-box .message-box-details {
-    background-color: rgb(223 223 223);
+    /*background-color: rgb(223 223 223);*/
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    background-color: ghostwhite;
 }
+
+
+.message-box-list li.personal .message-box .message-box-details{
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+
 /***********************************************/
 .chat-section .chat-list li .chat-list-box .chat-details .content .count {
     width: 25px;
@@ -1162,4 +1202,43 @@ body {
 
 #close-group-info-panel-btn{
     margin-left : 20px;
+}
+
+/* کلاس برای مخفی کردن عناصر هنگام انتخاب چت */
+.hidden {
+    display: none;
+}
+
+/* ========================================================= */
+/*      iOS-Specific Fixes for Messages Panel               */
+/* ========================================================= */
+
+/* کلاس ویژه برای دستگاه‌های iOS که توسط JavaScript اضافه می‌شود */
+body.ios-device .messages-panel {
+    /* اطمینان از نمایش کامل پنل با استفاده از viewport units */
+    padding-bottom: max(env(safe-area-inset-bottom), 20px);
+}
+
+/* تنظیم chat_content برای iOS تا فضای کافی برای messages-panel بماند */
+body.ios-device #chat_content {
+    padding-bottom: var(--messages-panel-height, 200px);
+    margin-bottom: 20px;
+}
+
+/* اطمینان از نمایش صحیح message-inputarea در iOS */
+body.ios-device .message-inputarea {
+    background: white !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* تنظیمات اضافی برای action-banners-container در iOS */
+body.ios-device .action-banners-container {
+    /* اطمینان از قرارگیری صحیح بالای messages-panel */
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* کلاس برای مخفی کردن عناصر هنگام انتخاب چت */
+.hidden {
+    display: none;
 }

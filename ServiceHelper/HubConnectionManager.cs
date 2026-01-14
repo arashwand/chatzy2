@@ -1,4 +1,5 @@
-﻿using Messenger.DTOs;
+﻿using Azure.Core;
+using Messenger.DTOs;
 using Messenger.Models.Models;
 using Messenger.Tools;
 using Messenger.WebApp.Hubs;
@@ -101,17 +102,6 @@ namespace Messenger.WebApp.ServiceHelper
             }
         }
 
-        // تمام متدهای ارسال و دریافت و منطق‌های دیگر از فایل قبلی
-        // به اینجا کپی می‌شوند، بدون هیچ تغییری.
-        // شامل:
-        // - RegisterHubEventHandlers()
-        // - SendMessageAsync()
-        // - SendTypingSignalAsync()
-        // - InvokeHubMethodAsync()
-        // - RequestSsoTokenAsync()
-        // و تمام متدهای دیگر...
-        // (برای خلاصه‌سازی، کل آن متدها را اینجا کپی نمی‌کنم ولی شما باید آنها را از فایل قبلی به اینجا منتقل کنید)
-
         public async Task ConnectAsync(string token)
         {
             if (IsConnected) return;
@@ -203,176 +193,129 @@ namespace Messenger.WebApp.ServiceHelper
 
         private void RegisterHubEventHandlers()
         {
-            _hubConnection.On<object>("ReceiveMessage", async (payload) =>
+            _hubConnection.On<object[]>("ReceiveMessage", async (payload) =>
             {
-                _logger.LogDebug("API Hub: ReceiveMessage event triggered.");
+                /// <summary>
+                /// هندلر برای دریافت پیام معمولی
+                /// از متدهای کمکی برای deserialize و ساخت payload استفاده می‌کند
+                /// </summary>
+                _logger.LogDebug("API Hub: ReceiveMessage event triggered with {Count} elements.", payload.Length);
 
                 try
                 {
-                    // تنظیمات برای نگاشت نام‌های CamelCase به PascalCase
-                    var options = new JsonSerializerOptions
+                    MessageDto messageDto;
+                    int groupId;
+                    string groupType;
+
+                    if (payload.Length == 3)
                     {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase // JSON با حروف کوچک
-                    };
+                        var messageDtoObj = payload[0];
+                        groupId = GetInt32FromPayload(payload[1]);
+                        groupType = GetStringFromPayload(payload[2]);
 
-                    // تبدیل payload به JSON string
-                    string jsonString = System.Text.Json.JsonSerializer.Serialize(payload, options);
-
-                    // دسريالايز کردن به MessageDto با تنظیمات CamelCase
-                    MessageDto messageDto = System.Text.Json.JsonSerializer.Deserialize<MessageDto>(jsonString, options);
-
-                    // پردازش replyMessage
-                    object replyMessage = null;
-                    if (messageDto.ReplyMessageId != null && messageDto.ReplyMessage != null)
+                        messageDto = DeserializeMessageDto(messageDtoObj);
+                    }
+                    else if (payload.Length == 1)
                     {
-                        replyMessage = new
-                        {
-                            replyToMessageId = messageDto.ReplyMessageId,
-                            senderUserName = messageDto.ReplyMessage.SenderUser?.NameFamily,
-                            messageText = messageDto.ReplyMessage.MessageText?.MessageTxt,
-                            messageFiles = messageDto.ReplyMessage.MessageFiles
-                        };
+                        var messageDtoObj = payload[0];
+
+                        messageDto = DeserializeMessageDto(messageDtoObj);
+
+                        groupId = messageDto.ClassGroupId;
+                        groupType = messageDto.MessageType == 0 ? ConstChat.ClassGroupType : ConstChat.ChannelGroupType;
+                    }
+                    else
+                    {
+                        _logger.LogError("Invalid payload for ReceiveMessage: expected 1 or 3 elements, got {Count}", payload.Length);
+                        return;
                     }
 
-                    // پردازش messageFiles
-                    object messageFiles = null;
-                    if (messageDto.MessageFiles != null && messageDto.MessageFiles.Any())
+                    _logger.LogInformation("Bridge received ReceiveMessage: MessageId={MessageId}, Type={Type}, ReceiverUserId={Receiver}",
+                        messageDto.MessageId, messageDto.MessageType, messageDto.ReceiverUserId);
+
+                    var payload2 = CreateReceiveMessagePayload(messageDto, groupId, groupType);
+
+                    // ارسال به همه کلاینت‌های WebApp یا به کاربر خاص برای پیام خصوصی
+                    if (messageDto.MessageType == (byte)EnumMessageType.Private && messageDto.ReceiverUserId.HasValue)
                     {
-                        messageFiles = messageDto.MessageFiles.Select(mf => new
-                        {
-                            FileName = mf.FileName,
-                            FileThumbPath = mf.FileThumbPath,
-                            FileSize = mf.FileSize,
-                            MessageFileId = mf.MessageFileId
-                        }).ToList();
+                        await _webAppHubContext.Clients.User(messageDto.ReceiverUserId.Value.ToString()).SendAsync("ReceiveMessage", payload2);
+                        await _webAppHubContext.Clients.User(messageDto.SenderUserId.ToString()).SendAsync("ReceiveMessage", payload2); // ارسال به فرستنده هم
                     }
-
-                    //ساخت ابجکت جی سان جهت ارسال به صفحه
-                    var messageDetailsJson = CreateJsonMessageDetails(messageDto);
-
-                    // مشخص کردن نوع چت: گروه یا کانال
-                    var chatType = messageDto.MessageType == 0 ? ConstChat.ClassGroupType : ConstChat.ChannelGroupType;
-                    // ساخت payload2 برای ارسال
-                    var payload2 = new
+                    else
                     {
-                        senderUserId = messageDto.SenderUserId,
-                        senderUserName = messageDto.SenderUser?.NameFamily,
-                        messageText = messageDto.MessageText?.MessageTxt ?? "",
-                        groupId = messageDto.ClassGroupId,
-                        groupType = chatType,
-                        messageDateTime = messageDto.MessageDateTime.ToString("HH:mm"),
-                        messageDate = messageDto.MessageDateTime,
-                        profilePicName = messageDto.SenderUser?.ProfilePicName,
-                        messageId = messageDto.MessageId,
-                        replyToMessageId = messageDto.ReplyMessageId,
-                        replyMessage,
-                        messageFiles,
-                        jsonMessageDetails = messageDetailsJson
-                    };
-
-                    // ارسال به کلاینت‌های SignalR
-                    await _webAppHubContext.Clients.All.SendAsync("ReceiveMessage", payload2);
-
-                    // فراخوانی رویداد
+                        await _webAppHubContext.Clients.All.SendAsync("ReceiveMessage", payload2);
+                    }
                     OnReceiveMessage?.Invoke(payload2);
-
-
                 }
                 catch (System.Text.Json.JsonException ex)
                 {
-                    _logger.LogError($"خطا در تبدیل JSON: {ex.Message}");
+                    _logger.LogError(ex, "خطا در تبدیل JSON");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"خطای عمومی: {ex.Message}");
+                    _logger.LogError(ex, "خطای عمومی در ReceiveMessage");
                 }
-
             });
 
-            _hubConnection.On<object>("ReceiveEditedMessage", async (payload) =>
+            _hubConnection.On<object[]>("ReceiveEditedMessage", async (payload) =>
             {
-                _logger.LogDebug("API Hub: ReceiveEditedMessage event triggered.");
-                // await _webAppHubContext.Clients.All.SendAsync("ReceiveEditedMessage", payload);
+                /// <summary>
+                /// هندلر برای دریافت پیام ویرایش شده
+                /// از متدهای کمکی برای deserialize و ساخت payload استفاده می‌کند
+                /// </summary>
+                _logger.LogDebug("API Hub: ReceiveEditedMessage event triggered with {Count} elements.", payload.Length);
 
                 try
                 {
-                    // تنظیمات برای نگاشت نام‌های CamelCase به PascalCase
-                    var options = new JsonSerializerOptions
+                    MessageDto messageDto;
+                    int groupId;
+                    string groupType;
+
+                    if (payload.Length == 3)
                     {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase // JSON با حروف کوچک
-                    };
+                        var messageDtoObj = payload[0];
+                        groupId = GetInt32FromPayload(payload[1]);
+                        groupType = GetStringFromPayload(payload[2]);
 
-                    // تبدیل payload به JSON string
-                    string jsonString = System.Text.Json.JsonSerializer.Serialize(payload, options);
-
-                    // دسريالايز کردن به MessageDto با تنظیمات CamelCase
-                    MessageDto messageDto = System.Text.Json.JsonSerializer.Deserialize<MessageDto>(jsonString, options);
-
-                    // پردازش replyMessage
-                    object replyMessage = null;
-                    if (messageDto.ReplyMessageId != null && messageDto.ReplyMessage != null)
+                        messageDto = DeserializeMessageDto(messageDtoObj);
+                    }
+                    else if (payload.Length == 1)
                     {
-                        replyMessage = new
-                        {
-                            replyToMessageId = messageDto.ReplyMessageId,
-                            senderUserName = messageDto.ReplyMessage.SenderUser?.NameFamily,
-                            messageText = messageDto.ReplyMessage.MessageText?.MessageTxt,
-                            messageFiles = messageDto.ReplyMessage.MessageFiles
-                        };
+                        var messageDtoObj = payload[0];
+
+                        messageDto = DeserializeMessageDto(messageDtoObj);
+
+                        groupId = messageDto.ClassGroupId;
+                        groupType = messageDto.MessageType == 0 ? ConstChat.ClassGroupType : ConstChat.ChannelGroupType;
+                    }
+                    else
+                    {
+                        _logger.LogError("Invalid payload for ReceiveEditedMessage: expected 1 or 3 elements, got {Count}", payload.Length);
+                        return;
                     }
 
-                    // پردازش messageFiles
-                    object messageFiles = null;
-                    if (messageDto.MessageFiles != null && messageDto.MessageFiles.Any())
+                    var payload2 = CreateReceiveMessagePayload(messageDto, groupId, groupType);
+
+                    // ارسال به همه کلاینت‌های WebApp یا به کاربر خاص برای پیام خصوصی
+                    if (messageDto.MessageType == (byte)EnumMessageType.Private && messageDto.ReceiverUserId.HasValue)
                     {
-                        messageFiles = messageDto.MessageFiles.Select(mf => new
-                        {
-                            FileName = mf.FileName,
-                            FileThumbPath = mf.FileThumbPath,
-                            OriginalFileName = mf.OriginalFileName,
-                            MessageFileId = mf.MessageFileId
-                        }).ToList();
+                        await _webAppHubContext.Clients.User(messageDto.ReceiverUserId.Value.ToString()).SendAsync("ReceiveEditedMessage", payload2);
+                        await _webAppHubContext.Clients.User(messageDto.SenderUserId.ToString()).SendAsync("ReceiveEditedMessage", payload2); // ارسال به فرستنده هم
                     }
-
-                    //ایجاد ابجکت جی سان
-                    var messageDetailsJson = CreateJsonMessageDetails(messageDto);
-
-                    var chatType = messageDto.MessageType == 0 ? ConstChat.ClassGroupType : ConstChat.ChannelGroupType;
-
-                    // ساخت payload2 برای ارسال
-                    var payload2 = new
+                    else
                     {
-                        senderUserId = messageDto.SenderUserId,
-                        senderUserName = messageDto.SenderUser?.NameFamily,
-                        messageText = messageDto.MessageText?.MessageTxt ?? "",
-                        groupId = messageDto.ClassGroupId,
-                        groupType = chatType,
-                        messageDateTime = messageDto.MessageDateTime.ToString("HH:mm"),
-                        profilePicName = messageDto.SenderUser?.ProfilePicName,
-                        messageId = messageDto.MessageId,
-                        replyToMessageId = messageDto.ReplyMessageId,
-                        replyMessage,
-                        messageFiles,
-                        jsonMessageDetails = messageDetailsJson
-                    };
-
-                    // ارسال به کلاینت‌های SignalR
-                    await _webAppHubContext.Clients.All.SendAsync("ReceiveEditedMessage", payload2);
-
-                    // فراخوانی رویداد
+                        await _webAppHubContext.Clients.All.SendAsync("ReceiveEditedMessage", payload2);
+                    }
                     OnReceiveMessage?.Invoke(payload2);
-
-
                 }
                 catch (System.Text.Json.JsonException ex)
                 {
-                    _logger.LogError($"خطا در تبدیل JSON: {ex.Message}");
+                    _logger.LogError(ex, "خطا در تبدیل JSON");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"خطای عمومی: {ex.Message}");
+                    _logger.LogError(ex, "خطای عمومی در ReceiveEditedMessage");
                 }
-
 
                 OnReceiveEditedMessage?.Invoke(payload);
             });
@@ -382,9 +325,80 @@ namespace Messenger.WebApp.ServiceHelper
                 await _webAppHubContext.Clients.All.SendAsync("UserDeleteMessage", messageId, isHidden);
             });
 
-            _hubConnection.On<long, string, int>("UserTyping", async (userId, userName, groupId) =>
+            // رویداد UserTyping - تصحیح شده
+            _hubConnection.On<object[]>("UserTyping", async (payload) =>
             {
-                await _webAppHubContext.Clients.All.SendAsync("UserTyping", userId, userName, groupId);
+                if (payload.Length >= 3)
+                {
+                    try
+                    {
+                        var userId = GetInt64FromPayload(payload[0]);
+                        var userName = GetStringFromPayload(payload[1]) ?? "-";
+                        var groupId = GetInt32FromPayload(payload[2]);
+
+                        _logger.LogInformation("UserTyping event received: userId={UserId}, userName={UserName}, groupId={GroupId}", userId, userName, groupId);
+                        await _webAppHubContext.Clients.All.SendAsync("UserTyping", userId, userName, groupId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing UserTyping event");
+                    }
+                }
+                else
+                {
+                    _logger.LogError("Invalid UserTyping payload: expected 3 elements, got {Count}", payload.Length);
+                }
+            });
+
+            // رویداد UserStoppedTyping - جدید اضافه شده
+            _hubConnection.On<object[]>("UserStoppedTyping", async (payload) =>
+            {
+                if (payload.Length >= 2)
+                {
+                    try
+                    {
+                        var userId = GetInt64FromPayload(payload[0]);
+                        var groupId = GetInt32FromPayload(payload[1]);
+
+                        _logger.LogInformation("UserStoppedTyping event received: userId={UserId}, groupId={GroupId}", userId, groupId);
+                        await _webAppHubContext.Clients.All.SendAsync("UserStoppedTyping", userId, groupId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing UserStoppedTyping event");
+                    }
+                }
+                else
+                {
+                    _logger.LogError("Invalid UserStoppedTyping payload: expected 2 elements, got {Count}", payload.Length);
+                }
+            });
+
+            _hubConnection.On<object[]>("MessageSeenUpdate", async (payload) =>
+            {
+                if (payload.Length >= 4)
+                {
+                    try
+                    {
+                        var messageId = GetInt64FromPayload(payload[0]);
+                        var readerUserId = GetInt64FromPayload(payload[1]);
+                        var seenCount = GetInt32FromPayload(payload[2]);
+                        var readerFullName = GetStringFromPayload(payload[3]) ?? "";
+
+                        _logger.LogInformation("MessageSeenUpdate event received: messageId={MessageId}, readerUserId={ReaderUserId}, seenCount={SeenCount}",
+                            messageId, readerUserId, seenCount);
+
+                        await _webAppHubContext.Clients.All.SendAsync("MessageSeenUpdate", messageId, readerUserId, seenCount, readerFullName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing MessageSeenUpdate event");
+                    }
+                }
+                else
+                {
+                    _logger.LogError("Invalid MessageSeenUpdate payload: expected 4 elements, got {Count}", payload.Length);
+                }
             });
 
             //اطلاع نتیجه به کاربر ضبط کننده صدا
@@ -394,15 +408,12 @@ namespace Messenger.WebApp.ServiceHelper
             });
 
             // رویداد دریافت تعداد پیام خوانده نشده در چت
-            // زمانی که یک پیام جدید در چت ارسال شد تعداد پیام خوانده نشده نیز ارسال میشود و در اینجا دریافت و پردازش میشود
-            // چون برای هر کاربر ارسال میشود، در اینجا ایدی را در ورودی میگیریم به کاربر مورد نظر اطلاع رسانی میکنیم
             _hubConnection.On<long, string, int>("UpdateUnreadCount", async (userId, key, unreadCount) =>
             {
                 // Forward to the specific user
                 await _webAppHubContext.Clients.User(userId.ToString())
                     .SendAsync("UpdateUnreadCount", key, unreadCount);
             });
-
 
             // این رویداد فقط برای تایید ارسال موفق پیام به خود فرستنده است
             _hubConnection.On<MessageDto>("MessageSentSuccessfully", async (savedMessage) =>
@@ -465,8 +476,6 @@ namespace Messenger.WebApp.ServiceHelper
             });
 
 
-
-
             _hubConnection.On<long, int, string, int>("MessageSuccessfullyMarkedAsRead", async (messageId, groupId, groupType, unreadCount) =>
             {
                 if (groupId > 0)
@@ -509,6 +518,186 @@ namespace Messenger.WebApp.ServiceHelper
                 }
             });
 
+            // Handler for broadcasting to groups
+            _hubConnection.On<object[]>("BroadcastToGroups", async (payload) =>
+            {
+                _logger.LogDebug("API Hub: BroadcastToGroups event triggered with {Count} elements.", payload.Length);
+
+                // قبول 2 یا 3 المنت (نسخه قدیمی 2 تایی و نسخه جدید 3 تایی شامل targetIds)
+                if (payload.Length is < 2 or > 3)
+                {
+                    _logger.LogError("Invalid payload for BroadcastToGroups: expected 2 or 3 elements, got {Count}", payload.Length);
+                    return;
+                }
+
+                try
+                {
+                    var messageDtoObj = payload[0];
+                    var messageType = GetInt32FromPayload(payload[1]);
+
+                    IEnumerable<int> targetIds = Enumerable.Empty<int>();
+
+                    if (payload.Length == 3)
+                    {
+                        // تلاش برای استخراج آرایه targetIds حتی اگر JsonElement باشد
+                        var rawTargetIds = payload[2];
+                        targetIds = ParseIntArray(rawTargetIds);
+                    }
+
+                    var groupType = "";
+                    if (messageType == (int)EnumMessageType.Group || messageType == (int)EnumMessageType.Channel)
+                    {
+                        groupType = messageType == (int)EnumMessageType.Group ? ConstChat.ClassGroupType : ConstChat.ChannelGroupType;
+                    }
+                    else
+                    {
+                        groupType = messageType == (int)EnumMessageType.AllGroups ? ConstChat.ClassGroupType : ConstChat.ChannelGroupType;
+                    }
+
+                    var messageDto = DeserializeMessageDto(messageDtoObj);
+
+                    foreach (var groupId in targetIds)
+                    {
+                        var payload2 = CreateReceiveMessagePayload(messageDto, groupId, groupType);
+
+                        //--برای اینکه پیام به همه اعضای گروه ارسال بشه همچنین بر روی همه چت ها هم بروزرسانی بشه باید از  Clients.All استفاده کنیم
+
+                        await _webAppHubContext.Clients.All.SendAsync("ReceiveMessage", payload2);
+                        OnReceiveMessage?.Invoke(payload2);
+                    }
+                }
+                catch (System.Text.Json.JsonException ex)
+                {
+                    _logger.LogError(ex, "خطا در تبدیل JSON در BroadcastToGroups");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "خطای عمومی در BroadcastToGroups");
+                }
+            });
+
+            // Handler for broadcasting to users
+            _hubConnection.On<object[]>("BroadcastToUsers", async (payload) =>
+            {
+                _logger.LogDebug("API Hub: BroadcastToUsers event triggered with {Count} elements.", payload.Length);
+
+                if (payload.Length is < 2 or > 3)
+                {
+                    _logger.LogError("Invalid payload for BroadcastToUsers: expected 2 or 3 elements, got {Count}", payload.Length);
+                    return;
+                }
+
+                try
+                {
+                    var messageDtoObj = payload[0];
+                    var messageType = GetInt32FromPayload(payload[1]); // فعلاً استفاده‌ای ندارد ولی حفظ می‌کنیم
+
+                    IEnumerable<long> targetIds = Enumerable.Empty<long>();
+                    if (payload.Length == 3)
+                    {
+                        var rawTargetIds = payload[2];
+                        targetIds = ParseLongArray(rawTargetIds);
+                    }
+
+                    var messageDto = DeserializeMessageDto(messageDtoObj);
+
+                    if (!targetIds.Any())
+                    {
+                        // نسخه قدیمی بدون لیست هدف (fallback)
+                        var payload2 = CreateReceiveMessagePayload(messageDto, 0, "");
+                        await _webAppHubContext.Clients.All.SendAsync("ReceiveMessage", payload2);
+                        OnReceiveMessage?.Invoke(payload2);
+                        return;
+                    }
+
+                    foreach (var userId in targetIds)
+                    {
+                        var payload2 = CreateReceiveMessagePayload(messageDto, 0, "");
+                        await _webAppHubContext.Clients.User(userId.ToString()).SendAsync("ReceiveMessage", payload2);
+                        OnReceiveMessage?.Invoke(payload2);
+                    }
+                }
+                catch (System.Text.Json.JsonException ex)
+                {
+                    _logger.LogError(ex, "خطا در تبدیل JSON در BroadcastToUsers");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "خطای عمومی در BroadcastToUsers");
+                }
+            });
+
+        }
+
+        /// <summary>
+        /// تبدیل شیء messageDtoObj به MessageDto با استفاده از JsonSerializer
+        /// </summary>
+        /// <param name="messageDtoObj">شیء ورودی که باید deserialize شود</param>
+        /// <returns>شیء MessageDto deserialize شده</returns>
+        private MessageDto DeserializeMessageDto(object messageDtoObj)
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            string jsonString = System.Text.Json.JsonSerializer.Serialize(messageDtoObj, options);
+            return System.Text.Json.JsonSerializer.Deserialize<MessageDto>(jsonString, options);
+        }
+
+        /// <summary>
+        /// ایجاد payload برای ارسال پیام دریافتی به کلاینت‌های WebApp
+        /// شامل اطلاعات پیام، پاسخ، فایل‌ها و جزئیات JSON
+        /// </summary>
+        /// <param name="messageDto">شیء MessageDto</param>
+        /// <param name="groupId">شناسه گروه</param>
+        /// <param name="groupType">نوع گروه</param>
+        /// <returns>شیء payload برای ارسال</returns>
+        private object CreateReceiveMessagePayload(MessageDto messageDto, int groupId, string groupType)
+        {
+            object replyMessage = null;
+            if (messageDto.ReplyMessageId != null && messageDto.ReplyMessage != null)
+            {
+                replyMessage = new
+                {
+                    replyToMessageId = messageDto.ReplyMessageId,
+                    senderUserName = messageDto.ReplyMessage.SenderUser?.NameFamily,
+                    messageText = messageDto.ReplyMessage.MessageText?.MessageTxt,
+                    messageFiles = messageDto.ReplyMessage.MessageFiles
+                };
+            }
+
+            object messageFiles = null;
+            if (messageDto.MessageFiles != null && messageDto.MessageFiles.Any())
+            {
+                messageFiles = messageDto.MessageFiles.Select(mf => new
+                {
+                    FileName = mf.FileName,
+                    FileThumbPath = mf.FileThumbPath,
+                    FileSize = mf.FileSize,
+                    MessageFileId = mf.MessageFileId
+                }).ToList();
+            }
+
+            var messageDetailsJson = CreateJsonMessageDetails(messageDto);
+
+            return new
+            {
+                senderUserId = messageDto.SenderUserId,
+                senderUserName = messageDto.SenderUser?.NameFamily,
+                messageText = messageDto.MessageText?.MessageTxt ?? "",
+                groupId = groupId,
+                groupType = groupType,
+                messageDateTime = messageDto.MessageDateTime.ToString("HH:mm"),
+                messageDate = messageDto.MessageDateTime,
+                profilePicName = messageDto.SenderUser?.ProfilePicName,
+                messageId = messageDto.MessageId,
+                replyToMessageId = messageDto.ReplyMessageId,
+                replyMessage,
+                messageFiles,
+                jsonMessageDetails = messageDetailsJson,
+                IsSystemMessage = messageDto.IsSystemMessage
+            };
         }
 
         private object CreateJsonMessageDetails(MessageDto savedMessage)
@@ -606,7 +795,100 @@ namespace Messenger.WebApp.ServiceHelper
                 _logger.LogWarning("Cannot invoke '{MethodName}'. Hub is not connected.", methodName);
                 return; // یا throw exception
             }
-            await _hubConnection.InvokeCoreAsync(methodName, args);
+            try
+            {
+                await _hubConnection.InvokeCoreAsync(methodName, args);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("cannot be called if the connection is not active"))
+            {
+                _logger.LogWarning(ex, "Connection is not active while invoking '{MethodName}'. Skipping.", methodName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error invoking hub method {MethodName}", methodName);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// تبدیل JsonElement به long
+        /// </summary>
+        private static long GetInt64FromPayload(object value)
+        {
+            return value is System.Text.Json.JsonElement je ? je.GetInt64() : Convert.ToInt64(value);
+        }
+
+        /// <summary>
+        /// تبدیل JsonElement به int
+        /// </summary>
+        private static int GetInt32FromPayload(object value)
+        {
+            return value is System.Text.Json.JsonElement je ? je.GetInt32() : Convert.ToInt32(value);
+        }
+
+        /// <summary>
+        /// تبدیل JsonElement به string
+        /// </summary>
+        private static string GetStringFromPayload(object value)
+        {
+            return value is System.Text.Json.JsonElement je ? je.GetString() : value?.ToString();
+        }
+
+        /// <summary>
+        /// لیست connectionId های کاربر در WebAppChatHub را برمی‌گرداند
+        /// برای جلوگیری از ارسال پیام به خود فرستنده
+        /// </summary>
+        private List<string> GetCurrentWebAppConnections(long userId)
+        {
+            // در WebApp ممکن است کاربر چند تب باز داشته باشد
+            // اما برای سادگی فعلاً لیست خالی برمی‌گردانیم
+            // چون Clients.User(userId) خودش این کار را انجام می‌دهد
+            // TODO: اگر نیاز به ردیابی دقیق connectionها بود، باید یک dictionary نگهداری شود
+            return new List<string>();
+        }
+
+        private static IEnumerable<int> ParseIntArray(object raw)
+        {
+            if (raw is IEnumerable<int> ints) return ints;
+            if (raw is System.Text.Json.JsonElement je && je.ValueKind == JsonValueKind.Array)
+            {
+                var list = new List<int>();
+                foreach (var item in je.EnumerateArray())
+                    if (item.ValueKind == JsonValueKind.Number && item.TryGetInt32(out var v)) list.Add(v);
+                return list;
+            }
+            if (raw is IEnumerable<object> objs)
+            {
+                var list = new List<int>();
+                foreach (var o in objs)
+                {
+                    try { list.Add(Convert.ToInt32(o)); } catch { }
+                }
+                return list;
+            }
+            return Enumerable.Empty<int>();
+        }
+
+        private static IEnumerable<long> ParseLongArray(object raw)
+        {
+            if (raw is IEnumerable<long> longs) return longs;
+            if (raw is System.Text.Json.JsonElement je && je.ValueKind == JsonValueKind.Array)
+            {
+                var list = new List<long>();
+                foreach (var item in je.EnumerateArray())
+                    if (item.ValueKind == JsonValueKind.Number && item.TryGetInt64(out var v)) list.Add(v);
+                return list;
+            }
+            if (raw is IEnumerable<object> objs)
+            {
+                var list = new List<long>();
+                foreach (var o in objs)
+                {
+                    try { list.Add(Convert.ToInt64(o)); } catch { }
+                }
+                return list;
+            }
+            return Enumerable.Empty<long>();
         }
 
         #endregion
@@ -614,23 +896,6 @@ namespace Messenger.WebApp.ServiceHelper
         public Task SendMessageAsync(SendMessageRequestDto request) => InvokeHubMethodAsync("SendMessage", request);
 
         public Task EditMessageAsync(EditMessageRequestDto request) => InvokeHubMethodAsync("EditMessage", request);
-
-
-
-        //private async Task InvokeHubMethodAsync(string methodName, params object[] args)
-        //{
-        //    if (!IsConnected) throw new InvalidOperationException("Not connected to SignalR hub.");
-        //    try
-        //    {
-        //        await _hubConnection.InvokeCoreAsync(methodName, args);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error invoking hub method {MethodName}", methodName);
-        //        throw;
-        //    }
-        //}
-
 
 
 

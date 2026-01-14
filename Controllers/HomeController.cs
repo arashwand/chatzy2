@@ -69,24 +69,33 @@ namespace Messenger.WebApp.Controllers
                 return Unauthorized();
             }
 
-            var user = await _userService.GetUserByIdAsync(userId);
-
-            if (user != null)
+            try
             {
-                if (user.NameFamily != null && user.NameFamily != "")
+                var user = await _userService.GetUserByIdAsync(userId);
+
+                if (user != null)
                 {
-                    ViewData["userProfilePic"] = user.ProfilePicName;
+                    if (user.NameFamily != null && user.NameFamily != "")
+                    {
+                        ViewData["userProfilePic"] = user.ProfilePicName;
+                    }
+                    else
+                    {
+                        ViewData["userProfilePic"] = "UserIcon.png";
+                    }
                 }
                 else
                 {
                     ViewData["userProfilePic"] = "UserIcon.png";
                 }
             }
-            else
+            catch (Exception ex)
             {
-                ViewData["userProfilePic"] = userId.ToString();
+                ViewData["userProfilePic"] = "UserIcon.png";
+                //throw;
             }
-            //ViewData["userProfilePic"] = "UserIcon.png";
+           
+            
             //ViewData["userProfilePic"] = userId.ToString();
             ViewData["baseUrl"] = _baseUrl;
             ViewData["allowedImagesExtention"] = _allowedImageExtentions;
@@ -566,6 +575,11 @@ namespace Messenger.WebApp.Controllers
             // در پیاده‌سازی واقعی، این متد باید یک سرویس را فراخوانی کند
             // await _messageService.GetLastReadMessageIdAsync(chatId, groupType, userId);
             return await Task.FromResult(0L); // بازگرداندن مقدار ثابت به صورت موقت
+        }
+
+        public ActionResult test()
+        {
+            return View();
         }
     }
 }

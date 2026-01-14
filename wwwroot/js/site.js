@@ -3,62 +3,60 @@
 
 // Write your JavaScript code.
 
-function helloA() {
-    console.log('hello arash');
-}
+
 
 
 //---------start--------استایلها برای حالت موبایل
-function setElementStyles(element, visibility, transform) {
-    if (element) {
-        element.style.visibility = visibility;
-        element.style.transform = transform;
-    }
-}
+//function setElementStyles(element, visibility, transform) {
+//    if (element) {
+//        element.style.visibility = visibility;
+//        element.style.transform = transform;
+//    }
+//}
 
-function toggleDisplay(element, show) {
-    if (element) {
-        element.style.display = show ? 'block' : 'none';
-    }
-}
+//function toggleDisplay(element, show) {
+//    if (element) {
+//        element.style.display = show ? 'block' : 'none';
+//    }
+//}
 
-function showSelectedChat() {
-    if (window.innerWidth <= 1199.98) {
-        const main = document.querySelector('.main-layout .main');
-        const chatInfo = document.querySelector('.chat-info.chat-info-visible');
-        const btnShowChatInfo = document.querySelector('.btn-show-chat-info');
-        const btnBackToChat = document.querySelector('.btn-close-chat-info');
+//function showSelectedChat() {
+//    if (window.innerWidth <= 1199.98) {
+//        const main = document.querySelector('.main-layout .main');
+//        const chatInfo = document.querySelector('.chat-info.chat-info-visible');
+//        const btnShowChatInfo = document.querySelector('.btn-show-chat-info');
+//        const btnBackToChat = document.querySelector('.btn-close-chat-info');
 
-        setElementStyles(main, 'visible', 'translateX(0%)');
-        setElementStyles(chatInfo, 'visible', 'translateX(0%)');
+//        setElementStyles(main, 'visible', 'translateX(0%)');
+//        setElementStyles(chatInfo, 'visible', 'translateX(0%)');
 
-        toggleDisplay(btnShowChatInfo, true);
-        toggleDisplay(btnBackToChat, false);
-    }
-}
+//        toggleDisplay(btnShowChatInfo, true);
+//        toggleDisplay(btnBackToChat, false);
+//    }
+//}
 
-function showChatInfoAndHideChat() {
-    if (window.innerWidth <= 1199.98) {
-        const chatInfo = document.querySelector('.chat-info.chat-info-visible');
-        const btnBackToChat = document.querySelector('.btn-close-chat-info');
+//function showChatInfoAndHideChat() {
+//    if (window.innerWidth <= 1199.98) {
+//        const chatInfo = document.querySelector('.chat-info.chat-info-visible');
+//        const btnBackToChat = document.querySelector('.btn-close-chat-info');
 
-        setElementStyles(chatInfo, 'visible', 'translateX(100%)');
-        toggleDisplay(btnBackToChat, true);
-    }
-}
+//        setElementStyles(chatInfo, 'visible', 'translateX(100%)');
+//        toggleDisplay(btnBackToChat, true);
+//    }
+//}
 
-function showAllChats() {
-    if (window.innerWidth <= 1199.98) {
-        const main = document.querySelector('.main-layout .main');
-        const btnShowChatInfo = document.querySelector('.btn-show-chat-info');
-        const btnBackToChat = document.querySelector('.btn-close-chat-info');
+//function showAllChats() {
+//    if (window.innerWidth <= 1199.98) {
+//        const main = document.querySelector('.main-layout .main');
+//        const btnShowChatInfo = document.querySelector('.btn-show-chat-info');
+//        const btnBackToChat = document.querySelector('.btn-close-chat-info');
 
-        setElementStyles(main, 'hidden', 'translateX(-100%)');
+//        setElementStyles(main, 'hidden', 'translateX(-100%)');
 
-        toggleDisplay(btnBackToChat, false);
-        toggleDisplay(btnShowChatInfo, false);
-    }
-}
+//        toggleDisplay(btnBackToChat, false);
+//        toggleDisplay(btnShowChatInfo, false);
+//    }
+//}
 
 
 
