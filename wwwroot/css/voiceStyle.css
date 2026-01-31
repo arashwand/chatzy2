@@ -1,0 +1,182 @@
+﻿/* استایل‌های مربوط به حالت ضبط صوت */
+.voice-ui-container {
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin: 8px 0;
+    border: 1px solid #e9ecef;
+}
+
+.voice-recording-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.recording-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #dc3545;
+}
+
+.recording-dot {
+    width: 12px;
+    height: 12px;
+    background: #dc3545;
+    border-radius: 50%;
+    animation: blink-animation 1.5s infinite;
+}
+
+.recording-text {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.voice-processing-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.spinner-container {
+    width: 24px;
+    height: 24px;
+}
+
+.spinner {
+    width: 100%;
+    height: 100%;
+    border: 3px solid #e9ecef;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.processing-text {
+    color: #007bff;
+    font-weight: 500;
+}
+
+.voice-preview-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.voice-action-btn {
+    background: none;
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0; /* جلوگیری از کوچک شدن المان‌ها */
+}
+
+    .voice-action-btn:hover {
+        background-color: #e9ecef;
+    }
+
+.voice-player-container {
+    flex: 1; /* حداکثر فضای ممکن را اشغال می‌کند */
+    min-width: 0; /* برای جلوگیری از overflow */
+}
+
+.voice-timeline {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: #ddd;
+    outline: none;
+}
+
+    .voice-timeline::-webkit-slider-thumb {
+        appearance: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #007bff;
+        cursor: pointer;
+    }
+
+.voice-duration {
+    font-size: 12px;
+    color: #6c757d;
+    min-width: 35px;
+    flex-shrink: 0;
+    text-align: left;
+}
+
+
+/* انیمیشن‌ها */
+@keyframes blink-animation {
+    0%, 50% {
+        opacity: 1;
+    }
+
+    51%, 100% {
+        opacity: 0.3;
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* حالت‌های مختلف برای دسکتاپ و موبایل */
+/* برای موبایل بهینه‌سازی */
+@media (max-width: 768px) {
+    .voice-preview-content {
+        gap: 8px;
+    }
+
+    .voice-action-btn {
+        padding: 6px;
+    }
+
+        .voice-action-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+    .voice-duration {
+        min-width: 30px;
+        font-size: 11px;
+    }
+}
+
+/* برای صفحات بسیار کوچک */
+@media (max-width: 480px) {
+    .voice-preview-content {
+        gap: 6px;
+    }
+
+    .voice-action-btn {
+        padding: 4px;
+    }
+
+        .voice-action-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+    .voice-duration {
+        min-width: 25px;
+        font-size: 10px;
+    }
+}

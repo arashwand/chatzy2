@@ -1,12 +1,16 @@
 ﻿$(document).ready(function () {
     // رویداد کلیک را به صورت delegation برای المان‌های .btn-download-file تعریف می‌کنیم.
     // این روش برای المان‌هایی که بعداً به صفحه اضافه می‌شوند نیز کار می‌کند.
-    $(document).on('click', '.btn-download-file', async function () {
-        console.log('دکمه دانلود کلیک شد!');
+$(document).on('click', '.download-icon', async function (e) {
+    e.stopPropagation(); // جلوگیری از اینکه کلیک به span والد منتقل شود
+    console.log('آیکون دانلود کلیک شد!');
 
-        // دریافت fileId از data attribute
-        const fileId = $(this).data('file-id');
-        const oroginalFileName = $(this).data('file-originalname');
+    const $icon = $(this);
+    const $button = $icon.closest('.btn-download-file'); // پیدا کردن span والد
+
+    // دریافت fileId از data attribute والد
+    const fileId = $button.data('file-id');
+    const oroginalFileName = $button.data('file-originalname');
         console.log('File ID:', fileId);
 
         if (!fileId) {
@@ -14,12 +18,12 @@
             return;
         }
 
-        const $button = $(this);
-        const originalContent = $button.html();
+    const $spinnerIcon = $button.find('.spinner-icon'); // پیدا کردن اسپینر همزاد
         const apiUrl = '/api/chat/downloadFileById';
 
-        // نمایش یک پیام بارگذاری
-        $button.html('<i class="fa fa-spinner fa-spin"></i> در حال دانلود...');
+        // نمایش اسپینر و پنهان کردن آیکون دانلود
+    $icon.hide();
+        $spinnerIcon.show();
 
         try {
             const response = await fetch(apiUrl, {
@@ -65,8 +69,9 @@
             console.error('مشکل در دانلود فایل:', error);
             alert('خطا در دانلود فایل. لطفاً دوباره تلاش کنید.');
         } finally {
-            // بازگرداندن دکمه به حالت اولیه بعد از اتمام عملیات
-            $button.html(originalContent);
+            // بازگرداندن آیکون‌ها به حالت اولیه
+            $spinnerIcon.hide();
+        $icon.show();
         }
     });
 });

@@ -208,161 +208,89 @@ window.chatApp = (function ($) {
      *  و بعد از ارسال موفق اپدیت میشود
      */
     function createMessageHtmlBody(message, edited = false) {
-        console.log("Inside createMessageHtmlBody - received message object:", message);
-        console.log("Inside createMessageHtmlBody - messageFiles:", message.messageFiles);
+        const isSelf = (currentUser == message.senderUserId);
+        const liClass = isSelf ? 'personal' : 'new';
+        const elementId = message.status === 'sending' ? `message-msg-temp-${message.clientMessageId}` : `message-${message.messageId}`;
+        const messageId = message.messageId || '';
+        const messageDetailsJson = message.jsonMessageDetails || makeJsonObjectForMessateDetails(message);
 
-
-        const isOptimistic = message.status === 'sending';
-        const elementId = isOptimistic ? `msg-temp-${message.clientMessageId}` : `message-${message.messageId}`;
-
-        const isSelf = (currentUser == message.senderUserId) ? 'self' : '';
-        const initialReadStatus = isSelf ? 'true' : 'false'; // Self messages are initially "read" by self
-        const initialTicks = isSelf ? '✓' : ''; // Single tick for sent self-messages
-
-        let statusTicks = '';
-         var messageDetailsJson = '';        
-        if (message.jsonMessageDetails) {
-            console.log('****************************************** has jsonMessageDetails');
-            messageDetailsJson = message.jsonMessageDetails;
-        } else {
-            console.log('*********************************--------- has not jsonMessageDetails');
-             messageDetailsJson = makeJsonObjectForMessateDetails(message);
-        }
-
-        if (isSelf) {
-            statusTicks = isOptimistic ? '🕒' : '✓'; // ساعت برای در حال ارسال، تیک برای ارسال شده
-            // آبجکتی از جزئیات ضروری پیام برای استفاده در زمان ویرایش
-
-        }
-
-        var actionEditMessageBody = "";
-        var actionReplyMessageBody = "";
-        var replyMessageBody = "";
-        // var messageFiles = "";
-        var mainMessageFilesBody = "";
-        var dateHHMM = convertDateTohhmm(message.messageDateTime);
-        if (isSelf == 'self') {
-            actionEditMessageBody = `
-                 <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageId="${message.messageId}" href="#">
-                    <i class="fa fa-edit"></i>&nbsp;
-                     <span> ویرایش</span>
-                 </a>
-            `;
-        }
-
-        if (message.replyToMessageId != null && message.replyMessage != null) {
-            let filesHtml = "";
-            if (message.replyMessage.messageFiles != null && message.replyMessage.messageFiles.length > 0) {
-
-                filesHtml += '<div class="form-row mt-2">';
-                message.replyMessage.messageFiles.forEach((file, index) => {
-                    console.log(`  File #${index} - FileName:`, file.FileName, "FileThumbPath:", file.FileThumbPath);
-
-                    let fileThumbPath = file.fileThumbPath;
-
-                    var createFileHtml = createDisplayFileBody(file, isSelf, true);
-                    filesHtml += createFileHtml;
-                    console.log('Create File Html Body ############ ');
-                });
-                filesHtml += '</div>';
-                // messageFiles = filesHtml;
-                console.log(filesHtml);
-            }
-
-            replyMessageBody = `
-                <div class="reply-preview border p-2 rounded bg-dark mb-2" style="cursor:pointer;"
-                onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
-                    <div class="text-muted small">
-                        پاسخ به: <strong>${message.replyMessage.senderUserName}</strong>
-                    </div>
-                    <div class="text-truncate">
-                         ${message.replyMessage.messageText || ''}
-                    </div>
-                    ${filesHtml}
-                </div>
-            `;
-        }
-
-        // content for show images
-        if (message.messageFiles != null && message.messageFiles.length > 0) {
-            let filesHtml = "";
-            filesHtml += '<div class="form-row mt-2">';
-            message.messageFiles.forEach((file, index) => {
-                console.log(`  File #${index} - FileName:`, file.FileName, "FileThumbPath:", file.FileThumbPath);
-
-                let fileThumbPath = file.fileThumbPath;
-
-                var createFileHtml = createDisplayFileBody(file, isSelf);
-                filesHtml += createFileHtml;
-                console.log('Create File Html Body ############ ');
-            });
-            filesHtml += '</div>';
-            mainMessageFilesBody = filesHtml;
-            console.log(filesHtml);
-        }
-
-        actionReplyMessageBody = `
-            <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageId="${message.messageId}" href="#">
-                    <i class="fa fa-reply"></i>&nbsp;
-                    <span> پاسخ دادن</span>
+        let dropdownHtml = `
+            <div class="dropdown message-options">
+                <a class="btn" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="/chatzy/assets/iconsax/menu-meatballs.svg" alt="menu" />
                 </a>
-        `;
+            <div class="dropdown-menu">`;
+        if (isSelf) {
+            dropdownHtml += `
+                             <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="${messageId}" href="#">
+                                <img src="/chatzy/assets/iconsax/edit.svg" class="svgInvertColor" alt="ویرایش" />&nbsp;
+                                 <span>ویرایش</span>
+                             </a>
+                            
 
-        const primaryMessageTextFormated = message.messageText.replace(/\n/g, '<br>')
-        const msgHtml = `
-            <div class="message ${isSelf}" id="message-${elementId}"
-            data-message-id="${message.messageId}"
-            data-client-id="${message.clientMessageId || ''}"
-            data-sender-id="${message.senderUserId}"
-            data-sender-username="${message.senderUserName}"
-            data-is-read="${initialReadStatus}"
-            data-message-details='${messageDetailsJson}'>
-                <div class="message-wrapper">
-                    <div class="message-content">
-                        ${replyMessageBody}
-                        ${primaryMessageTextFormated}
-                        ${mainMessageFilesBody}
+                              <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="${messageId}" href="#">
+                                  <img src="/chatzy/assets/iconsax/trash.svg" />&nbsp;
+                                  <span>حذف</span>
+                              </a>`;
+        }
+        dropdownHtml += `<a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="${messageId}" href="#">
+                              <img src="/chatzy/assets/iconsax/redo-arrow.svg" class="svgInvertColor" />&nbsp;
+                              <span>پاسخ دادن</span>
+                          </a>
+                          <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="${messageId}" href="#">
+                              <img src="/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
+                              <span>ذخیره</span>
+                          </a>`;
+        
+        dropdownHtml += `</div></div>`;
+
+        let replyPreviewHtml = '';
+        if (message.replyToMessageId && message.replyMessage) {
+            replyPreviewHtml = `<div class="reply-preview border p-2 rounded bg-light mb-2" style="cursor:pointer;" onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
+                                    <div class="text-muted small">پاسخ به: <strong>${message.replyMessage.senderUserName}</strong></div>
+                                    <div class="text-truncate">${message.replyMessage.messageText || ''}</div>
+                                </div>`;
+        }
+
+        let filesHtml = '';
+        if (message.messageFiles && message.messageFiles.length > 0) {
+            filesHtml += '<div class="form-row mt-1 overflow-hidden">';
+            message.messageFiles.forEach(file => { filesHtml += createDisplayFileBody(file, isSelf); });
+            filesHtml += '</div>';
+        }
+
+        const messageTextHtml = message.messageText ? message.messageText.replace(/\n/g, '<br />') : '';
+        const editedIndicator = edited ? ` <small class="text-muted fst-italic">(ویرایش شده)</small>` : '';
+
+        let timingHtml = `<div class="timing"><h6>${convertDateTohhmm(message.messageDateTime)}</h6>`;
+        if (isSelf) {
+            if (message.status === 'sending') {
+                timingHtml += '🕒';
+            } else {
+                timingHtml += `<img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: ${message.isReadByAnyRecipient ? "none" : "inline"};">
+                               <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: ${message.isReadByAnyRecipient ? "inline" : "none"};">`;
+            }
+        }
+        timingHtml += '</div>';
+
+        let personImageHtml = '';
+        if (!isSelf) {
+            personImageHtml = `<img class="img-fluid person-img" src="/assets/media/avatar/${message.profilePicName || 'UserIcon.png'}" alt="p9">`;
+        }
+
+        return `
+            <li class="message ${liClass}" id="${elementId}" data-message-id="${messageId}" data-client-id="${message.clientMessageId || ''}" data-sender-id="${message.senderUserId}" data-sender-username="${message.senderUserName}" data-message-details='${messageDetailsJson}'>
+                ${dropdownHtml}
+                <div class="message-box ${message.isReadByAnyRecipient ? "read" : ""}">
+                    ${personImageHtml}
+                    <div class="message-box-details">
+                        ${replyPreviewHtml}
+                        <h5>${messageTextHtml}${editedIndicator}</h5>
+                        ${filesHtml}
+                        ${timingHtml}
                     </div>
                 </div>
-                <div class="message-options">
-                    <div class="avatar avatar-sm">
-                        <img alt="${message.senderUserName}" src="../assets/media/avatar/${message.profilePicName}" />
-                    </div>
-                    <span class="message-sender-name">${message.senderUserName}</span>
-                    <span class="message-date">${dateHHMM}</span>
-                    <span class="message-status-ticks mb-1">${statusTicks}</span>
-                    <div class="dropdown">
-                        <a class="text-muted" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <!-- Default :: Inline SVG -->
-                            <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                            </svg>
-                        </a>
-
-                        <div class="dropdown-menu dropdown-menu-left" style="">
-
-                            ${actionEditMessageBody}
-                            ${actionReplyMessageBody}
-
-                            <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageId="${message.messageId}" href="#">
-                                <i class="fa fa-save"></i>&nbsp;
-                                <span> ذخیره</span>
-                            </a>
-
-                             <a class="dropdown-item align-items-center d-flex" data-messageId="${message.messageId}" href="#">
-                                <svg class="hw-20 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                                <span>حذف</span>
-                            </a>
-
-                        </div>
-                    </div>
-                </div>
-            </div>`
-            ;
-
-        return msgHtml;
+            </li>`;
     }
 
 
@@ -392,7 +320,7 @@ window.chatApp = (function ($) {
                 fileHtml = `
             <div class="col file-attachment-item audio-attachment" data-file-id="${file.messageFileId}">
                 <div class="audio-player-container">
-                    <button class="voice-playback-btn"><i class="fa fa-play"></i></button>
+                    <button class="voice-playback-btn"><i class="iconsax" data-icon="play"></i></button>
                     <div class="voice-timeline-container">
                         <div class="voice-timeline-bg"></div>
                         <div class="voice-timeline-progress"></div>
@@ -410,7 +338,7 @@ window.chatApp = (function ($) {
                  <div class="col file-attachment-item audio-attachment" data-file-id="${file.messageFileId}">
                      <div class="audio-player-container">
                           <button class="voice-download-btn" data-file-id="${file.messageFileId}">
-                             <i class="fa fa-download"></i>
+                             <i class="iconsax" data-icon="arrow-down-2"></i>
                              <i class="fa fa-spinner fa-spin" style="display: none;"></i> <!-- اسپینر پنهان -->
                          </button>
                          <div class="file-meta text-light mx-1 text-dark">${fileSize}</div>
@@ -431,12 +359,13 @@ window.chatApp = (function ($) {
 
             fileHtml = `
             <div class="col file-attachment-item" data-file-id="${file.messageFileId}" style="display: flex; flex-direction: column;">
-                    <i class="fa fa-file-o fa-3x" aria-hidden="true"></i>
+                    <i class="iconsax" data-icon="document-text-1" style="font-size: 3em;" aria-hidden="true"></i>
                     ${displayName}
-                    <span style="min-width:75px;" class="btn-download-file" data-file-id="${file.messageFileId}">
+                    <span style="min-width:75px;" class="btn-download-file" data-file-id="${file.messageFileId}" data-file-originalName="${file.originalFileName}">
                         
                         <small class="d-block text-muted">${cleanFileSizeText}</small>
-                        <i class="fa fa-download" style="cursor:pointer; margin-top: 5px;"></i>
+                        <img src="/chatzy/assets/iconsax/arrow-down-2.svg" class="download-icon" style="cursor:pointer; margin-top: 5px; width: 24px; height: 24px;" alt="download">
+                        <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
                     </span>
             </div>`;
 
@@ -554,12 +483,12 @@ window.chatApp = (function ($) {
             // بررسی اینکه آیا فایل صوتی است یا خیر
             // برای اطمینان، از همان متغیرهای سراسری استفاده می‌کنیم
             if (ALLOWED_AUDIO.includes(fileExtension)) {
-                return '<i class="fa fa-microphone" style="margin-left: 5px;"></i> فایل ضبط شده';
+                return '<i class="iconsax" data-icon="mic-2" style="margin-left: 5px;"></i> فایل ضبط شده';
             }
 
             // بررسی اینکه آیا فایل تصویر است یا خیر
             if (ALLOWED_IMAGES.includes(fileExtension)) {
-                return '<i class="fa fa-camera" style="margin-left: 5px;"></i> عکس';
+                return '<i class="iconsax" data-icon="camera" style="margin-left: 5px;"></i> عکس';
             }
 
             // برای سایر فایل‌ها (داکیومنت و غیره)
@@ -568,7 +497,7 @@ window.chatApp = (function ($) {
                 ? fileName.substring(0, 18) + '...'
                 : fileName;
 
-            return `<i class="fa fa-paperclip" style="margin-left: 5px;"></i> ${truncatedName}`;
+            return `<i class="iconsax" data-icon="paperclip-2" style="margin-left: 5px;"></i> ${truncatedName}`;
         }
 
         // حالت نهایی: اگر پیام به هر دلیلی کاملاً خالی بود
@@ -607,27 +536,39 @@ window.chatApp = (function ($) {
 
         // ۲. بررسی اینکه پیام متعلق به گروه فعال است یا نه
         if (message.groupId === activeGroupId) {
-            // اگر پیام برای گروه فعال است، آن را در پنجره چت نمایش بده
-            console.log('message.groupId === activeGroupId')
+            console.log('message.groupId === activeGroupId');
             const chat_content = $('#chat_content');
-            const chatMessages = $('#chatMessages');
 
-            // اطمینان از وجود داشتن عناصر اصلی
-            if (!chat_content.length || !chatMessages.length) {
-                console.error("Chat container elements (#chat_content or #chatMessages) not found.");
+            const messageDate = new Date(message.messageDateTime);
+            const dateStr = formatDate(messageDate);
+            let messageList = $(`#chatMessages-${dateStr}`);
+
+            if (!messageList.length) {
+                const persianDate = new Date(message.messageDateTime).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+                const newDayHtml = `<h6 class="fw-normal text-center heading pt-4">${persianDate}</h6>
+                                    <ul class="message-box-list" id="chatMessages-${dateStr}"></ul>`;
+                $('#Message_Days').append(newDayHtml);
+                messageList = $(`#chatMessages-${dateStr}`);
+            }
+
+            if (!chat_content.length || !messageList.length) {
+                console.error("Chat container elements not found.");
                 return;
             }
 
-            // بررسی وضعیت اسکرول (قبل از اضافه کردن پیام جدید)
             const scrollHeightBefore = chat_content.prop("scrollHeight");
             const scrollTopBefore = chat_content.scrollTop();
             const clientHeight = chat_content.innerHeight();
-            const wasAtBottom = (scrollHeightBefore - (scrollTopBefore + clientHeight)) <= 30; // کمی تلورانس
+            const wasAtBottom = (scrollHeightBefore - (scrollTopBefore + clientHeight)) <= 30;
 
-            // ساخت و اضافه کردن HTML پیام
             const msgHtml = createMessageHtmlBody(message);
             const $msgElement = $(msgHtml);
-            chatMessages.append($msgElement);
+            messageList.append($msgElement);
+
+            // Re-initialize icons for the new message
+            if (typeof init_iconsax === 'function') {
+                init_iconsax();
+            }
 
             // 1. بررسی کنید آیا پیام حاوی فایل صوتی است یا خیر
             const hasAudioFile = message.messageFiles && message.messageFiles.some(file =>
@@ -752,88 +693,20 @@ window.chatApp = (function ($) {
       * محتوای یک پیام ویرایش شده را در UI به‌روز می‌کند و داده‌های پنهان آن را نیز آپدیت می‌کند.
       */
     function handleEditedMessage(message) {
-
-        console.log("Received edit for a messageId: " + message.messageId);
-
-        // ۱. پیدا کردن عنصر پیام در DOM
+        console.log("Received edit for messageId: " + message.messageId);
         const messageElement = $('#message-' + message.messageId);
         if (!messageElement.length) {
             console.warn("Received edit for a message that is not currently visible:", message.messageId);
             return;
         }
 
-        // ==========================================================
-        // ۲. بازسازی بخش‌های قابل نمایش پیام (مشابه createMessageHtmlBody)
-        // ==========================================================
+        const newHtml = createMessageHtmlBody(message, true); // Pass true for edited
+        messageElement.replaceWith(newHtml);
 
-        var replyMessageBody = "";
-        // اگر پیام ویرایش شده، در پاسخ یک پیام است
-        if (message.replyToMessageId != null && message.replyMessage != null) {
-            replyMessageBody = `
-            <div class="reply-preview border p-2 rounded bg-dark mb-2" style="cursor:pointer;" onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
-                <div class="text-muted small">
-                    پاسخ به: <strong>${message.replyMessage.senderUserName}</strong>
-                </div>
-                <div class="text-truncate">
-                    ${message.replyMessage.messageText}
-                </div>
-            </div>
-        `;
+        if (typeof init_iconsax === 'function') {
+            init_iconsax();
         }
-
-        var messageFiles = "";
-        // اگر پیام ویرایش شده، حاوی فایل است
-        if (message.messageFiles != null && message.messageFiles.length > 0) {
-            let filesHtml = "";
-            const baseUrl = $('#baseUrl').val();
-            filesHtml += '<div class="form-row mt-2">';
-            message.messageFiles.forEach(file => {
-                let fileThumbPath = baseUrl + file.fileThumbPath;
-                filesHtml += `
-              <div class="col file-attachment-item" style="display: flex; flex-direction: column;">
-                  <a class="popup-media overflow-hidden" href="${fileThumbPath}" target="_blank">
-                      <img class="img-fluid rounded" width="100" src="${fileThumbPath}" alt="${file.fileName}" style="max-height:150px">
-                  </a>
-              </div>`;
-            });
-            filesHtml += '</div>';
-            messageFiles = filesHtml;
-        }
-
-        // اضافه کردن یک نشانگر "ویرایش شده" برای اطلاع کاربر
-        const editedIndicator = `<small class="text-muted font-italic">(ویرایش شده)</small>`;
-
-        // ==========================================================
-        // ۳. به‌روزرسانی HTML قابل مشاهده
-        // ==========================================================
-        const messageContentDiv = messageElement.find('.message-content');
-        const primaryMessageText = message.messageText.replace(/\n/g, '<br>');
-        messageContentDiv.html(`
-        ${replyMessageBody}
-        ${primaryMessageText}
-        ${editedIndicator}
-        ${messageFiles}
-        `);
-
-        // ==========================================================
-        // ۴. به‌روزرسانی داده‌های پنهان (بسیار مهم)
-        // ==========================================================
-        // یک آبجکت جدید برای ذخیره در data-attribute می‌سازیم. این ساختار باید دقیقاً
-        // با ساختاری که در Razor View تولید می‌شود، یکسان باشد.
-        const updatedDetailsForEdit = {
-            messageText: message.messageText,
-            replyToMessageId: message.replyToMessageId,
-            replyMessage: message.replyMessage,
-            messageFiles: message.messageFiles
-
-        };
-
-        // آبجکت را به رشته JSON تبدیل کرده و مقدار data-message-details را به‌روز می‌کنیم.
-
-        messageElement.removeAttr('data-message-details');
-        messageElement.attr('data-message-details', JSON.stringify(updatedDetailsForEdit));
-
-        console.log(`Message ${message.messageId} UI and data were successfully updated.`);
+        console.log(`Message ${message.messageId} UI was successfully replaced and updated.`);
     }
 
 
@@ -1046,6 +919,7 @@ window.chatApp = (function ($) {
             return;
         }
 
+        const timingElement = messageElement.find('.timing');
         if (newStatus === 'sent') {
             // ۲. اگر ارسال موفق بود، تمام اطلاعات را با داده‌های نهایی سرور آپدیت کن
 
@@ -1064,13 +938,16 @@ window.chatApp = (function ($) {
             console.log('**********************************End for update json details  ********************************** ');
 
 
-            // تغییر آیکون وضعیت از "ساعت" به "تیک"
-            // فرض می‌شود شما یک المان با این کلاس برای نمایش وضعیت دارید
-            const statusTicksElement = messageElement.find('.message-status-ticks');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('✓'); // تیک برای "ارسال شد"
-                statusTicksElement.attr('title', 'ارسال شد');
+            // تغییر آیکون وضعیت از "ساعت" به "تیک"  
+            if (timingElement.length) {
+                timingElement.html(`
+                    <img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: inline;">
+                    <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: none;">
+                `);
+            } else {
+                console.log('timingElement not found!');
             }
+            
 
             //  بروزرسانی نام فرستنده
             const messageSenderElement = messageElement.find('.message-sender-name').last();
@@ -1122,13 +999,9 @@ window.chatApp = (function ($) {
         }
         else if (newStatus === 'failed') {
             // ۳. اگر ارسال ناموفق بود، یک استایل خطا به آن بده
-            messageElement.addClass('failed-to-send');
+            const timingElement = messageElement.find('.timing');
+            timingElement.html('<span class="text-danger">❗</span>');
 
-            const statusTicksElement = messageElement.find('.message-status-ticks mb-1');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('❗'); // علامت برای "خطا"
-                statusTicksElement.attr('title', 'ارسال ناموفق');
-            }
         }
     }
 
@@ -1150,23 +1023,35 @@ window.chatApp = (function ($) {
             return;
         }
 
+        const timingElement = messageElement.find('.timing');
         if (newStatus === 'sent') {
+            // ۲. اگر ارسال موفق بود، تمام اطلاعات را با داده‌های نهایی سرور آپدیت کن
 
-            // پاک کردن ویژگی data-message-details
-            messageElement.removeAttr('data-message-details');
+            // تغییر ID اصلی المان به شناسه واقعی سرور
+            messageElement.attr('id', `message-${savedMessage.messageId}`);
+
+            // به‌روزرسانی data attribute ها برای استفاده در آینده (مثل ویرایش و پاسخ)
+            messageElement.attr('data-message-id', savedMessage.messageId);
+
+            console.log('**********************************Start for update json details  ********************************** ');
+            // ایجاد آبجکت جهت بروز رسانی
+
             messageElement.attr('data-message-details', jsonObject);
             // messageElement.attr('data-message-details', messageDetailsJson);
 
             console.log('**********************************End for update json details  ********************************** ');
 
 
-            // تغییر آیکون وضعیت از "ساعت" به "تیک"
-            // فرض می‌شود شما یک المان با این کلاس برای نمایش وضعیت دارید
-            const statusTicksElement = messageElement.find('.message-status-ticks');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('✓'); // تیک برای "ارسال شد"
-                statusTicksElement.attr('title', 'ارسال شد');
+            // تغییر آیکون وضعیت از "ساعت" به "تیک"  
+            if (timingElement.length) {
+                timingElement.html(`
+                    <img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: inline;">
+                    <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: none;">
+                `);
+            } else {
+                console.log('timingElement not found!');
             }
+
 
             //  بروزرسانی نام فرستنده
             const messageSenderElement = messageElement.find('.message-sender-name').last();
@@ -1210,18 +1095,17 @@ window.chatApp = (function ($) {
                 });
             }
 
-
+            // شناسه تمام لینک‌های عملیات داخل منوی کشویی را نیز آپدیت کن
+            messageElement.find('.dropdown-menu a').each(function () {
+                $(this).attr('data-messageid', savedMessage.messageId);
+            });
 
         }
         else if (newStatus === 'failed') {
             // ۳. اگر ارسال ناموفق بود، یک استایل خطا به آن بده
-            messageElement.addClass('failed-to-send');
-
-            const statusTicksElement = messageElement.find('.message-status-ticks mb-1');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('❗'); // علامت برای "خطا"
-                statusTicksElement.attr('title', 'ارسال ناموفق');
-            }
+            const timingElement = messageElement.find('.timing');
+            timingElement.html('<span class="text-danger">❗</span>');
+            alert('خطا در ویرایش پیام : ' + newStatus);
         }
     }
 
@@ -1307,7 +1191,7 @@ window.chatApp = (function ($) {
             signalRConnection.on("EditMessageSentFailed", function (messageId) {
                 console.log("Edit Message Has Failed in messageId:", messageId);
                 // فراخوانی تابعی که پیام موقت را با اطلاعات نهایی سرور آپدیت می‌کند
-                //updateMessageStatus(messageId, null, 'failed');
+                updateEditMessageStatus(messageId, null, 'failed');
             });
 
             signalRConnection.on("UserTyping", handleUserTyping);
@@ -1667,6 +1551,8 @@ $(document).ready(function () {
         console.log('state is : ******************************************************************' + state);
         const textInputArea = $('#text-input-area');
         const voiceInputArea = $('#voice-input-area');
+        const messageInput = $('#message-input');
+        const sendButton = $('#send-message-button');
 
         // اگر المان‌ها پیدا نشدند، عملیات را متوقف کن
         if (textInputArea.length === 0 || voiceInputArea.length === 0) {
@@ -1678,48 +1564,82 @@ $(document).ready(function () {
         if (state === 'default') {
             voiceInputArea.hide().empty();
             textInputArea.show();
+            messageInput.prop('disabled', false);
+            sendButton.show();
             return;
         }
 
         // آماده‌سازی برای نمایش UI صدا
         textInputArea.hide();
-        voiceInputArea.show(); // ابتدا کانتینر را نمایش بده
+        messageInput.prop('disabled', true);
+        sendButton.hide();
+
+        voiceInputArea.show().empty(); // ابتدا کانتینر را خالی کرده و نمایش بده
         let html = '';
 
         switch (state) {
             case 'recording':
-                // طراحی جدید برای حالت ضبط
                 html = `
-                <div id="voice-ui-container" class="recording-state">
-                    <span class="recording-timer">0:00</span>
-                    <i class="fa fa-circle recording-indicator"></i>
-                </div>`;
+            <div id="voice-ui-container" class="voice-ui-container recording-state">
+                <div class="voice-recording-content">
+                    <span class="recording-indicator">
+                        <span class="recording-dot"></span>
+                        <span class="recording-timer">0:00</span>
+                    </span>
+                    <button class="voice-action-btn stop-recording-btn" type="button" title="توقف ضبط">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="8" y="8" width="8" height="8" fill="#dc3545"/>
+                        </svg>
+                    </button>
+                    <span class="recording-text">در حال ضبط...</span>
+                </div>
+            </div>`;
                 break;
 
             case 'processing':
-                // حالت پردازش برای جلوگیری از سردرگمی کاربر
                 html = `
-                <div id="voice-ui-container" class="processing-state">
-                    <i class="fa fa-spinner fa-spin"></i>
-                    <span style="margin-right: 10px;">در حال پردازش...</span>
-                </div>`;
+            <div id="voice-ui-container" class="voice-ui-container processing-state">
+                <div class="voice-processing-content">
+                    <div class="spinner-container">
+                        <div class="spinner"></div>
+                    </div>
+                    <span class="processing-text">در حال پردازش صوت...</span>
+                </div>
+            </div>`;
                 break;
 
             case 'preview':
-                // طراحی جدید برای حالت پیش‌نمایش
                 html = `
-                <div id="voice-ui-container" class="preview-state">
-                    <span class="voice-action-btn play-pause-btn" title="پخش/توقف"><i class="fa fa-play" style="transform: rotate(180deg);"></i></span>
-                    <div class="voice-player-container">
-                        <input type="range" class="voice-timeline" value="0" max="${data.duration}" step="0.1">
-                    </div>
-                    <span class="voice-duration">${data.durationFormatted}</span>
-                    
-                    <span class="voice-action-btn delete-btn mx-2" title="حذف"><i class="fa fa-trash"></i></span>
-                </div>`;
+    <div id="voice-ui-container" class="voice-ui-container preview-state">
+        <div class="voice-preview-content">
+            <button class="voice-action-btn play-pause-btn" type="button" title="پخش/توقف">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 5V19L19 12L8 5Z" fill="#292D32"/>
+                </svg>
+            </button>
+            
+            <div class="voice-player-container">
+                <input type="range" class="voice-timeline" value="0" max="${data.duration || 100}" step="0.1">
+            </div>
+            
+            <span class="voice-duration">${data.durationFormatted || '0:00'}</span>
+            
+            <button class="voice-action-btn delete-btn" type="button" title="حذف">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H5H21" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            
+            <button class="voice-action-btn send-btn" type="button" title="ارسال">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7.39999 6.32003L15.89 3.49003C19.7 2.22003 21.77 4.30003 20.51 8.11003L17.68 16.6C15.78 22.31 12.66 22.31 10.76 16.6L9.91999 14.08L7.39999 13.24C1.68999 11.34 1.68999 8.23003 7.39999 6.32003Z" stroke="#28a745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>`;
                 break;
         }
-
 
         console.log(html);
         voiceInputArea.html(html);
@@ -1744,7 +1664,9 @@ $(document).ready(function () {
         // 2. درخواست دسترسی به میکروفون
         navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
             isRecording = true;
-            $('.btn-record-voice i').removeClass('fa-microphone').addClass('fa-stop');
+            //$('.btn-record-voice i').removeClass('fa-microphone').addClass('fa-stop');
+            changeIcon($('.btn-record-voice'), 'stop');
+
             updateChatInputUI('recording');
 
             let seconds = 0;
@@ -1792,7 +1714,8 @@ $(document).ready(function () {
         isRecording = false;
         isProcessing = true;
         clearInterval(recordingTimerInterval);
-        $('.btn-record-voice i').removeClass('fa-stop').addClass('fa-microphone');
+        //$('.btn-record-voice i').removeClass('fa-stop').addClass('fa-microphone');
+        changeIcon($('.btn-record-voice'), 'microphone');
         updateChatInputUI('processing');
         // بررسی وجود mediaRecorder قبل از فراخوانی stop
         if (mediaRecorder && mediaRecorder.state === 'recording') {
@@ -1831,7 +1754,7 @@ $(document).ready(function () {
             };
             fileReader.onerror = () => reject('FileReader error');
             fileReader.readAsArrayBuffer(voiceBlob);
-        });
+        }); 
 
         // Promise for uploading the file
         const uploadPromise = new Promise((resolve, reject) => {
@@ -1928,7 +1851,8 @@ $(document).ready(function () {
 
         // بازگشت به حالت پیش‌فرض
         updateChatInputUI('default');
-        $('.btn-record-voice i').removeClass('fa-stop').addClass('fa-microphone');
+        //$('.btn-record-voice i').removeClass('fa-stop').addClass('fa-microphone');
+        changeIcon($('.btn-record-voice'), 'microphone');
     }
 
 
@@ -1943,24 +1867,68 @@ $(document).ready(function () {
         }
     });
 
+    $(document).on('click', '.stop-recording-btn', function () {
+       
+            stopRecording();
+        
+    });
+
     // کلیک روی دکمه حذف پیش‌نمایش
     $(document).on('click', '.delete-btn', function () {
         cleanupVoiceState(true, false); // true یعنی از سرور هم حذف کن
     });
+
+    // تابع برای تغییر آیکون
+    function changeIcon(button, iconType) {
+        if (iconType === 'stop') {
+            button.html(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#fff">
+<g clip-path="url(#clip0_4418_4367)">
+<path opacity="0.4" d="M11.9702 22C17.4931 22 21.9702 17.5228 21.9702 12C21.9702 6.47715 17.4931 2 11.9702 2C6.44737 2 1.97021 6.47715 1.97021 12C1.97021 17.5228 6.44737 22 11.9702 22Z" fill="white" style="fill: var(--fillg);"/>
+<path d="M10.77 16.2295H13.23C14.89 16.2295 16.23 14.8895 16.23 13.2295V10.7695C16.23 9.10953 14.89 7.76953 13.23 7.76953H10.77C9.11002 7.76953 7.77002 9.10953 7.77002 10.7695V13.2295C7.77002 14.8895 9.11002 16.2295 10.77 16.2295Z" fill="white" style="fill: var(--fillg);"/>
+</g>
+<defs>
+<clipPath id="clip0_4418_4367">
+<rect width="24" height="24" fill="white"/>
+</clipPath>
+</defs>
+</svg>`);
+            button.attr('data-icon', 'stop');
+        } else {
+            button.html(`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- کد SVG آیکون میکروفون -->
+            <path d="M12 15.5C14.21 15.5 16 13.71 16 11.5V6C16 3.79 14.21 2 12 2C9.79 2 8 3.79 8 6V11.5C8 13.71 9.79 15.5 12 15.5Z" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4.3501 9.6499V11.3499C4.3501 15.5699 7.7801 18.9999 12.0001 18.9999C16.2201 18.9999 19.6501 15.5699 19.6501 11.3499V9.6499" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10.6101 6.43012C11.5101 6.10012 12.4901 6.10012 13.3901 6.43012" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M11.2 8.55007C11.73 8.41007 12.28 8.41007 12.81 8.55007" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19V22" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`);
+            button.attr('data-icon', 'microphone');
+        }
+    }
+
+    // مثال
+    // تغییر به آیکون توقف
+    //changeIcon($('.btn-record-voice'), 'stop');
+
+    // بازگشت به آیکون میکروفون
+    //changeIcon($('.btn-record-voice'), 'microphone');
+
 
     // کلیک روی دکمه پخش/توقف پیش‌نمایش
     $(document).on('click', '.play-pause-btn', function () {
         const icon = $(this).find('i');
         if (pendingVoiceAudioElement.paused) {
             pendingVoiceAudioElement.play();
-            icon.removeClass('fa-play').addClass('fa-pause');
+            icon.attr('data-icon', 'pause');
         } else {
             pendingVoiceAudioElement.pause();
-            icon.removeClass('fa-pause').addClass('fa-play');
+            icon.attr('data-icon', 'play');
         }
+        init_iconsax(); // Re-render the icon
 
         pendingVoiceAudioElement.onended = () => {
-            icon.removeClass('fa-pause').addClass('fa-play');
+            icon.attr('data-icon', 'play');
+            init_iconsax();
             $('.voice-timeline').val(0); // ریست تایم‌لاین
         };
     });
@@ -2058,11 +2026,19 @@ $(document).ready(function () {
             if (actionType === 'edit') {
                 const contextId = parseInt($('#message-context-id').val());
                 const messageText = $('#message-input').val();
-                const fileUploadedIds = collectServerIdsFromContainer('#uploadedFileIds');// فایلهای جدید بارگذاری شده
-                const fileDeletedIds = collectServerIdsFromContainer('#deletUploadedFileIds'); // فایلهای حذف شده
+                const newFileIds = collectServerIdsFromContainer('#uploadedFileIds');
+                const deletedFileIds = collectServerIdsFromContainer('#deletUploadedFileIds');
+                const previousFileIds = collectServerIdsFromContainer('#previousFileIds');
+
+                // ترکیب لیست نهایی فایل‌ها
+                // شروع با فایل‌های قبلی، حذف موارد حذف شده، و سپس اضافه کردن موارد جدید
+                const finalFileIds = previousFileIds
+                    .filter(id => !deletedFileIds.includes(id))
+                    .concat(newFileIds);
+
 
                 // فراخوانی متد ویرایش در API عمومی
-                window.chatApp.editMessage(contextId, messageText, groupId, groupType, fileUploadedIds, fileDeletedIds);
+                window.chatApp.editMessage(contextId, messageText, groupId, groupType, finalFileIds, deletedFileIds);
 
             } else if (actionType === 'reply') {
                 // حالت پاسخ: فراخوانی متد ارسال پیام با پارامتر اضافی
@@ -2318,8 +2294,8 @@ $(document).ready(function () {
         //document.querySelector('#message-input').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 
-    // رویداد کلیک برای دکمه جدید انصراف از ویرایش
-    $(document).off('click', '#cancel-edit-button').on('click', '#cancel-edit-button', function () {
+    // رویداد کلیک برای دکمه انصراف از ویرایش
+    $(document).on('click', '#cancel-edit-button', function () {
         resetInputState();
     });
 
@@ -2624,7 +2600,7 @@ $(document).ready(function () {
             previewElement = `<img src="${imageURL}" class="file-thumbnail" alt="پیش‌نمایش">`;
         } else {
 
-            let icon = `<i class="fa fa-file-o" aria-hidden="true"></i>`
+            let icon = `<i class="iconsax" data-icon="document-text-1" aria-hidden="true"></i>`
             previewElement = `<div class="file-icon">${icon}</div>`;
         }
 
