@@ -24,10 +24,6 @@ window.chatApp = (function ($) {
     let heartbeatTimer = null; // متغیر برای نگهداری تایمر Heartbeat
     const HEARTBEAT_INTERVAL = 180 * 1000; // ارسال Heartbeat هر 90 ثانیه (90000 میلی‌ثانیه)
 
-    // لیست پسوندهای مجاز
-    let ALLOWED_IMAGES = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
-    let ALLOWED_DOCS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rar'];
-    let ALLOWED_AUDIO = ['webm', 'ogg', 'mp3', 'wav'];
 
 
     // =================================================
@@ -208,166 +204,93 @@ window.chatApp = (function ($) {
      *  و بعد از ارسال موفق اپدیت میشود
      */
     function createMessageHtmlBody(message, edited = false) {
-        console.log("Inside createMessageHtmlBody - received message object:", message);
-        console.log("Inside createMessageHtmlBody - messageFiles:", message.messageFiles);
+        const isSelf = (currentUser == message.senderUserId);
+        const liClass = isSelf ? 'personal' : 'new';
+        const elementId = message.status === 'sending' ? `message-msg-temp-${message.clientMessageId}` : `message-${message.messageId}`;
+        const messageId = message.messageId || '';
+        const messageDetailsJson = message.jsonMessageDetails || makeJsonObjectForMessateDetails(message);
 
-
-        const isOptimistic = message.status === 'sending';
-        const elementId = isOptimistic ? `msg-temp-${message.clientMessageId}` : `message-${message.messageId}`;
-
-        const isSelf = (currentUser == message.senderUserId) ? 'self' : '';
-        const initialReadStatus = isSelf ? 'true' : 'false'; // Self messages are initially "read" by self
-        const initialTicks = isSelf ? '✓' : ''; // Single tick for sent self-messages
-
-        let statusTicks = '';
-         var messageDetailsJson = '';        
-        if (message.jsonMessageDetails) {
-            console.log('****************************************** has jsonMessageDetails');
-            messageDetailsJson = message.jsonMessageDetails;
-        } else {
-            console.log('*********************************--------- has not jsonMessageDetails');
-             messageDetailsJson = makeJsonObjectForMessateDetails(message);
-        }
-
-        if (isSelf) {
-            statusTicks = isOptimistic ? '🕒' : '✓'; // ساعت برای در حال ارسال، تیک برای ارسال شده
-            // آبجکتی از جزئیات ضروری پیام برای استفاده در زمان ویرایش
-
-        }
-
-        var actionEditMessageBody = "";
-        var actionReplyMessageBody = "";
-        var replyMessageBody = "";
-        // var messageFiles = "";
-        var mainMessageFilesBody = "";
-        var dateHHMM = convertDateTohhmm(message.messageDateTime);
-        if (isSelf == 'self') {
-            actionEditMessageBody = `
-                 <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageId="${message.messageId}" href="#">
-                    <i class="fa fa-edit"></i>&nbsp;
-                     <span> ویرایش</span>
-                 </a>
-            `;
-        }
-
-        if (message.replyToMessageId != null && message.replyMessage != null) {
-            let filesHtml = "";
-            if (message.replyMessage.messageFiles != null && message.replyMessage.messageFiles.length > 0) {
-
-                filesHtml += '<div class="form-row mt-2">';
-                message.replyMessage.messageFiles.forEach((file, index) => {
-                    console.log(`  File #${index} - FileName:`, file.FileName, "FileThumbPath:", file.FileThumbPath);
-
-                    let fileThumbPath = file.fileThumbPath;
-
-                    var createFileHtml = createDisplayFileBody(file, isSelf, true);
-                    filesHtml += createFileHtml;
-                    console.log('Create File Html Body ############ ');
-                });
-                filesHtml += '</div>';
-                // messageFiles = filesHtml;
-                console.log(filesHtml);
-            }
-
-            replyMessageBody = `
-                <div class="reply-preview border p-2 rounded bg-dark mb-2" style="cursor:pointer;"
-                onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
-                    <div class="text-muted small">
-                        پاسخ به: <strong>${message.replyMessage.senderUserName}</strong>
-                    </div>
-                    <div class="text-truncate">
-                         ${message.replyMessage.messageText || ''}
-                    </div>
-                    ${filesHtml}
-                </div>
-            `;
-        }
-
-        // content for show images
-        if (message.messageFiles != null && message.messageFiles.length > 0) {
-            let filesHtml = "";
-            filesHtml += '<div class="form-row mt-2">';
-            message.messageFiles.forEach((file, index) => {
-                console.log(`  File #${index} - FileName:`, file.FileName, "FileThumbPath:", file.FileThumbPath);
-
-                let fileThumbPath = file.fileThumbPath;
-
-                var createFileHtml = createDisplayFileBody(file, isSelf);
-                filesHtml += createFileHtml;
-                console.log('Create File Html Body ############ ');
-            });
-            filesHtml += '</div>';
-            mainMessageFilesBody = filesHtml;
-            console.log(filesHtml);
-        }
-
-        actionReplyMessageBody = `
-            <a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageId="${message.messageId}" href="#">
-                    <i class="fa fa-reply"></i>&nbsp;
-                    <span> پاسخ دادن</span>
+        let dropdownHtml = `
+            <div class="dropdown message-options">
+                <a class="btn" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="/chatzy/assets/iconsax/menu-meatballs.svg" alt="menu" />
                 </a>
-        `;
+            <div class="dropdown-menu">`;
+        if (isSelf) {
+            dropdownHtml += `
+                             <a class="dropdown-item d-flex align-items-center actionEditMessage" data-messageid="${messageId}" href="#">
+                                <img src="/chatzy/assets/iconsax/edit.svg" class="svgInvertColor" alt="ویرایش" />&nbsp;
+                                 <span>ویرایش</span>
+                             </a>
+                            
 
-        const primaryMessageTextFormated = message.messageText.replace(/\n/g, '<br>')
-        const msgHtml = `
-            <div class="message ${isSelf}" id="message-${elementId}"
-            data-message-id="${message.messageId}"
-            data-client-id="${message.clientMessageId || ''}"
-            data-sender-id="${message.senderUserId}"
-            data-sender-username="${message.senderUserName}"
-            data-is-read="${initialReadStatus}"
-            data-message-details='${messageDetailsJson}'>
-                <div class="message-wrapper">
-                    <div class="message-content">
-                        ${replyMessageBody}
-                        ${primaryMessageTextFormated}
-                        ${mainMessageFilesBody}
+                              <a class="dropdown-item d-flex align-items-center actionDeleteMessage" data-messageid="${messageId}" href="#">
+                                  <img src="/chatzy/assets/iconsax/trash.svg" />&nbsp;
+                                  <span>حذف</span>
+                              </a>`;
+        }
+        dropdownHtml += `<a class="dropdown-item d-flex align-items-center actionReplyMessage" data-messageid="${messageId}" href="#">
+                              <img src="/chatzy/assets/iconsax/redo-arrow.svg" class="svgInvertColor" />&nbsp;
+                              <span>پاسخ دادن</span>
+                          </a>
+                          <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageid="${messageId}" href="#">
+                              <img src="/chatzy/assets/iconsax/save-2.svg" class="svgInvertColor" />&nbsp;
+                              <span>ذخیره</span>
+                          </a>`;
+        
+        dropdownHtml += `</div></div>`;
+
+        let replyPreviewHtml = '';
+        if (message.replyToMessageId && message.replyMessage) {
+            replyPreviewHtml = `<div class="reply-preview border p-2 rounded bg-light mb-2" style="cursor:pointer;" onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
+                                    <div class="text-muted small">پاسخ به: <strong>${message.replyMessage.senderUserName}</strong></div>
+                                    <div class="text-truncate">${message.replyMessage.messageText || ''}</div>
+                                </div>`;
+        }
+
+        let filesHtml = '';
+        if (message.messageFiles && message.messageFiles.length > 0) {
+            filesHtml += '<div class="row mt-1 overflow-hidden">';
+            message.messageFiles.forEach(file => { filesHtml += createDisplayFileBody(file, isSelf); });
+            filesHtml += '</div>';
+        }
+
+        const messageTextHtml = message.messageText ? message.messageText.replace(/\n/g, '<br />') : '';
+        const editedIndicator = edited ? ` <small class="text-muted fst-italic">(ویرایش شده)</small>` : '';
+
+        let timingHtml = `<div class="timing"><h6>${convertDateTohhmm(message.messageDateTime)}</h6>`;
+        if (isSelf) {
+            if (message.status === 'sending') {
+                timingHtml += '🕒';
+            } else {
+                timingHtml += `<img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: ${message.isReadByAnyRecipient ? "none" : "inline"};">
+                               <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: ${message.isReadByAnyRecipient ? "inline" : "none"};">`;
+            }
+        }
+        timingHtml += '</div>';
+
+        let personImageHtml = '';
+        if (!isSelf) {
+            personImageHtml = `<img class="img-fluid person-img" src="/assets/media/avatar/${message.profilePicName || 'UserIcon.png'}" alt="p9">`;
+        }
+
+        return `
+            <li class="message ${liClass}" id="${elementId}" data-message-id="${messageId}" data-client-id="${message.clientMessageId || ''}" data-sender-id="${message.senderUserId}" data-sender-username="${message.senderUserName}" data-message-details='${messageDetailsJson}'>
+                ${dropdownHtml}
+                <div class="message-box ${message.isReadByAnyRecipient ? "read" : ""}">
+                    ${personImageHtml}
+                    <div class="message-box-details">
+                        ${replyPreviewHtml}
+                        <h5>${messageTextHtml}${editedIndicator}</h5>
+                        ${filesHtml}
+                        ${timingHtml}
                     </div>
                 </div>
-                <div class="message-options">
-                    <div class="avatar avatar-sm">
-                        <img alt="${message.senderUserName}" src="../assets/media/avatar/${message.profilePicName}" />
-                    </div>
-                    <span class="message-sender-name">${message.senderUserName}</span>
-                    <span class="message-date">${dateHHMM}</span>
-                    <span class="message-status-ticks mb-1">${statusTicks}</span>
-                    <div class="dropdown">
-                        <a class="text-muted" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <!-- Default :: Inline SVG -->
-                            <svg class="hw-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                            </svg>
-                        </a>
-
-                        <div class="dropdown-menu dropdown-menu-left" style="">
-
-                            ${actionEditMessageBody}
-                            ${actionReplyMessageBody}
-
-                            <a class="dropdown-item d-flex align-items-center actionSaveMessage" data-messageId="${message.messageId}" href="#">
-                                <i class="fa fa-save"></i>&nbsp;
-                                <span> ذخیره</span>
-                            </a>
-
-                             <a class="dropdown-item align-items-center d-flex" data-messageId="${message.messageId}" href="#">
-                                <svg class="hw-20 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                                <span>حذف</span>
-                            </a>
-
-                        </div>
-                    </div>
-                </div>
-            </div>`
-            ;
-
-        return msgHtml;
+            </li>`;
     }
 
 
     function createDisplayFileBody(file, isSelf, isReplyed = null) {
-        window.chatApp.callAlloewExtentions();
         const fileExtension = file.fileName.split('.').pop().toLowerCase();
         console.log('file record extention is : ' + fileExtension);
         var fileHtml = "";
@@ -376,7 +299,7 @@ window.chatApp = (function ($) {
         let path = file.fileThumbPath || file.filePath || '';
         const finalPath = path.startsWith('blob:') ? path : baseUrl + path;
 
-        if (ALLOWED_IMAGES.includes(fileExtension)) {
+        if (publicApi.ALLOWED_IMAGES.includes(fileExtension)) {
             const imageWidth = isReplyed ? '50' : '100';
             fileHtml = `
                 <div class="col file-attachment-item" data-file-id="${file.messageFileId}" style="display: flex; flex-direction: column;">
@@ -392,7 +315,7 @@ window.chatApp = (function ($) {
                 fileHtml = `
             <div class="col file-attachment-item audio-attachment" data-file-id="${file.messageFileId}">
                 <div class="audio-player-container">
-                    <button class="voice-playback-btn"><i class="fa fa-play"></i></button>
+                    <button class="voice-playback-btn"><i class="iconsax" data-icon="play"></i></button>
                     <div class="voice-timeline-container">
                         <div class="voice-timeline-bg"></div>
                         <div class="voice-timeline-progress"></div>
@@ -410,7 +333,7 @@ window.chatApp = (function ($) {
                  <div class="col file-attachment-item audio-attachment" data-file-id="${file.messageFileId}">
                      <div class="audio-player-container">
                           <button class="voice-download-btn" data-file-id="${file.messageFileId}">
-                             <i class="fa fa-download"></i>
+                             <i class="iconsax" data-icon="download"></i>
                              <i class="fa fa-spinner fa-spin" style="display: none;"></i> <!-- اسپینر پنهان -->
                          </button>
                          <div class="file-meta text-light mx-1 text-dark">${fileSize}</div>
@@ -431,12 +354,13 @@ window.chatApp = (function ($) {
 
             fileHtml = `
             <div class="col file-attachment-item" data-file-id="${file.messageFileId}" style="display: flex; flex-direction: column;">
-                    <i class="fa fa-file-o fa-3x" aria-hidden="true"></i>
+                    <i class="iconsax" data-icon="document-text-1" style="font-size: 3em;" aria-hidden="true"></i>
                     ${displayName}
-                    <span style="min-width:75px;" class="btn-download-file" data-file-id="${file.messageFileId}">
+                    <span style="min-width:75px;" class="btn-download-file" data-file-id="${file.messageFileId}" data-file-originalName="${file.originalFileName}">
                         
                         <small class="d-block text-muted">${cleanFileSizeText}</small>
-                        <i class="fa fa-download" style="cursor:pointer; margin-top: 5px;"></i>
+                        <img src="/chatzy/assets/iconsax/download.svg" class="download-icon" style="cursor:pointer; margin-top: 5px; width: 24px; height: 24px;" alt="download">
+                        <img src="/chatzy/assets/iconsax/spinner.svg" class="spinner-icon" style="display: none; width: 24px; height: 24px;" alt="loading">
                     </span>
             </div>`;
 
@@ -552,14 +476,13 @@ window.chatApp = (function ($) {
             const fileExtension = fileName.split('.').pop().toLowerCase();
 
             // بررسی اینکه آیا فایل صوتی است یا خیر
-            // برای اطمینان، از همان متغیرهای سراسری استفاده می‌کنیم
-            if (ALLOWED_AUDIO.includes(fileExtension)) {
-                return '<i class="fa fa-microphone" style="margin-left: 5px;"></i> فایل ضبط شده';
+            if (publicApi.ALLOWED_AUDIO.includes(fileExtension)) {
+                return '<i class="iconsax" data-icon="mic-2" style="margin-left: 5px;"></i> فایل ضبط شده';
             }
 
             // بررسی اینکه آیا فایل تصویر است یا خیر
-            if (ALLOWED_IMAGES.includes(fileExtension)) {
-                return '<i class="fa fa-camera" style="margin-left: 5px;"></i> عکس';
+            if (publicApi.ALLOWED_IMAGES.includes(fileExtension)) {
+                return '<i class="iconsax" data-icon="camera" style="margin-left: 5px;"></i> عکس';
             }
 
             // برای سایر فایل‌ها (داکیومنت و غیره)
@@ -568,7 +491,7 @@ window.chatApp = (function ($) {
                 ? fileName.substring(0, 18) + '...'
                 : fileName;
 
-            return `<i class="fa fa-paperclip" style="margin-left: 5px;"></i> ${truncatedName}`;
+            return `<i class="iconsax" data-icon="paperclip-2" style="margin-left: 5px;"></i> ${truncatedName}`;
         }
 
         // حالت نهایی: اگر پیام به هر دلیلی کاملاً خالی بود
@@ -607,27 +530,39 @@ window.chatApp = (function ($) {
 
         // ۲. بررسی اینکه پیام متعلق به گروه فعال است یا نه
         if (message.groupId === activeGroupId) {
-            // اگر پیام برای گروه فعال است، آن را در پنجره چت نمایش بده
-            console.log('message.groupId === activeGroupId')
+            console.log('message.groupId === activeGroupId');
             const chat_content = $('#chat_content');
-            const chatMessages = $('#chatMessages');
 
-            // اطمینان از وجود داشتن عناصر اصلی
-            if (!chat_content.length || !chatMessages.length) {
-                console.error("Chat container elements (#chat_content or #chatMessages) not found.");
+            const messageDate = new Date(message.messageDateTime);
+            const dateStr = formatDate(messageDate);
+            let messageList = $(`#chatMessages-${dateStr}`);
+
+            if (!messageList.length) {
+                const persianDate = new Date(message.messageDateTime).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+                const newDayHtml = `<h6 class="fw-normal text-center heading chatInDateLabelClass">${persianDate}</h6>
+                                    <ul class="message-box-list" id="chatMessages-${dateStr}"></ul>`;
+                $('#Message_Days').append(newDayHtml);
+                messageList = $(`#chatMessages-${dateStr}`);
+            }
+
+            if (!chat_content.length || !messageList.length) {
+                console.error("Chat container elements not found.");
                 return;
             }
 
-            // بررسی وضعیت اسکرول (قبل از اضافه کردن پیام جدید)
             const scrollHeightBefore = chat_content.prop("scrollHeight");
             const scrollTopBefore = chat_content.scrollTop();
             const clientHeight = chat_content.innerHeight();
-            const wasAtBottom = (scrollHeightBefore - (scrollTopBefore + clientHeight)) <= 30; // کمی تلورانس
+            const wasAtBottom = (scrollHeightBefore - (scrollTopBefore + clientHeight)) <= 30;
 
-            // ساخت و اضافه کردن HTML پیام
             const msgHtml = createMessageHtmlBody(message);
             const $msgElement = $(msgHtml);
-            chatMessages.append($msgElement);
+            messageList.append($msgElement);
+
+            // Re-initialize icons for the new message
+            if (typeof init_iconsax === 'function') {
+                init_iconsax();
+            }
 
             // 1. بررسی کنید آیا پیام حاوی فایل صوتی است یا خیر
             const hasAudioFile = message.messageFiles && message.messageFiles.some(file =>
@@ -752,98 +687,45 @@ window.chatApp = (function ($) {
       * محتوای یک پیام ویرایش شده را در UI به‌روز می‌کند و داده‌های پنهان آن را نیز آپدیت می‌کند.
       */
     function handleEditedMessage(message) {
-
-        console.log("Received edit for a messageId: " + message.messageId);
-
-        // ۱. پیدا کردن عنصر پیام در DOM
+        console.log("Received edit for messageId: " + message.messageId);
         const messageElement = $('#message-' + message.messageId);
         if (!messageElement.length) {
             console.warn("Received edit for a message that is not currently visible:", message.messageId);
             return;
         }
 
-        // ==========================================================
-        // ۲. بازسازی بخش‌های قابل نمایش پیام (مشابه createMessageHtmlBody)
-        // ==========================================================
+        const newHtml = createMessageHtmlBody(message, true); // Pass true for edited
+        messageElement.replaceWith(newHtml);
 
-        var replyMessageBody = "";
-        // اگر پیام ویرایش شده، در پاسخ یک پیام است
-        if (message.replyToMessageId != null && message.replyMessage != null) {
-            replyMessageBody = `
-            <div class="reply-preview border p-2 rounded bg-dark mb-2" style="cursor:pointer;" onclick="document.getElementById('message-${message.replyToMessageId}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });">
-                <div class="text-muted small">
-                    پاسخ به: <strong>${message.replyMessage.senderUserName}</strong>
-                </div>
-                <div class="text-truncate">
-                    ${message.replyMessage.messageText}
-                </div>
-            </div>
-        `;
+        if (typeof init_iconsax === 'function') {
+            init_iconsax();
         }
-
-        var messageFiles = "";
-        // اگر پیام ویرایش شده، حاوی فایل است
-        if (message.messageFiles != null && message.messageFiles.length > 0) {
-            let filesHtml = "";
-            const baseUrl = $('#baseUrl').val();
-            filesHtml += '<div class="form-row mt-2">';
-            message.messageFiles.forEach(file => {
-                let fileThumbPath = baseUrl + file.fileThumbPath;
-                filesHtml += `
-              <div class="col file-attachment-item" style="display: flex; flex-direction: column;">
-                  <a class="popup-media overflow-hidden" href="${fileThumbPath}" target="_blank">
-                      <img class="img-fluid rounded" width="100" src="${fileThumbPath}" alt="${file.fileName}" style="max-height:150px">
-                  </a>
-              </div>`;
-            });
-            filesHtml += '</div>';
-            messageFiles = filesHtml;
-        }
-
-        // اضافه کردن یک نشانگر "ویرایش شده" برای اطلاع کاربر
-        const editedIndicator = `<small class="text-muted font-italic">(ویرایش شده)</small>`;
-
-        // ==========================================================
-        // ۳. به‌روزرسانی HTML قابل مشاهده
-        // ==========================================================
-        const messageContentDiv = messageElement.find('.message-content');
-        const primaryMessageText = message.messageText.replace(/\n/g, '<br>');
-        messageContentDiv.html(`
-        ${replyMessageBody}
-        ${primaryMessageText}
-        ${editedIndicator}
-        ${messageFiles}
-        `);
-
-        // ==========================================================
-        // ۴. به‌روزرسانی داده‌های پنهان (بسیار مهم)
-        // ==========================================================
-        // یک آبجکت جدید برای ذخیره در data-attribute می‌سازیم. این ساختار باید دقیقاً
-        // با ساختاری که در Razor View تولید می‌شود، یکسان باشد.
-        const updatedDetailsForEdit = {
-            messageText: message.messageText,
-            replyToMessageId: message.replyToMessageId,
-            replyMessage: message.replyMessage,
-            messageFiles: message.messageFiles
-
-        };
-
-        // آبجکت را به رشته JSON تبدیل کرده و مقدار data-message-details را به‌روز می‌کنیم.
-
-        messageElement.removeAttr('data-message-details');
-        messageElement.attr('data-message-details', JSON.stringify(updatedDetailsForEdit));
-
-        console.log(`Message ${message.messageId} UI and data were successfully updated.`);
+        console.log(`Message ${message.messageId} UI was successfully replaced and updated.`);
     }
 
 
     //*** وضعیت آنلاین/آفلاین یک کاربر را در UI به‌روز می‌کند
-    function updateUserStatusIcon(userId, isOnline, groupId, groupType) {
-        const selector = `.user-status-icon[data-user-id='${userId}'][data-group-id='${groupId}'][data-group-type='${groupType}']`;
-        const icon = $(selector);
-        if (icon.length === 0) return;
-        icon.toggleClass('avatar-online', isOnline).toggleClass('avatar-offline', !isOnline).attr('title', isOnline ? 'آنلاین' : 'آفلاین');
-        console.log('userid :' + userId + ' status isOnline:' + isOnline);
+    function updateUserStatusIcon(userId, isOnline) {
+        // Find the specific member's status container by the new ID
+        const memberStatusElement = $(`#member-status-${userId}`);
+
+        if (memberStatusElement.length > 0) {
+            // Add or remove the 'online' class based on the status
+            memberStatusElement.toggleClass('online', isOnline);
+            //console.log(`User ${userId} status updated to: ${isOnline ? 'Online' : 'Offline'}`);
+
+            // پیدا کردن h6 مربوطه در همان parent
+            const statusTextElement = memberStatusElement.closest('.member-details').find('.status-online');
+
+            // تغییر متن و آیکن
+            const newText = isOnline ? 'Online' : 'Offline';
+            const newIcon = isOnline ? '/chatzy/assets/images/svg/smiling-eyes.svg'
+                : '/chatzy/assets/images/svg/smile.svg';
+
+            statusTextElement.html(`${newText} <img src="${newIcon}" alt="status-icon">`);
+
+            console.log(`User ${userId} status updated to: ${newText}`);
+        }
     }
 
     //*** نشانگر "در حال تایپ" را برای چندین کاربر به‌روز می‌کند.*/
@@ -1046,6 +928,7 @@ window.chatApp = (function ($) {
             return;
         }
 
+        const timingElement = messageElement.find('.timing');
         if (newStatus === 'sent') {
             // ۲. اگر ارسال موفق بود، تمام اطلاعات را با داده‌های نهایی سرور آپدیت کن
 
@@ -1064,13 +947,16 @@ window.chatApp = (function ($) {
             console.log('**********************************End for update json details  ********************************** ');
 
 
-            // تغییر آیکون وضعیت از "ساعت" به "تیک"
-            // فرض می‌شود شما یک المان با این کلاس برای نمایش وضعیت دارید
-            const statusTicksElement = messageElement.find('.message-status-ticks');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('✓'); // تیک برای "ارسال شد"
-                statusTicksElement.attr('title', 'ارسال شد');
+            // تغییر آیکون وضعیت از "ساعت" به "تیک"  
+            if (timingElement.length) {
+                timingElement.html(`
+                    <img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: inline;">
+                    <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: none;">
+                `);
+            } else {
+                console.log('timingElement not found!');
             }
+            
 
             //  بروزرسانی نام فرستنده
             const messageSenderElement = messageElement.find('.message-sender-name').last();
@@ -1122,13 +1008,9 @@ window.chatApp = (function ($) {
         }
         else if (newStatus === 'failed') {
             // ۳. اگر ارسال ناموفق بود، یک استایل خطا به آن بده
-            messageElement.addClass('failed-to-send');
+            const timingElement = messageElement.find('.timing');
+            timingElement.html('<span class="text-danger">❗</span>');
 
-            const statusTicksElement = messageElement.find('.message-status-ticks mb-1');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('❗'); // علامت برای "خطا"
-                statusTicksElement.attr('title', 'ارسال ناموفق');
-            }
         }
     }
 
@@ -1150,23 +1032,35 @@ window.chatApp = (function ($) {
             return;
         }
 
+        const timingElement = messageElement.find('.timing');
         if (newStatus === 'sent') {
+            // ۲. اگر ارسال موفق بود، تمام اطلاعات را با داده‌های نهایی سرور آپدیت کن
 
-            // پاک کردن ویژگی data-message-details
-            messageElement.removeAttr('data-message-details');
+            // تغییر ID اصلی المان به شناسه واقعی سرور
+            messageElement.attr('id', `message-${savedMessage.messageId}`);
+
+            // به‌روزرسانی data attribute ها برای استفاده در آینده (مثل ویرایش و پاسخ)
+            messageElement.attr('data-message-id', savedMessage.messageId);
+
+            console.log('**********************************Start for update json details  ********************************** ');
+            // ایجاد آبجکت جهت بروز رسانی
+
             messageElement.attr('data-message-details', jsonObject);
             // messageElement.attr('data-message-details', messageDetailsJson);
 
             console.log('**********************************End for update json details  ********************************** ');
 
 
-            // تغییر آیکون وضعیت از "ساعت" به "تیک"
-            // فرض می‌شود شما یک المان با این کلاس برای نمایش وضعیت دارید
-            const statusTicksElement = messageElement.find('.message-status-ticks');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('✓'); // تیک برای "ارسال شد"
-                statusTicksElement.attr('title', 'ارسال شد');
+            // تغییر آیکون وضعیت از "ساعت" به "تیک"  
+            if (timingElement.length) {
+                timingElement.html(`
+                    <img class="img-fluid tick" src="/chatzy/assets/images/svg/tick.svg" alt="tick" style="display: inline;">
+                    <img class="img-fluid tick-all" src="/chatzy/assets/images/svg/tick-all.svg" alt="tick" style="display: none;">
+                `);
+            } else {
+                console.log('timingElement not found!');
             }
+
 
             //  بروزرسانی نام فرستنده
             const messageSenderElement = messageElement.find('.message-sender-name').last();
@@ -1210,18 +1104,17 @@ window.chatApp = (function ($) {
                 });
             }
 
-
+            // شناسه تمام لینک‌های عملیات داخل منوی کشویی را نیز آپدیت کن
+            messageElement.find('.dropdown-menu a').each(function () {
+                $(this).attr('data-messageid', savedMessage.messageId);
+            });
 
         }
         else if (newStatus === 'failed') {
             // ۳. اگر ارسال ناموفق بود، یک استایل خطا به آن بده
-            messageElement.addClass('failed-to-send');
-
-            const statusTicksElement = messageElement.find('.message-status-ticks mb-1');
-            if (statusTicksElement.length) {
-                statusTicksElement.html('❗'); // علامت برای "خطا"
-                statusTicksElement.attr('title', 'ارسال ناموفق');
-            }
+            const timingElement = messageElement.find('.timing');
+            timingElement.html('<span class="text-danger">❗</span>');
+            alert('خطا در ویرایش پیام : ' + newStatus);
         }
     }
 
@@ -1240,6 +1133,9 @@ window.chatApp = (function ($) {
          * این تابع باید در ابتدای بارگذاری صفحه فراخوانی شود.
          */
         init: function () {
+            // فراخوانی اولیه برای بارگذاری پسوندها
+            publicApi.callAlloewExtentions();
+
             currentUser = $('#userId').val(); // Ensure this is correctly fetching the numeric or string ID as used in senderUserId
             if (!currentUser) {
                 console.error("UserId not found. ChatApp cannot initialize.");
@@ -1307,7 +1203,7 @@ window.chatApp = (function ($) {
             signalRConnection.on("EditMessageSentFailed", function (messageId) {
                 console.log("Edit Message Has Failed in messageId:", messageId);
                 // فراخوانی تابعی که پیام موقت را با اطلاعات نهایی سرور آپدیت می‌کند
-                //updateMessageStatus(messageId, null, 'failed');
+                updateEditMessageStatus(messageId, null, 'failed');
             });
 
             signalRConnection.on("UserTyping", handleUserTyping);
@@ -1317,6 +1213,35 @@ window.chatApp = (function ($) {
             signalRConnection.on("AllUnreadMessagesSuccessfullyMarkedAsRead", handleAllUnreadMessageSuccessfullyMarkedAsRead);
             signalRConnection.on("UserDeleteMessage", handleDeleteMessage);
             signalRConnection.on("UserSaveMessage", handleUserSaveMessage);
+
+            signalRConnection.on("ReceiveVoiceMessageResult", function(data) {
+                console.log("ReceiveVoiceMessageResult received:", data);
+
+                if (data.success && data.recordingId === recordingId) {
+
+                    if (window.voiceUploadTimeout) {
+                        clearTimeout(window.voiceUploadTimeout);
+                        window.voiceUploadTimeout = null;
+                    }
+
+                    pendingVoiceFileId = data.fileId;
+
+                    if (window.lastRecordedBlob) {
+                        pendingVoiceUrl = URL.createObjectURL(window.lastRecordedBlob);
+                        pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
+                        addFileIdToHiddenInput(data.fileId, '#uploadedFileIds');
+
+                        isProcessing = false;
+                        updateChatInputUI('preview', {
+                            duration: data.duration,
+                            durationFormatted: data.durationFormatted
+                        });
+                    } else {
+                        console.error("Last recorded blob was not found for creating a preview.");
+                        cleanupVoiceState();
+                    }
+                }
+            });
 
             // مدیریت خطا در ارسال پیام
             signalRConnection.on("SendMessageError", function (errorMessage) {
@@ -1595,6 +1520,11 @@ window.chatApp = (function ($) {
             console.log("Public API: Manually triggering updateUnreadCountForGroup.");
             //updateUnreadCountForGroup();
         },
+        // Properties for allowed file extensions
+        ALLOWED_IMAGES: [],
+        ALLOWED_DOCS: [],
+        ALLOWED_AUDIO: [],
+
         callAlloewExtentions: async function loadFileExtensions() {
             try {
                 const response = await fetch('/Home/GetAllowedExtensions');
@@ -1603,14 +1533,15 @@ window.chatApp = (function ($) {
                 }
                 const data = await response.json();
 
-                // به‌روزرسانی متغیرها با داده‌های دریافت‌شده
-                ALLOWED_IMAGES = data.allowedImages || ALLOWED_IMAGES;
-                ALLOWED_DOCS = data.allowedDocs || ALLOWED_DOCS;
-                ALLOWED_AUDIO = data.allowedAudio || ALLOWED_AUDIO;
+                // به‌روزرسانی متغیرهای عمومی با داده‌های دریافت‌شده
+                publicApi.ALLOWED_IMAGES = data.allowedImages || [];
+                publicApi.ALLOWED_DOCS = data.allowedDocs || [];
+                publicApi.ALLOWED_AUDIO = data.allowedAudio || [];
+                console.log("Allowed extensions loaded and set publicly.");
 
             } catch (error) {
                 console.error('Error loading extensions:', error);
-                // در صورت خطا، متغیرهای پیش‌فرض حفظ می‌شوند
+                // در صورت خطا، متغیرهای پیش‌فرض خالی می‌مانند
             }
         },
 
@@ -1650,7 +1581,12 @@ $(document).ready(function () {
     let isProcessing = false;
     let mediaRecorder;
     let audioChunks = [];
-    let recordingTimerInterval = null;
+    let recordingTimerInterval = null; // For UI timer
+    let recordingChunkerInterval = null; // For sending chunks
+    let recordingId = null;
+    let chunkIndex = 0;
+    window.lastRecordedBlob = null; // To hold the final blob for preview
+    window.voiceUploadTimeout = null; // To handle SignalR timeout
     let pendingVoiceFileId = null;
     let pendingVoiceUrl = null; // برای پخش پیش‌نمایش
     let pendingVoiceAudioElement = null; // برای کنترل پخش
@@ -1667,6 +1603,8 @@ $(document).ready(function () {
         console.log('state is : ******************************************************************' + state);
         const textInputArea = $('#text-input-area');
         const voiceInputArea = $('#voice-input-area');
+        const messageInput = $('#message-input');
+        const sendButton = $('#send-message-button');
 
         // اگر المان‌ها پیدا نشدند، عملیات را متوقف کن
         if (textInputArea.length === 0 || voiceInputArea.length === 0) {
@@ -1678,48 +1616,80 @@ $(document).ready(function () {
         if (state === 'default') {
             voiceInputArea.hide().empty();
             textInputArea.show();
+            messageInput.prop('disabled', false);
+            sendButton.show();
             return;
         }
 
         // آماده‌سازی برای نمایش UI صدا
         textInputArea.hide();
-        voiceInputArea.show(); // ابتدا کانتینر را نمایش بده
+        messageInput.prop('disabled', true);
+        sendButton.hide();
+
+        voiceInputArea.show().empty(); // ابتدا کانتینر را خالی کرده و نمایش بده
         let html = '';
 
         switch (state) {
             case 'recording':
-                // طراحی جدید برای حالت ضبط
                 html = `
-                <div id="voice-ui-container" class="recording-state">
-                    <span class="recording-timer">0:00</span>
-                    <i class="fa fa-circle recording-indicator"></i>
-                </div>`;
+            <div id="voice-ui-container" class="voice-ui-container recording-state">
+                <div class="voice-recording-content">
+                    <span class="recording-indicator">
+                        <span class="recording-dot"></span>
+                        <span class="recording-timer">0:00</span>
+                    </span>
+                    <button class="voice-action-btn stop-recording-btn" type="button" title="توقف ضبط">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="8" y="8" width="8" height="8" fill="#dc3545"/>
+                        </svg>
+                    </button>
+                    <span class="recording-text">در حال ضبط...</span>
+                </div>
+            </div>`;
                 break;
 
             case 'processing':
-                // حالت پردازش برای جلوگیری از سردرگمی کاربر
                 html = `
-                <div id="voice-ui-container" class="processing-state">
-                    <i class="fa fa-spinner fa-spin"></i>
-                    <span style="margin-right: 10px;">در حال پردازش...</span>
-                </div>`;
+            <div id="voice-ui-container" class="voice-ui-container processing-state">
+                <div class="voice-processing-content">
+                    <div class="spinner-container">
+                        <div class="spinner"></div>
+                    </div>
+                    <span class="processing-text">در حال پردازش صوت...</span>
+                </div>
+            </div>`;
                 break;
 
             case 'preview':
-                // طراحی جدید برای حالت پیش‌نمایش
                 html = `
-                <div id="voice-ui-container" class="preview-state">
-                    <span class="voice-action-btn play-pause-btn" title="پخش/توقف"><i class="fa fa-play" style="transform: rotate(180deg);"></i></span>
-                    <div class="voice-player-container">
-                        <input type="range" class="voice-timeline" value="0" max="${data.duration}" step="0.1">
-                    </div>
-                    <span class="voice-duration">${data.durationFormatted}</span>
-                    
-                    <span class="voice-action-btn delete-btn mx-2" title="حذف"><i class="fa fa-trash"></i></span>
-                </div>`;
+    <div id="voice-ui-container" class="voice-ui-container preview-state">
+        <div class="voice-preview-content">
+            <button class="voice-action-btn play-pause-btn" type="button" title="پخش/توقف">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 5V19L19 12L8 5Z" fill="#292D32"/>
+                </svg>
+            </button>
+            
+            <div class="voice-player-container">
+                <input type="range" class="voice-timeline" value="0" max="${data.duration || 100}" step="0.1">
+            </div>
+            
+            <span class="voice-duration">${data.durationFormatted || '0:00'}</span>
+            
+            <a class="voice-action-btn delete-btn" title="حذف">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H5H21" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+            
+            <a class="voice-action-btn send-btn" title="ارسال">
+               <img src="/chatzy/assets/iconsax/send-btn1.svg" alt="send" />
+            </a>
+        </div>
+    </div>`;
                 break;
         }
-
 
         console.log(html);
         voiceInputArea.html(html);
@@ -1730,22 +1700,26 @@ $(document).ready(function () {
     function startRecording() {
         if (isRecording || isProcessing) return;
 
-        // 1. بررسی پشتیبانی مرورگر از فرمت‌های مختلف
+        // 1. بررسی پشتیبانی مرورگر
         if (MediaRecorder.isTypeSupported('audio/ogg')) {
             currentMimeType = 'audio/ogg';
         } else if (MediaRecorder.isTypeSupported('audio/webm')) {
             currentMimeType = 'audio/webm';
         } else {
             alert('متاسفانه مرورگر شما از ضبط صدا پشتیبانی نمی‌کند.');
-            console.error('No supported audio formats for MediaRecorder found.');
             return;
         }
 
         // 2. درخواست دسترسی به میکروفون
         navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
             isRecording = true;
-            $('.btn-record-voice i').removeClass('fa-microphone').addClass('fa-stop');
+            changeIcon($('.btn-record-voice'), 'stop');
             updateChatInputUI('recording');
+
+            // ریست کردن متغیرها برای ضبط جدید
+            audioChunks = [];
+            recordingId = crypto.randomUUID();
+            chunkIndex = 0;
 
             let seconds = 0;
             const timerSpan = $('.recording-timer');
@@ -1753,131 +1727,140 @@ $(document).ready(function () {
                 seconds++;
                 const min = Math.floor(seconds / 60);
                 const sec = seconds % 60;
-                if (timerSpan.length) {
-                    timerSpan.text(`${min}:${sec.toString().padStart(2, '0')}`);
-                }
+                timerSpan.text(`${min}:${sec.toString().padStart(2, '0')}`);
             }, 1000);
 
-            audioChunks = [];
-
-            // 3. ایجاد MediaRecorder با استفاده از فرمت پشتیبانی شده
             try {
                 mediaRecorder = new MediaRecorder(stream, { mimeType: currentMimeType });
-                mediaRecorder.start();
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+                // داده‌های صوتی را جمع‌آوری کن
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                // وقتی ضبط متوقف شد، آخرین قطعه را پردازش و ارسال کن
                 mediaRecorder.onstop = () => {
                     stream.getTracks().forEach(track => track.stop());
-                    uploadVoiceFile();
+                    processAndSendFinalChunk();
                 };
+
+                mediaRecorder.start(); // شروع ضبط
+
+                // هر 1 ثانیه، قطعات جمع‌آوری شده را ارسال کن
+                recordingChunkerInterval = setInterval(processAndSendIntermediateChunks, 1000);
+
             } catch (err) {
                 console.error("خطا در ایجاد MediaRecorder:", err);
                 alert("خطا در راه‌اندازی ضبط صدا.");
-                isRecording = false; // اطمینان از ریست شدن حالت ضبط
-                stream.getTracks().forEach(track => track.stop());
-                updateChatInputUI('default');
                 cleanupVoiceState();
             }
 
         }).catch(err => {
             console.error("خطا در دسترسی به میکروفون:", err);
             alert(`خطا در دسترسی به میکروفون: ${err.name} - ${err.message}`);
-            isRecording = false;
-            updateChatInputUI('default');
+            cleanupVoiceState();
         });
     }
 
-    // تابع stopRecording
     function stopRecording() {
         if (!isRecording) return;
         isRecording = false;
-        isProcessing = true;
+        isProcessing = true; // وارد حالت پردازش شو
+
         clearInterval(recordingTimerInterval);
-        $('.btn-record-voice i').removeClass('fa-stop').addClass('fa-microphone');
+        clearInterval(recordingChunkerInterval); // تایمر ارسال قطعات را متوقف کن
+
+        changeIcon($('.btn-record-voice'), 'microphone');
         updateChatInputUI('processing');
-        // بررسی وجود mediaRecorder قبل از فراخوانی stop
+
         if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
+            mediaRecorder.stop(); // این کار رویداد onstop را فعال می‌کند
         } else {
             console.warn('MediaRecorder در حالت ضبط نبود. در حال ریست وضعیت.');
             cleanupVoiceState();
         }
     }
 
-    //بارگذاری فایل صدای ضبط شده
-    function uploadVoiceFile() {
-        if (audioChunks.length === 0) {
-            console.warn('هیچ داده صوتی برای آپلود وجود ندارد.');
+    // قطعات میانی را پردازش و ارسال می‌کند
+    function processAndSendIntermediateChunks() {
+        if (audioChunks.length === 0) return;
+
+        // یک Blob از تمام قطعات موجود بساز
+        const chunkBlob = new Blob(audioChunks, { type: currentMimeType });
+        audioChunks = []; // آرایه را برای قطعات بعدی خالی کن
+
+        sendAudioChunk(chunkBlob, false); // ارسال به عنوان قطعه میانی
+    }
+
+    // آخرین قطعه را پردازش و ارسال می‌کند
+    function processAndSendFinalChunk() {
+        const finalBlob = new Blob(audioChunks, { type: currentMimeType });
+        audioChunks = [];
+
+        if (finalBlob.size > 0) {
+            // آخرین قطعه را برای استفاده در پیش‌نمایش پس از دریافت پاسخ SignalR ذخیره کن
+            window.lastRecordedBlob = finalBlob;
+            sendAudioChunk(finalBlob, true); // ارسال به عنوان آخرین قطعه
+        } else {
+            console.warn("آخرین قطعه صدا خالی بود. چیزی برای ارسال وجود ندارد.");
             cleanupVoiceState();
+        }
+    }
+
+    // تابع اصلی برای ارسال هر قطعه به سرور
+    function sendAudioChunk(audioBlob, isLastChunk) {
+        if (!recordingId) {
+            console.error("شناسه ضبط وجود ندارد. ارسال قطعه لغو شد.");
+            if (isLastChunk) cleanupVoiceState();
             return;
         }
 
-        const voiceBlob = new Blob(audioChunks, { type: currentMimeType });
-        pendingVoiceUrl = URL.createObjectURL(voiceBlob); // Create blob URL immediately for local use
+        const formData = new FormData();
+        formData.append('file', audioBlob, `chunk.webm`);
+        formData.append('recordingId', recordingId);
+        formData.append('chunkIndex', chunkIndex);
+        formData.append('isLastChunk', isLastChunk);
 
-        // Promise for decoding audio duration
-        const decodePromise = new Promise((resolve, reject) => {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const fileReader = new FileReader();
-            fileReader.onload = () => {
-                audioContext.decodeAudioData(fileReader.result)
-                    .then(buffer => {
-                        const duration = buffer.duration;
-                        const min = Math.floor(duration / 60);
-                        const sec = Math.floor(duration % 60);
-                        const durationFormatted = `${min}:${sec.toString().padStart(2, '0')}`;
-                        resolve({ duration, durationFormatted });
-                    })
-                    .catch(err => reject(err));
-            };
-            fileReader.onerror = () => reject('FileReader error');
-            fileReader.readAsArrayBuffer(voiceBlob);
-        });
-
-        // Promise for uploading the file
-        const uploadPromise = new Promise((resolve, reject) => {
-            const fileExtension = currentMimeType.split('/')[1];
-            const formData = new FormData();
-            formData.append('file', new File([voiceBlob], `voice-${Date.now()}.${fileExtension}`));
-
+        if (isLastChunk) {
             $.ajax({
-                url: '/Home/UploadFiles',
+                url: '/api/Chat/UploadAudioChunk',
                 type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
                 success: function (response) {
-                    if (response && response.success) {
-                        resolve({ fileId: response.fileId });
-                    } else {
-                        reject(response ? response.message : 'پاسخ نامعتبر از سرور');
-                    }
+                    // پاسخ HTTP فقط یک تاییدیه است. داده‌های اصلی از طریق SignalR می‌آید.
+                    console.log("آخرین قطعه با موفقیت ارسال شد. منتظر پاسخ SignalR...");
+
+                    // یک تایم‌اوت تنظیم کن تا اگر پاسخ SignalR نرسید، خطا نمایش داده شود
+                    window.voiceUploadTimeout = setTimeout(() => {
+                        alert("پاسخی از سرور برای پردازش فایل صوتی دریافت نشد. لطفاً دوباره تلاش کنید.");
+                        cleanupVoiceState();
+                    }, 20000); // 20 ثانیه
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
-                    reject(`خطای ارتباطی: ${textStatus}`);
+                    console.error('خطای ارتباطی در ارسال آخرین قطعه:', textStatus, errorThrown);
+                    alert('خطای ارتباط با سرور هنگام ارسال آخرین قطعه صوتی.');
+                    cleanupVoiceState();
                 }
             });
-        });
-
-        // Wait for both operations to complete
-        Promise.all([decodePromise, uploadPromise])
-            .then(([audioData, uploadData]) => {
-                console.log(`موفق: زمان محاسبه شد (${audioData.durationFormatted}), فایل آپلود شد (ID: ${uploadData.fileId})`);
-
-                pendingVoiceFileId = uploadData.fileId;
-                pendingVoiceAudioElement = new Audio(pendingVoiceUrl);
-                addFileIdToHiddenInput(uploadData.fileId, '#uploadedFileIds');
-
-                isProcessing = false;
-                updateChatInputUI('preview', {
-                    duration: audioData.duration,
-                    durationFormatted: audioData.durationFormatted
+        } else {
+            // برای قطعات میانی از sendBeacon استفاده کن
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon('/api/Chat/UploadAudioChunk', formData);
+            } else {
+                 $.ajax({
+                    url: '/api/Chat/UploadAudioChunk',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    async: true
                 });
-            })
-            .catch(error => {
-                console.error("خطا در پردازش فایل صوتی:", error);
-                alert(`خطا در پردازش فایل صوتی: ${error}`);
-                cleanupVoiceState(true, false); // Clean up, including potential server file
-            });
+            }
+        }
+
+        chunkIndex++;
     }
 
 
@@ -1886,6 +1869,18 @@ $(document).ready(function () {
      * @param {any} deleteFromServer : این متغیر مشخص میکند ایا فایل هم حذف شود یا خیر
      */
     function cleanupVoiceState(deleteFromServer = false, voiceWasSent = false) {
+        // Stop any running timers
+        if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+        if (recordingChunkerInterval) clearInterval(recordingChunkerInterval);
+        if (window.voiceUploadTimeout) {
+            clearTimeout(window.voiceUploadTimeout);
+            window.voiceUploadTimeout = null;
+        }
+        recordingTimerInterval = null;
+        recordingChunkerInterval = null;
+        window.lastRecordedBlob = null;
+
+
         if (deleteFromServer && pendingVoiceFileId) {
             // ارسال درخواست حذف به سرور با فرمت JSON
             $.ajax({
@@ -1912,23 +1907,30 @@ $(document).ready(function () {
         // ریست متغیرها
         isProcessing = false;
         isRecording = false;
-        isAudioProcessing = false;
-        isAjaxProcessing = false;
-        if (recordingTimerInterval) clearInterval(recordingTimerInterval);
-
-        // Revoke the URL ONLY if the voice was NOT sent.
-        // If it was sent, the blob URL is now in the chat UI.
         if (pendingVoiceUrl && !voiceWasSent) {
             URL.revokeObjectURL(pendingVoiceUrl);
         }
-
         pendingVoiceFileId = null;
         pendingVoiceUrl = null;
         pendingVoiceAudioElement = null;
+        audioChunks = [];
+        recordingId = null;
+        chunkIndex = 0;
+
 
         // بازگشت به حالت پیش‌فرض
         updateChatInputUI('default');
-        $('.btn-record-voice i').removeClass('fa-stop').addClass('fa-microphone');
+        changeIcon($('.btn-record-voice'), 'microphone');
+    }
+
+
+    function addFileIdToHiddenInput(serverFileId, containerSelector) {
+        const hiddenInput = $(containerSelector);
+        let currentIds = hiddenInput.val() ? hiddenInput.val().split(',') : [];
+        if (!currentIds.includes(serverFileId)) {
+            currentIds.push(serverFileId);
+            hiddenInput.val(currentIds.join(','));
+        }
     }
 
 
@@ -1943,24 +1945,68 @@ $(document).ready(function () {
         }
     });
 
+    $(document).on('click', '.stop-recording-btn', function () {
+       
+            stopRecording();
+        
+    });
+
     // کلیک روی دکمه حذف پیش‌نمایش
     $(document).on('click', '.delete-btn', function () {
         cleanupVoiceState(true, false); // true یعنی از سرور هم حذف کن
     });
+
+    // تابع برای تغییر آیکون
+    function changeIcon(button, iconType) {
+        if (iconType === 'stop') {
+            button.html(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#fff">
+                <g clip-path="url(#clip0_4418_4367)">
+                <path opacity="0.4" d="M11.9702 22C17.4931 22 21.9702 17.5228 21.9702 12C21.9702 6.47715 17.4931 2 11.9702 2C6.44737 2 1.97021 6.47715 1.97021 12C1.97021 17.5228 6.44737 22 11.9702 22Z" fill="white" style="fill: var(--fillg);"/>
+                <path d="M10.77 16.2295H13.23C14.89 16.2295 16.23 14.8895 16.23 13.2295V10.7695C16.23 9.10953 14.89 7.76953 13.23 7.76953H10.77C9.11002 7.76953 7.77002 9.10953 7.77002 10.7695V13.2295C7.77002 14.8895 9.11002 16.2295 10.77 16.2295Z" fill="white" style="fill: var(--fillg);"/>
+                </g>
+                <defs>
+                <clipPath id="clip0_4418_4367">
+                <rect width="24" height="24" fill="white"/>
+                </clipPath>
+                </defs>
+                </svg>`);
+            button.attr('data-icon', 'stop');
+        } else {
+            button.html(`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- کد SVG آیکون میکروفون -->
+            <path d="M12 15.5C14.21 15.5 16 13.71 16 11.5V6C16 3.79 14.21 2 12 2C9.79 2 8 3.79 8 6V11.5C8 13.71 9.79 15.5 12 15.5Z" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4.3501 9.6499V11.3499C4.3501 15.5699 7.7801 18.9999 12.0001 18.9999C16.2201 18.9999 19.6501 15.5699 19.6501 11.3499V9.6499" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10.6101 6.43012C11.5101 6.10012 12.4901 6.10012 13.3901 6.43012" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M11.2 8.55007C11.73 8.41007 12.28 8.41007 12.81 8.55007" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19V22" stroke="#292D32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`);
+            button.attr('data-icon', 'microphone');
+        }
+    }
+
+    // مثال
+    // تغییر به آیکون توقف
+    //changeIcon($('.btn-record-voice'), 'stop');
+
+    // بازگشت به آیکون میکروفون
+    //changeIcon($('.btn-record-voice'), 'microphone');
+
 
     // کلیک روی دکمه پخش/توقف پیش‌نمایش
     $(document).on('click', '.play-pause-btn', function () {
         const icon = $(this).find('i');
         if (pendingVoiceAudioElement.paused) {
             pendingVoiceAudioElement.play();
-            icon.removeClass('fa-play').addClass('fa-pause');
+            icon.attr('data-icon', 'pause');
         } else {
             pendingVoiceAudioElement.pause();
-            icon.removeClass('fa-pause').addClass('fa-play');
+            icon.attr('data-icon', 'play');
         }
+        init_iconsax(); // Re-render the icon
 
         pendingVoiceAudioElement.onended = () => {
-            icon.removeClass('fa-pause').addClass('fa-play');
+            icon.attr('data-icon', 'play');
+            init_iconsax();
             $('.voice-timeline').val(0); // ریست تایم‌لاین
         };
     });
@@ -1987,7 +2033,7 @@ $(document).ready(function () {
 
 
     //  رویداد کلیک برای دکمه ارسال پیام
-    $(document).off('click', '#send-message-button').on('click', '#send-message-button', function () {
+    $(document).off('click', '#send-message-button, .send-btn').on('click', '#send-message-button, .send-btn', function () {
         const groupId = parseInt($('#current-group-id-hidden-input').val());
         const groupType = $('#current-group-type-hidden-input').val();
 
@@ -2058,11 +2104,19 @@ $(document).ready(function () {
             if (actionType === 'edit') {
                 const contextId = parseInt($('#message-context-id').val());
                 const messageText = $('#message-input').val();
-                const fileUploadedIds = collectServerIdsFromContainer('#uploadedFileIds');// فایلهای جدید بارگذاری شده
-                const fileDeletedIds = collectServerIdsFromContainer('#deletUploadedFileIds'); // فایلهای حذف شده
+                const newFileIds = collectServerIdsFromContainer('#uploadedFileIds');
+                const deletedFileIds = collectServerIdsFromContainer('#deletUploadedFileIds');
+                const previousFileIds = collectServerIdsFromContainer('#previousFileIds');
+
+                // ترکیب لیست نهایی فایل‌ها
+                // شروع با فایل‌های قبلی، حذف موارد حذف شده، و سپس اضافه کردن موارد جدید
+                const finalFileIds = previousFileIds
+                    .filter(id => !deletedFileIds.includes(id))
+                    .concat(newFileIds);
+
 
                 // فراخوانی متد ویرایش در API عمومی
-                window.chatApp.editMessage(contextId, messageText, groupId, groupType, fileUploadedIds, fileDeletedIds);
+                window.chatApp.editMessage(contextId, messageText, groupId, groupType, finalFileIds, deletedFileIds);
 
             } else if (actionType === 'reply') {
                 // حالت پاسخ: فراخوانی متد ارسال پیام با پارامتر اضافی
@@ -2171,8 +2225,8 @@ $(document).ready(function () {
 
             // تشخیص نوع فایل بر اساس پسوند
             const fileExtension = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
-            const isImage = ALLOWED_IMAGES.includes(fileExtension);
-            const fileType = isImage ? 'image' : 'non-image';
+            const isImage = window.chatApp.ALLOWED_IMAGES.includes(fileExtension);
+            const fileType = isImage ? 'image' : 'non-image'; // میخواهیم چک کنیم اگه تصویر بود بر اون اساس تصمیم به ساخت بدنه بگیریم
             console.log("File Extension:", fileExtension, "File Type:", fileType);
 
             // ایجاد شیء FileExtension
@@ -2254,7 +2308,7 @@ $(document).ready(function () {
     });
 
     // actionEditMessage
-    $(document).off('click', '.actionEditMessage').on('click', '.actionEditMessage', function (e) {
+    $(document).off('click', '.actionEditMessage').on('click', '.actionEditMessage', async function (e) { // <-- Make the handler async
         e.preventDefault();
 
         // ۱. پاک‌سازی کامل فرم از هر حالت قبلی (مهم)
@@ -2266,13 +2320,11 @@ $(document).ready(function () {
 
         var details;
         try {
-            var details = JSON.parse(messageBlock.attr('data-message-details'));
+            details = JSON.parse(messageBlock.attr('data-message-details'));
         } catch (err) {
             console.error("خطا در خواندن اطلاعات پیام برای ویرایش.", err);
             return;
         }
-
-
 
         // ۴. تنظیم حالت ویرایش
         $('#message-action-type').val('edit');
@@ -2304,6 +2356,11 @@ $(document).ready(function () {
         $('#filePreviewContainer').empty(); // ابتدا کانتینر پیش‌نمایش را خالی کنید
         if (details.messageFiles && details.messageFiles.length > 0) {
 
+            // Wait for allowed extensions to be loaded if they haven't been already
+            if (window.chatApp.ALLOWED_IMAGES.length === 0) {
+                await window.chatApp.callAlloewExtentions();
+            }
+
             previousFileIds = details.messageFiles.map(f => f.messageFileId);
 
             details.messageFiles.forEach(file => {
@@ -2318,54 +2375,85 @@ $(document).ready(function () {
         //document.querySelector('#message-input').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 
-    // رویداد کلیک برای دکمه جدید انصراف از ویرایش
-    $(document).off('click', '#cancel-edit-button').on('click', '#cancel-edit-button', function () {
+    // رویداد کلیک برای دکمه انصراف از ویرایش
+    $(document).on('click', '#cancel-edit-button', function () {
         resetInputState();
     });
 
 
-    // actionReplyMessage 
+    // actionReplyMessage
     $(document).off('click', '.actionReplyMessage').on('click', '.actionReplyMessage', function (e) {
         e.preventDefault();
+        resetInputState();
 
-        resetInputState(); // این خط هر وضعیت قبلی (مثل ویرایش) را پاک می‌کند
+        // همیشه تمام کانتینرهای پیش‌نمایش را قبل از استفاده پاک می‌کنیم
+        $('#reply-thumbnail-container').empty();
+        $('#reply-icon-container').empty();
 
-        // پیدا کردن نزدیک‌ترین بلاک پیام
-        var messageBlock = $(this).closest('.message');
+        const messageBlock = $(this).closest('.message');
+        const messageId = $(this).data('messageid');
+        const senderName = messageBlock.data('sender-username');
+        const messageDetailsStr = messageBlock.attr('data-message-details');
 
-        // استخراج اطلاعات
-        var messageId = $(this).data('messageid');
-        var messageText = messageBlock.find('.message-content').text().trim();
-        var senderName = messageBlock.data('sender-username');
+        let previewText = 'پیام'; // متن پیش‌فرض
 
-        // اگر متن پیام خالی بود
-        if (!messageText || messageText == '...') {
-            var messageDetailsStr = messageBlock.attr('data-message-details');
+        if (messageDetailsStr) {
             try {
-                var messageDetails = JSON.parse(messageDetailsStr);
+                const messageDetails = JSON.parse(messageDetailsStr);
+                const hasText = messageDetails.messageText && messageDetails.messageText.trim() !== '';
+                const hasFiles = messageDetails.messageFiles && messageDetails.messageFiles.length > 0;
 
-                if (messageDetails && Array.isArray(messageDetails.messageFiles) && messageDetails.messageFiles.length > 0) {
-                    var firstFile = messageDetails.messageFiles[0];
-                    messageText = firstFile.originalFileName || firstFile.fileName || 'فایل پیوست‌شده';
-                } else {
-                    messageText = 'فایل پیوست‌شده';
+                // اگر پیام متن داشت، همیشه متن در اولویت است
+                if (hasText) {
+                    previewText = messageDetails.messageText;
+                }
+                // اگر متن نداشت ولی فایل داشت، نوع فایل را تشخیص می‌دهیم
+                else if (hasFiles) {
+                    const firstFile = messageDetails.messageFiles[0];
+                    const fileName = firstFile.originalFileName || firstFile.fileName || '';
+                    const fileExtension = fileName.split('.').pop().toLowerCase();
+
+                    // 1. بررسی برای فایل صوتی (راه حل پایدار)
+                    // ما 'webm' را مستقیماً چک می‌کنیم و همچنین لیست برنامه را هم در نظر می‌گیریم
+                    if (fileExtension === 'webm' || (window.chatApp.ALLOWED_AUDIO && window.chatApp.ALLOWED_AUDIO.includes(fileExtension))) {
+                        $('#reply-icon-container').html(' <img src="/chatzy/assets/iconsax/music-filter.svg" />');
+                        previewText = 'فایل صوتی';
+                    }
+                    // 2. بررسی برای فایل تصویر
+                    else if (window.chatApp.ALLOWED_IMAGES && window.chatApp.ALLOWED_IMAGES.includes(fileExtension)) {
+                        const baseUrl = $('#baseUrl').val() || '';
+                        const imageUrl = baseUrl + (firstFile.fileThumbPath || firstFile.filePath);
+                        $('#reply-thumbnail-container').html(`<img src="${imageUrl}" class="reply-preview-thumbnail" alt="پیش‌نمایش">`);
+                        previewText = 'عکس';
+                    }
+                    // 3. سایر فایل‌ها (داکیومنت و...)
+                    else {
+                        $('#reply-icon-container').html(' <img src="/chatzy/assets/iconsax/paperclip-2.svg" />');
+                        previewText = fileName || 'فایل پیوست‌شده';
+                    }
                 }
             } catch (err) {
-                console.warn('خطا در خواندن data-message-details:', err);
-                messageText = 'فایل پیوست‌شده';
+                console.error("خطا در خواندن data-message-details:", err);
+                previewText = messageBlock.find('.message-box-details h5').text().trim() || 'پیام';
             }
+        } else {
+            previewText = messageBlock.find('.message-box-details h5').text().trim() || 'پیام';
         }
 
-        // تنظیم اطلاعات در کانتینر پاسخ
+        // تنظیم اطلاعات و نمایش پنل
         $('#reply-to-user').text('پاسخ به: ' + senderName);
-        $('#reply-to-text').text(messageText);
+        $('#reply-to-text').text(previewText);
         $('#reply-to-container').show();
 
-        // تنظیم حالت پاسخ
+        // رندر کردن آیکون جدید (اگر از کتابخانه iconsax استفاده می‌کنید)
+        if (typeof init_iconsax === 'function') {
+            init_iconsax();
+        }
+
+        // تنظیم حالت پاسخ برای فرم
         $('#message-context-id').val(messageId);
         $('#message-action-type').val('reply');
 
-        // پاک کردن ورودی اصلی و فوکوس روی آن
         $('#message-input').val('').focus();
     });
 
@@ -2459,6 +2547,7 @@ $(document).ready(function () {
         $('#message-input').attr('rows', 1);
 
         // پاک کردن کامل پیش‌نمایش فایل‌ها و شناسه‌های آنها
+        $('#filePreviewContainer').removeClass('visible');
         $('#filePreviewContainer').empty();
         $('#uploadedFileIds').val('');
         $('#previousFileIds').val('');
@@ -2466,32 +2555,7 @@ $(document).ready(function () {
 
     }
 
-    // تابع کمکی برای ساخت پیش‌نمایش فایل‌های از قبل آپلود شده
-    function addExistingFileToPreview(fileData) {
-        console.log('**********************************' + fileData.fileName);
-        const elementId = 'file-' + fileData.messageFileId;
-        let previewElement;
-        const fileExtension = fileData.fileName.split('.').pop().toLowerCase();
-        const baseUrl = $('#baseUrl').val();
-        if (ALLOWED_IMAGES.includes(fileExtension)) {
-            const imageURL = baseUrl + fileData.fileThumbPath;
-            previewElement = `<img src="${imageURL}" class="file-thumbnail" alt="پیش‌نمایش">`;
-        } else {
-            // ... (منطق آیکون برای سایر فایل‌ها)
-            previewElement = `<div class="file-icon">📄</div>`;
-        }
-
-        const previewHtml = `
-        <div class="file-preview-item" id="${elementId}">
-            <div class="file-info">${previewElement}<div><div class="file-name">${fileData.originalFileName}</div></div></div>
-            <div class="status-icon"><span class="action-btn remove-file-btn" data-server-id="${fileData.messageFileId}" title="حذف فایل">🗑️</span></div>
-        </div>`;
-        $('#filePreviewContainer').append(previewHtml);
-        $('#' + elementId).find('.remove-file-btn').show();
-        //addFileIdToHiddenInput(fileData.messageFileId.toString());
-        //OriginalFileName
-    }
-
+ 
     // رویداد کلیک روی اعلان پیام جدید و رفتن به جدید ترین پیام
     $(document).off('click', '#newMessagesNotice').on('click', '#newMessagesNotice', function () {
         const chatFinished = $('#chat-finished');
@@ -2515,254 +2579,6 @@ $(document).ready(function () {
         window.chatApp.markMarkAllMessagesAsRead(currentGroupIdForCheck, currentGroupTypeForCheck);
 
     });
-
-
-    //------------------------------------------------------------------------- ارسال فایل
-    $(document).off('change', '#fileInput').on('change', '#fileInput', function (event) {
-        const files = event.target.files;
-        if (!files.length) return;
-
-        // پردازش تک‌تک فایل‌های انتخاب شده
-        for (const file of files) {
-            processFile(file);
-        }
-
-        // خالی کردن input تا کاربر بتواند مجدداً همان فایل را انتخاب کند
-        $(this).val('');
-    });
-
-    // قالب بندی حجم فایل
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 بایت';
-        const k = 1024;
-        const sizes = ['بایت', 'کیلوبایت', 'مگابایت', 'گیگابایت', 'ترابایت'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-    }
-
-    // لیست پسوندهای مجاز
-    const ALLOWED_IMAGES = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
-    const ALLOWED_DOCS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rar'];
-    let ALLOWED_AUDIO = ['webm', 'ogg', 'mp3', 'wav'];
-
-
-
-    /**
-     * هر فایل را پردازش، اعتبارسنجی و برای آپلود آماده می‌کند
-     * @param {File} file - فایل انتخاب شده توسط کاربر
-     */
-    async function processFile(file, elementId = null) {
-        if (!elementId) {
-            elementId = 'file-' + Date.now() + Math.random().toString(36).substr(2, 9);
-            addFileToPreviewList(file, elementId);
-        }
-
-        $('#' + elementId).data('fileObject', file);
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-
-        updateFileStatus(elementId, "در حال آماده سازی...", false, null, true);
-
-        // فراخوانی تابع برای بارگذاری تنظیمات
-        //loadFileExtensions();
-        window.chatApp.callAlloewExtentions();
-
-
-        if (ALLOWED_IMAGES.includes(fileExtension)) {
-            try {
-                updateFileStatus(elementId, 'در حال فشرده‌سازی...', false, null, true);
-                const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
-                const compressedFile = await imageCompression(file, options);
-                uploadFile(compressedFile, elementId, file.name);
-            } catch (error) {
-                updateFileStatus(elementId, 'خطا در فشرده‌سازی', true);
-            }
-        } else if (ALLOWED_DOCS.includes(fileExtension)) {
-            uploadFile(file, elementId, file.name);
-        } else if (ALLOWED_AUDIO.includes(fileExtension)) {
-            uploadFile(file, elementId, file.name);
-        }
-        else {
-            updateFileStatus(elementId, 'نوع فایل مجاز نیست!', true);
-        }
-    }
-
-    function uploadFile(file, elementId, originalFileName) {
-        const formData = new FormData();
-        formData.append('file', file, originalFileName);
-        updateFileStatus(elementId, 'در حال بارگذاری...', false, null, true);
-        $.ajax({
-            url: '/Home/UploadFiles',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function (response) {
-                if (response.success) {
-                    updateFileStatus(elementId, 'موفق', false, response.fileId);
-                    console.log('موفق' + response.fileId);
-                    addFileIdToHiddenInput(response.fileId, '#uploadedFileIds');
-                } else {
-                    updateFileStatus(elementId, response.message || 'خطا در سرور', true);
-                }
-            },
-            error: function (jqXHR) {
-                const errorMessage = jqXHR.responseJSON?.message || 'خطا در ارتباط';
-                updateFileStatus(elementId, errorMessage, true);
-            }
-        });
-    }
-
-    function addFileToPreviewList(file, elementId) {
-        let previewElement;
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-
-        // قالب‌ بندی حجم فایل
-        const formattedSize = formatFileSize(file.size);
-
-        if (ALLOWED_IMAGES.includes(fileExtension)) {
-            const imageURL = URL.createObjectURL(file);
-            previewElement = `<img src="${imageURL}" class="file-thumbnail" alt="پیش‌نمایش">`;
-        } else {
-
-            let icon = `<i class="fa fa-file-o" aria-hidden="true"></i>`
-            previewElement = `<div class="file-icon">${icon}</div>`;
-        }
-
-        const previewHtml = `
-            <div class="file-preview-item" id="${elementId}">
-                <div class="file-info">
-                    ${previewElement}
-                    <div>
-                        <div class="file-name" title="${file.name}">${file.name}</div>
-                        <div class="file-details">
-                            <span class="file-size">${formattedSize}</span>
-                            <div class="status-text">
-                                <div class="spinner"></div>
-                                <span class="status-message">در انتظار...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="status-icon">
-                    <span class="action-btn remove-file-btn" data-server-id="" title="حذف فایل">🗑️</span>
-                    <span class="action-btn retry-upload-btn" title="تلاش مجدد">🔄</span>
-                     <span class="action-btn cancel-upload-btn" title="لغو ارسال">❌</span>
-                </div>
-            </div>`;
-        $('#filePreviewContainer').append(previewHtml);
-    }
-
-    function updateFileStatus(elementId, statusText, isError = false, serverFileId = null, inProgress = false) {
-        const item = $('#' + elementId);
-        item.find('.status-message').text(statusText);
-
-        item.find('.spinner').toggle(inProgress);
-        item.find('.retry-upload-btn').toggle(isError);
-        item.find('.cancel-upload-btn').toggle(isError);
-
-        const removeButton = item.find('.remove-file-btn');
-        if (serverFileId) {
-            removeButton.attr('data-server-id', serverFileId);
-            removeButton.show();
-        } else {
-            removeButton.hide();
-        }
-    }
-
-    // تلاش مجدد برای بارگذاری فایل بارگذاری نشده
-    $(document).off('click', '.retry-upload-btn').on('click', '.retry-upload-btn', function () {
-        const item = $(this).closest('.file-preview-item');
-        const fileObject = item.data('fileObject');
-        if (fileObject) {
-            processFile(fileObject, item.attr('id'));
-        }
-    });
-
-    //  رویداد دکمه حذف فایل بارگذاری شده
-    $(document).off('click', '.remove-file-btn').on('click', '.remove-file-btn', function () {
-        const item = $(this).closest('.file-preview-item');
-        const serverIdToRemove = $(this).data('server-id').toString();
-        const img = item.find('img.file-thumbnail');
-
-        if (img.length) {
-            URL.revokeObjectURL(img.attr('src'));
-        }
-
-        // اگر در حالت ویرایش بود، فقط از اینپوت مخفی حذف میشود
-        // به این دلیل که ممکن است کاربر از حذف منصرف شود
-        const actionType = $('#message-action-type').val();
-        if (actionType === 'edit') {
-            removeFileIdFromHiddenInput(serverIdToRemove);
-            item.addClass('removing');
-            setTimeout(() => {
-                item.remove();
-            }, 400);
-
-        } else {
-            $.ajax({
-                url: '/Home/DeleteFile',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ fileId: serverIdToRemove }),
-                success: function (response) {
-                    if (response.success) {
-                        removeFileIdFromHiddenInput(serverIdToRemove);
-                        item.addClass('removing');
-                        setTimeout(() => {
-                            item.remove();
-                        }, 400);
-                    } else {
-                        alert('خطا در حذف فایل: ' + response.message);
-                    }
-                },
-                error: function () {
-                    alert('خطای ارتباطی هنگام حذف فایل.');
-                }
-            });
-        }
-
-
-    });
-
-    // رویداد کلیک برای دکمه لغو برای فایل بارگذاری نشده
-    $(document).off('click', '.cancel-upload-btn').on('click', '.cancel-upload-btn', function () {
-        const item = $(this).closest('.file-preview-item');
-        const img = item.find('img.file-thumbnail');
-
-        if (img.length) {
-            URL.revokeObjectURL(img.attr('src'));
-        }
-
-        item.addClass('removing');
-        setTimeout(() => {
-            item.remove();
-        }, 400);
-    });
-
-    // ایدی فایل آپلود شده را در اینپوت مخفی نگهداری میکند و بین انها یک کاما میگذارد
-    function addFileIdToHiddenInput(serverFileId, containerSelector) {
-        const hiddenInput = $(containerSelector);
-        let currentIds = hiddenInput.val() ? hiddenInput.val().split(',') : [];
-        if (!currentIds.includes(serverFileId)) {
-            currentIds.push(serverFileId);
-            hiddenInput.val(currentIds.join(','));
-        }
-    }
-
-    // حذف فایل بارگذاری شده - اگه در حالت ویرایش پیام بود ایدی حذف شده را در اینپوت مرتبط نگهداری میکنیم جهت حذف از سرور
-    // به این دلیل که ممکن است کاربر از حذف منصرف شود
-    function removeFileIdFromHiddenInput(serverFileId) {
-        const hiddenInput = $('#uploadedFileIds');
-        let currentIds = hiddenInput.val().split(',');
-        const newIds = currentIds.filter(id => id !== serverFileId);
-        hiddenInput.val(newIds.join(','));
-
-        // اگر در حالت ویرایش بود ایدی حذف شده در deletUploadedFileIds نگهداری بشه
-        const actionType = $('#message-action-type').val();
-        if (actionType === 'edit') {
-            addFileIdToHiddenInput(serverFileId, '#deletUploadedFileIds');
-        }
-    }
 
 
     // ریسایز شدن صفحه و فراخوانی لیسنر برای مشاهده پیامها- جهت مریدیت خوانده نشده ها
@@ -2832,10 +2648,11 @@ $(document).ready(function () {
         console.log('Line count:', lineCount, 'New rows:', newRows);
     }
 
-    // رویداد keydown برای message-input
+    // مدیریت فشردن دکمه کنترل  و اینتر
     $(document).off('keydown', '#message-input').on('keydown', '#message-input', function (event) {
         console.log('Keydown event fired. Key:', event.key, 'Ctrl:', event.ctrlKey, 'Value before:', $(this).val());
         if (event.key === 'Enter') {
+            // اگر کنترل با اینتر بود
             if (event.ctrlKey) {
                 console.log('Ctrl + Enter: Adding new line');
                 const $textarea = $(this);
@@ -2847,7 +2664,7 @@ $(document).ready(function () {
                 console.log('Value after:', $textarea.val());
                 adjustTextareaRows($textarea); // تنظیم rows بعد از افزودن خط جدید
                 return;
-            } else {
+            } else { // اگر فقط اینتر بود
                 console.log('Enter: Submitting');
                 event.preventDefault();
                 event.stopPropagation();
