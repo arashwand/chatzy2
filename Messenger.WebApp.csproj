@@ -30,9 +30,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DTOs\Messenger.DTOs.csproj" />
-    <ProjectReference Include="..\Messenger.Tools\Messenger.Tools.csproj" />
-    <ProjectReference Include="..\Services\Messenger.Services.csproj" />
+    <ProjectReference Include="..\..\..\IEMessenger\DTOs\Messenger.DTOs.csproj" />
+    <ProjectReference Include="..\..\..\IEMessenger\Messenger.Tools\Messenger.Tools.csproj" />
+    <ProjectReference Include="..\..\..\IEMessenger\Services\Messenger.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>

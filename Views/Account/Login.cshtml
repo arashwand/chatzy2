@@ -1,41 +1,39 @@
-﻿@model LoginVM
+@model LoginVM
 @{
-    ViewData["Title"] = "ورود به سایت";
-    Layout = "~/Views/Shared/_SkinDarkLoginLayout.cshtml";
+    ViewData["Title"] = "Login";
+    Layout = "~/Views/Shared/_LoginLayout.cshtml";
 }
 
-<div class="main-layout card-bg-1 is-rtl">
-    <div class="container d-flex flex-column">
-        <div class="row no-gutters text-center align-items-center justify-content-center min-vh-100">
-            <div class="col-12 col-md-6 col-lg-5 col-xl-4">
-                <h1 class="font-weight-bold">ورود</h1>
-                <p class="text-dark mb-3">پورتال اختصاصی چت آموزشگاه زبان ایران اروپا.</p>
-                <form class="mb-3" method="post">
-                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                    <div class="form-group">
-                        <label asp-for="LoginCode" class="sr-only">نام کاربری</label>
-                        <input asp-for="LoginCode" class="form-control form-control-md"  placeholder="نام کاربری خود را وارد کنید">
-                        <span asp-validation-for="LoginCode" class="text-danger"></span>
-                    </div>
-                    <div class="form-group">
-                        <label for="Password" class="sr-only">رمز عبور</label>
-                        <input type="password" class="form-control form-control-md" asp-for="Password" placeholder="رمز عبور خود را وارد کنید">
-                        <span asp-validation-for="Password" class="text-danger"></span>
-                    </div>
-                   @*  <div class="form-group d-flex justify-content-between">
-                        <div class="custom-control custom-checkbox">
-                            <input type="checkbox" class="custom-control-input" checked="" id="checkbox-remember">
-                            <label class="custom-control-label text-muted font-size-sm" for="checkbox-remember">من را بخاطر بسپار</label>
-                        </div>
-                        <a class="font-size-sm" href="reset-password.html">بازنشانی رمز عبور</a>
-                    </div> *@
-                    <button class="btn btn-primary btn-lg btn-block text-uppercase font-weight-semibold" type="submit">ورود</button>
-                </form>
-
-            </div>
-        </div>
-    </div>
+<!-- login page start -->
+<div class="login-img">
+    <img class="img-fluid img" src="~/chatzy/assets/images/login-vector.svg" alt="login-img">
 </div>
+<div class="custom-container">
+    <h2 class="login-title">ورود</h2>
+    <h3 class="login-content">پورتال اختصاصی چت آموزشگاه زبان ایران اروپا.</h3>
+    <form class="auth-form pb-3" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="form-group mt-4">
+            <label class="form-label fw-semibold dark-text" asp-for="LoginCode">نام کاربری</label>
+            <div class="form-input">
+                <input asp-for="LoginCode" class="form-control" placeholder="نام کاربری خود را وارد کنید" required>
+            </div>
+            <span asp-validation-for="LoginCode" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mt-2">
+            <label class="form-label fw-semibold dark-text" asp-for="Password">رمز عبور</label>
+            <div class="form-input">
+                <input type="password" asp-for="Password" class="form-control" placeholder="رمز عبور خود را وارد کنید" required>
+            </div>
+            <span asp-validation-for="Password" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn theme-btn w-100 mt-4">ورود</button>
+    </form>
+</div>
+<!-- login page end -->
 
 @section Scripts
 {
