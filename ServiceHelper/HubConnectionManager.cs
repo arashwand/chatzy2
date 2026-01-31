@@ -28,6 +28,7 @@ namespace Messenger.WebApp.ServiceHelper
         private readonly IConfiguration _configuration;
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
 
+        public string ClientConnectionId => _hubConnection?.ConnectionId;
         // IsConnected همچنان برای بررسی وضعیت استفاده می‌شود
         public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
@@ -187,8 +188,18 @@ namespace Messenger.WebApp.ServiceHelper
         public Task MarkAllMessagesAsReadAsync(long userId, int groupId, string groupType)
             => InvokeHubMethodAsync("MarkAllMessagesAsRead", userId, groupId, groupType);
 
+        /// <summary>
+        /// درخواست محاسبه پیامهای خوانده نشده هر چت
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        public Task RequestUnreadCounts(long userId)
+            => InvokeHubMethodAsync("RequestUnreadCounts", userId);
 
-        #region Private Methods from old service
+
+
+
+        #region Private Methods 
 
         private void RegisterHubEventHandlers()
         {
@@ -250,6 +261,7 @@ namespace Messenger.WebApp.ServiceHelper
                         groupId = messageDto.ClassGroupId,
                         groupType = chatType,
                         messageDateTime = messageDto.MessageDateTime.ToString("HH:mm"),
+                        messageDate = messageDto.MessageDateTime,
                         profilePicName = messageDto.SenderUser?.ProfilePicName,
                         messageId = messageDto.MessageId,
                         replyToMessageId = messageDto.ReplyMessageId,
@@ -321,7 +333,7 @@ namespace Messenger.WebApp.ServiceHelper
                             MessageFileId = mf.MessageFileId
                         }).ToList();
                     }
-                    
+
                     //ایجاد ابجکت جی سان
                     var messageDetailsJson = CreateJsonMessageDetails(messageDto);
 
@@ -373,6 +385,12 @@ namespace Messenger.WebApp.ServiceHelper
             _hubConnection.On<long, string, int>("UserTyping", async (userId, userName, groupId) =>
             {
                 await _webAppHubContext.Clients.All.SendAsync("UserTyping", userId, userName, groupId);
+            });
+
+            //اطلاع نتیجه به کاربر ضبط کننده صدا
+            _hubConnection.On<string, bool, long, double, string, string>("ReceiveVoiceMessageResult", async (userId, success, fileId, duration, durationFormated, recordingId) =>
+            {
+                await _webAppHubContext.Clients.User(userId).SendAsync("ReceiveVoiceMessageResult", success, fileId, duration, durationFormated, recordingId);
             });
 
             // رویداد دریافت تعداد پیام خوانده نشده در چت
@@ -432,9 +450,9 @@ namespace Messenger.WebApp.ServiceHelper
             });
 
 
-            // به ارسال کننده پیام اطلاع میدهد که پیام ارسالی با خطا مواجه شده است
+            // به ویرایش کننده پیام اطلاع میدهد که پیام ارسالی با خطا مواجه شده است
             // در ویرایش پیام هم همین متد فراخوانی میشه
-            _hubConnection.On<long, long>("EditMessageSentFailed", async (userId, messageId) =>
+            _hubConnection.On<long, long, string>("EditMessageSentFailed", async (userId, messageId, errorMessage) =>
             {
                 _logger.LogInformation($"Bridge received 'SendMessageError' for client message {messageId}");
 
@@ -443,7 +461,7 @@ namespace Messenger.WebApp.ServiceHelper
 
                 // پیام تایید را فقط به همان کاربر خاص در WebAppChatHub ارسال کنید
                 await _webAppHubContext.Clients.User(userId.ToString())
-                    .SendAsync("MessageSentFailed", messageId);
+                    .SendAsync("EditMessageSentFailed", messageId);
             });
 
 

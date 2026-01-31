@@ -15,7 +15,8 @@
 
   <ItemGroup>
     <!-- Removed: <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.4.3" /> -->
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.5" /> <!-- Added for SignalR client functionality -->
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="9.0.5" /> <!-- Added for SignalR client functionality -->
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="9.0.5" /> <!-- Added for SignalR server with Redis backplane -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.4" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.0" />
@@ -30,16 +31,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DTOs\Messenger.DTOs.csproj" />
-    <ProjectReference Include="..\Messenger.Tools\Messenger.Tools.csproj" />
-    <ProjectReference Include="..\Services\Messenger.Services.csproj" />
+    <None Include="wwwroot\service-worker.js" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="Views\Shared\_SaveMessageBody.cshtml">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
+    <ProjectReference Include="..\..\..\IEMessenger\DTOs\Messenger.DTOs.csproj" />
+    <ProjectReference Include="..\..\..\IEMessenger\Messenger.Tools\Messenger.Tools.csproj" />
+    <ProjectReference Include="..\..\..\IEMessenger\Services\Messenger.Services.csproj" />
   </ItemGroup>
 
 </Project>

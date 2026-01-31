@@ -1,8 +1,12 @@
-﻿using Messenger.DTOs;
+﻿using Azure;
+using Messenger.DTOs;
+using Messenger.Models.Models;
+using Messenger.Tools;
 using Messenger.WebApp.Models.ViewModels;
 using Messenger.WebApp.ServiceHelper.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Messenger.WebApp.ServiceHelper
 {
@@ -96,11 +100,6 @@ namespace Messenger.WebApp.ServiceHelper
             var response = await _httpClient.GetAsync($"api/filemanagement/download?messageFileId={messageFileId}");
             response.EnsureSuccessStatusCode();
 
-            //var downloadData = await response.Content.ReadFromJsonAsync<FileDownloadData>();
-
-            //return downloadData;
-
-
             var fileBytes = await response.Content.ReadAsByteArrayAsync();
             var contentDisposition = response.Content.Headers.ContentDisposition?.FileNameStar ?? response.Content.Headers.ContentDisposition?.FileName;
             var fileName = contentDisposition;
@@ -145,6 +144,21 @@ namespace Messenger.WebApp.ServiceHelper
             return await response.Content.ReadFromJsonAsync<FileRenameResult>();
         }
 
+        public async Task<CountSharedContentDto> GetFileCountsForChatAsync(int chatId, string groupType)
+        {
+            if (chatId <= 0)
+                throw new ArgumentException("ایدی چت نامعتبر است", nameof(chatId));
 
+            if (groupType != ConstChat.ClassGroupType && groupType != ConstChat.ChannelGroupType)
+                throw new ArgumentException("نوع چت نامعتبر است", nameof(groupType));
+
+            var requestUri = $"api/filemanagement/GetCountSharedFiles?chatId={chatId}&groupType={groupType}";
+
+            var response = await _httpClient.GetFromJsonAsync<CountSharedContentDto>(requestUri);
+            return response ?? new CountSharedContentDto();
+
+        }
+
+       
     }
 }

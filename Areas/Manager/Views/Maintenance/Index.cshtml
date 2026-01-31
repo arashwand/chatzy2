@@ -1,0 +1,128 @@
+﻿@{
+    ViewData["Title"] = "Redis Maintenance Tool";
+    var authToken = ViewData["AuthToken"];
+}
+
+<h1>Redis Maintenance Tool</h1>
+<hr />
+
+{{-- بخش گزارش‌گیری کاربر --}}
+<h2>🔍 گزارش وضعیت Redis برای کاربر خاص</h2>
+<div class="form-group row">
+    <label for="userIdInput" class="col-sm-2 col-form-label">User ID:</label>
+    <div class="col-sm-4">
+        <input type="number" id="userIdInput" class="form-control" value="1" placeholder="Enter User ID" />
+    </div>
+    <div class="col-sm-6">
+        <button id="reportButton" class="btn btn-primary">دریافت گزارش</button>
+    </div>
+</div>
+<div class="form-group row">
+    <div id="reportResult" class="mt-4"></div>
+
+    <hr />
+
+    {{-- بخش ریست کامل --}}
+    <h2>💣 حذف کامل داده‌های چت</h2>
+    <p class="text-danger">⚠️ **هشدار:** این عملیات تمام داده‌های چت را حذف می‌کند.</p>
+    <button id="resetButton" class="btn btn-danger btn-lg">حذف تمام داده‌های چت در Redis</button>
+    <div id="resetResultMessage" class="mt-4">
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+            // --- مدیریت دکمه گزارش‌گیری ---
+               document.getElementById('reportButton').addEventListener('click', async () => {
+            const userId = document.getElementById('userIdInput').value;
+            const reportResult = document.getElementById('reportResult');
+
+            if (!userId) {
+                reportResult.innerHTML = '<div class="alert alert-warning">لطفاً User ID را وارد کنید.</div>';
+                return;
+            }
+
+            reportResult.innerHTML = `<p class="text-info">در حال واکشی گزارش برای کاربر ${userId}...</p>`;
+
+            try {
+                const response = await fetch('/Manager/Maintenance/GetStatus', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ UserId: parseInt(userId, 10) })
+                });
+
+                // همیشه لاگ کن تا ببینی ساختار دقیق پاسخ چیه
+                const content = await response.json();
+                console.log('API response parsed JSON:', content);
+
+                if (response.ok) {
+                    const data = content;
+
+                    // مقاوم در برابر تفاوت حروف بزرگ/کوچک و مقدار null
+                    const report = data.Report ?? data.report ?? {};
+                    const keys = Object.keys(report).sort();
+
+                    let html = `<h4>گزارش Redis برای کاربر ID: ${data.UserId ?? userId}</h4>
+                                <table class="table table-bordered table-sm">
+                                <thead><tr><th>کلید Redis</th><th>مقدار / وضعیت</th></tr></thead><tbody>`;
+
+                    if (keys.length === 0) {
+                        // اگر اصلاً چیزی نیست یا فقط پیام وضعیت داریم
+                        const statusMsg = report.Status ?? (data.report?.Status ?? 'هیچ کلید مرتبطی پیدا نشد.');
+                        html += `<tr><td colspan="2">${statusMsg}</td></tr>`;
+                    } else {
+                        keys.forEach(key => {
+                            html += `<tr><td><small>${key}</small></td><td>${report[key]}</td></tr>`;
+                        });
+                    }
+
+                    html += '</tbody></table>';
+                    reportResult.innerHTML = html;
+                } else {
+                    // هنگام خطا مطمئن شو content یک شی نیست یا پیام مناسب رو استخراج کن
+                    if (response.status === 401 || response.status === 403) {
+                        reportResult.innerHTML = '<div class="alert alert-danger">❌ دسترسی غیرمجاز.</div>';
+                    } else {
+                        const serverMsg = (content && (content.Message || content.message)) || 'خطای سرور.';
+                        reportResult.innerHTML = `<div class="alert alert-danger">❌ خطا (${response.status}): ${serverMsg}</div>`;
+                    }
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                reportResult.innerHTML = '<div class="alert alert-danger">❌ خطای اتصال: نتوانست با کنترلر کلاینت ارتباط برقرار کند.</div>';
+            }
+        });
+
+
+        // --- مدیریت دکمه ریست کامل ---
+        document.getElementById('resetButton').addEventListener('click', async () => {
+            const resetResultMessage = document.getElementById('resetResultMessage');
+            resetResultMessage.innerHTML = '<p class="text-info">در حال ارسال درخواست حذف...</p>';
+
+            try {
+                // 🚀 فراخوانی اکشن POST در کنترلر سمت کلاینت
+                const response = await fetch('/Manager/Maintenance/ResetData', {
+                    method: 'POST'
+                });
+
+                const content = await response;
+
+                if (response.ok) {
+                    const data = content;
+                    resetResultMessage.innerHTML = `<div class="alert alert-success">✅ موفقیت آمیز: ${data.Message} (تعداد کلیدهای حذف شده: ${data.DeletedCount})</div>`;
+                } else {
+                     if (response.status === 401 || response.status === 403) {
+                        resetResultMessage.innerHTML = '<div class="alert alert-danger">❌ دسترسی غیرمجاز. توکن منقضی شده یا نقش شما اجازه استفاده ندارد.</div>';
+                    } else {
+                        resetResultMessage.innerHTML = `<div class="alert alert-danger">❌ خطا (${response.status}): ${content.Message || 'خطای سرور.'}</div>`;
+                    }
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                resetResultMessage.innerHTML = '<div class="alert alert-danger">❌ خطای اتصال: نتوانست با کنترلر کلاینت ارتباط برقرار کند.</div>';
+            }
+        });
+
+    </script>
+}

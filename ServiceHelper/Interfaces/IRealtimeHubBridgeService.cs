@@ -8,6 +8,9 @@ namespace Messenger.WebApp.ServiceHelper.Interfaces
     {
         bool IsConnected { get; }
 
+        // پراپرتی جدید برای عمومی کردن ConnectionId کلاینت
+        string ClientConnectionId { get; }
+
         // Events
         event Func<object, Task> OnReceiveMessage;
         event Func<object, Task> OnReceiveEditedMessage;
@@ -86,6 +89,15 @@ namespace Messenger.WebApp.ServiceHelper.Interfaces
         /// <param name="userId"></param>
         /// <returns></returns>
         Task AnnounceUserDepartureAsync(long userId);
+
+
+        /// <summary>
+        /// درخواست محاسبه تعداد پیامهای خوانده نشده هر چت برای این کاربر و ارسال نتیجه از طریق سیگنال آر
+        /// درواقع این درخواست، متد مربوطه را در وبسرویس فعال میکند و به راه می اندازد
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        Task RequestUnreadCounts(long userId);
 
     }
 }

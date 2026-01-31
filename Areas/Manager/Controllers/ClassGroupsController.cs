@@ -130,6 +130,7 @@ namespace Messenger.WebApp.Areas.Manager.Controllers
             var model = new ClassGroupDto
             {
                 ClassId = classGroup.ClassId,
+                TeacherUserId = classGroup.TeacherUserId,
                 LevelName = classGroup.LevelName,
                 ClassTiming = classGroup.ClassTiming,
                 IsActive = classGroup.IsActive,

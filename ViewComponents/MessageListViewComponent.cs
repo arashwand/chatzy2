@@ -15,7 +15,7 @@ namespace Messenger.WebApp.ViewComponents
 
         public async Task<IViewComponentResult> InvokeAsync(int groupId, int page = 1, int pageSize = 20, long messageId = 0)
         {
-            var messages = await _messageService.GetClassGroupMessagesAsync(groupId, page, pageSize, messageId);
+            var messages = await _messageService.GetClassGroupMessagesAsync(groupId, page, pageSize, messageId,false);
             return View(messages);
         }
 
